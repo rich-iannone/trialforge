@@ -4,10 +4,10 @@
 \alias{study}
 \title{Generate a mock study}
 \usage{
-study(archetype, n = 300, seed = NULL, studyid = NULL)
+study(archetype, n = 300, seed = NULL, studyid = NULL, ...)
 }
 \arguments{
-\item{archetype}{The study type. See \code{\link[=archetypes]{archetypes()}}.}
+\item{archetype}{The study type, e.g. \code{"parallel_continuous"}. See \code{\link[=archetypes]{archetypes()}}.}
 
 \item{n}{Number of randomized subjects.}
 
@@ -15,21 +15,25 @@ study(archetype, n = 300, seed = NULL, studyid = NULL)
 and recorded as \verb{$seed} on the result, so the study can always be reproduced.}
 
 \item{studyid}{\code{STUDYID}. Each archetype has a default.}
+
+\item{...}{Archetype controls, e.g. \verb{indication = "hypertension", weeks = 12}. See
+\code{\link[=controls]{controls()}}. Unknown names are an error.}
 }
 \value{
 A \code{trialforge_study} object: a list with \code{studyid}, \code{archetype}, \code{seed}, \code{cutoff}
-(a \code{Date}), and \code{sdtm} and \code{adam} (named lists of data frames whose columns carry
-haven-style \code{label} attributes).
+(a \code{Date}), \code{controls}, \code{truth} (targets vs realised values), and \code{sdtm} and \code{adam} (named
+lists of data frames whose columns carry haven-style \code{label} attributes).
 }
 \description{
-Generates the SDTM and ADaM datasets of a mock clinical study. This preview supports the
-\code{"oncology_solid_tumor"} archetype, which produces DM, EX, DS and ADSL.
+Generates a verified mock clinical study: trial design, SDTM and ADaM datasets. Every study
+passes trialforge's structural, referential and derivational checks before it is returned.
 }
 \examples{
-trial <- study("oncology_solid_tumor", n = 50, seed = 1)
+trial <- study("parallel_continuous", n = 50, seed = 1)
 trial
 head(trial$adam$ADSL)
+trial$truth$endpoint$realised_difference
 }
 \seealso{
-\code{\link[=write_study]{write_study()}}
+\code{\link[=write_study]{write_study()}}, \code{\link[=verify]{verify()}}
 }
