@@ -114,6 +114,15 @@ fn study_impl(
         .map_err(|e| Error::Other(e.to_string()))
 }
 
+/// Generates a study from JSON or YAML spec text.
+/// @noRd
+#[extendr]
+fn study_from_spec_impl(text: &str) -> Result<RStudy> {
+    trialforge::study_from_spec(text)
+        .map(|(inner, _)| RStudy { inner })
+        .map_err(|e| Error::Other(e.to_string()))
+}
+
 /// A generated study, held in Rust.
 #[extendr]
 struct RStudy {
@@ -146,6 +155,33 @@ impl RStudy {
 
     fn truth_json(&self) -> String {
         self.inner.truth.to_string()
+    }
+
+    fn write_submission(&self, path: &str) -> Result<Vec<String>> {
+        self.inner
+            .write_submission(std::path::Path::new(path))
+            .map(|paths| {
+                paths
+                    .iter()
+                    .map(|p| p.to_string_lossy().into_owned())
+                    .collect()
+            })
+            .map_err(|e| Error::Other(e.to_string()))
+    }
+
+    fn define_xml(&self, standard: &str) -> Result<String> {
+        let std = match standard {
+            "sdtm" => trialforge::io::define::Standard::Sdtm,
+            "adam" => trialforge::io::define::Standard::Adam,
+            other => {
+                return Err(Error::Other(format!(
+                    "`standard` must be \"sdtm\" or \"adam\", not {other:?}"
+                )));
+            }
+        };
+        self.inner
+            .define_xml(std)
+            .map_err(|e| Error::Other(e.to_string()))
     }
 
     /// Verification levels 0–2: a list with `passed` and a `findings` data frame.
@@ -273,5 +309,6 @@ extendr_module! {
     fn controls_impl;
     fn formats_impl;
     fn study_impl;
+    fn study_from_spec_impl;
     impl RStudy;
 }
