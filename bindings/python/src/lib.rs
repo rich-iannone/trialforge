@@ -86,6 +86,16 @@ fn study(
     Ok(Study { inner })
 }
 
+/// Generates a study from a JSON or YAML study spec (the text, not a path).
+#[pyfunction]
+fn study_from_spec(py: Python<'_>, text: &str) -> PyResult<Study> {
+    let text = text.to_string();
+    let (inner, _) = py
+        .detach(|| trialforge::study_from_spec(&text))
+        .map_err(to_py_err)?;
+    Ok(Study { inner })
+}
+
 fn to_py_err(e: trialforge::Error) -> PyErr {
     match e {
         trialforge::Error::Invalid(m) => PyValueError::new_err(m),
@@ -164,6 +174,27 @@ impl Study {
             .map_err(to_py_err)
     }
 
+    /// Writes `path/sdtm/` and `path/adam/` (XPT + define.xml each) and `path/truth.json`;
+    /// returns the paths written.
+    fn write_submission(&self, py: Python<'_>, path: PathBuf) -> PyResult<Vec<PathBuf>> {
+        py.detach(|| self.inner.write_submission(&path))
+            .map_err(to_py_err)
+    }
+
+    /// The define.xml for `standard` ("sdtm" or "adam").
+    fn define_xml(&self, standard: &str) -> PyResult<String> {
+        let std = match standard {
+            "sdtm" => trialforge::io::define::Standard::Sdtm,
+            "adam" => trialforge::io::define::Standard::Adam,
+            other => {
+                return Err(PyValueError::new_err(format!(
+                    "`standard` must be \"sdtm\" or \"adam\", not {other:?}"
+                )));
+            }
+        };
+        self.inner.define_xml(std).map_err(to_py_err)
+    }
+
     /// Re-runs verification levels 0–2: (passed, [(level, rule, dataset, variable, row, message)]).
     #[allow(clippy::type_complexity)]
     fn verify(
@@ -236,6 +267,7 @@ fn _core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(archetypes, m)?)?;
     m.add_function(wrap_pyfunction!(study, m)?)?;
     m.add_function(wrap_pyfunction!(controls, m)?)?;
+    m.add_function(wrap_pyfunction!(study_from_spec, m)?)?;
     m.add_function(wrap_pyfunction!(formats, m)?)?;
     m.add_class::<Study>()?;
     m.add_class::<ArrowTable>()?;
