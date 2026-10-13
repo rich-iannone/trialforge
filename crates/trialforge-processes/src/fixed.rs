@@ -134,6 +134,14 @@ fn validate(design: &Design, p: &CourseParams) -> Result<(), CourseError> {
             ));
         }
     }
+    let schedule = design.schedule.as_ref().expect("checked by the caller");
+    for kind in [VisitKind::Baseline, VisitKind::EndOfTreatment] {
+        if schedule.visits.iter().filter(|v| v.kind == kind).count() != 1 {
+            return err(format!(
+                "a fixed-duration schedule needs exactly one {kind:?} visit"
+            ));
+        }
+    }
     for o in &p.analyte_overrides {
         let log_lab = reference::lab_panel()
             .iter()
@@ -634,6 +642,8 @@ fn simulate_one(design: &Design, schedule: &Schedule, p: &CourseParams, s: &Subj
         medications,
         history,
         findings,
+        lesions: Vec::new(),
+        tumor: Vec::new(),
     }
 }
 
