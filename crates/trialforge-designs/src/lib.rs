@@ -76,11 +76,13 @@ impl ControlDoc {
 
 /// What an archetype resolves to.
 #[derive(Clone, Debug, PartialEq)]
+// One value per study: boxing the larger variant would buy nothing.
+#[allow(clippy::large_enum_variant)]
 pub enum Course {
     /// A fixed-duration study with a visit schedule.
     Fixed(CourseParams),
-    /// An event-driven oncology course.
-    Oncology(OncologyParams),
+    /// An event-driven oncology course, with the calibration that produced its parameters.
+    Oncology(OncologyParams, trialforge_calibrate::oncology::Calibration),
 }
 
 /// A resolved study: design, course parameters and the controls actually used.
@@ -178,10 +180,10 @@ pub fn resolve(archetype: &str, opts: &StudyOptions) -> Result<Resolved, Resolve
         "oncology_solid_tumor" => {
             let (c, json) = controls::<oncology::Controls>(&opts.controls)?;
             oncology::validate(&c).map_err(ResolveError)?;
-            let (design, params) = oncology::resolve(opts, &c);
+            let (design, params, calibration) = oncology::resolve(opts, &c);
             Ok(Resolved {
                 design,
-                course: Course::Oncology(params),
+                course: Course::Oncology(params, calibration),
                 controls: json,
             })
         }
