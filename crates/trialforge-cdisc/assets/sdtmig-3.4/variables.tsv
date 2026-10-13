@@ -1,0 +1,231 @@
+dataset	variable	label	type	core	codelist
+TA	STUDYID	Study Identifier	Char	Req	
+TA	DOMAIN	Domain Abbreviation	Char	Req	DOMAIN
+TA	ARMCD	Planned Arm Code	Char	Req	
+TA	ARM	Description of Planned Arm	Char	Req	
+TA	TAETORD	Planned Order of Element within Arm	Num	Req	
+TA	ETCD	Element Code	Char	Req	
+TA	ELEMENT	Description of Element	Char	Perm	
+TA	TABRANCH	Branch	Char	Exp	
+TA	TATRANS	Transition Rule	Char	Exp	
+TA	EPOCH	Epoch	Char	Req	EPOCH
+TE	STUDYID	Study Identifier	Char	Req	
+TE	DOMAIN	Domain Abbreviation	Char	Req	DOMAIN
+TE	ETCD	Element Code	Char	Req	
+TE	ELEMENT	Description of Element	Char	Req	
+TE	TESTRL	Rule for Start of Element	Char	Req	
+TE	TEENRL	Rule for End of Element	Char	Perm	
+TE	TEDUR	Planned Duration of Element	Char	Perm	
+TV	STUDYID	Study Identifier	Char	Req	
+TV	DOMAIN	Domain Abbreviation	Char	Req	DOMAIN
+TV	VISITNUM	Visit Number	Num	Req	
+TV	VISIT	Visit Name	Char	Perm	
+TV	VISITDY	Planned Study Day of Visit	Num	Perm	
+TV	ARMCD	Planned Arm Code	Char	Exp	
+TV	ARM	Description of Planned Arm	Char	Perm	
+TV	TVSTRL	Visit Start Rule	Char	Req	
+TV	TVENRL	Visit End Rule	Char	Perm	
+TI	STUDYID	Study Identifier	Char	Req	
+TI	DOMAIN	Domain Abbreviation	Char	Req	DOMAIN
+TI	IETESTCD	Incl/Excl Criterion Short Name	Char	Req	
+TI	IETEST	Inclusion/Exclusion Criterion	Char	Req	
+TI	IECAT	Inclusion/Exclusion Category	Char	Req	IECAT
+TI	TIVERS	Protocol Criteria Versions	Char	Perm	
+TS	STUDYID	Study Identifier	Char	Req	
+TS	DOMAIN	Domain Abbreviation	Char	Req	DOMAIN
+TS	TSSEQ	Sequence Number	Num	Req	
+TS	TSPARMCD	Trial Summary Parameter Short Name	Char	Req	TSPARMCD
+TS	TSPARM	Trial Summary Parameter	Char	Req	TSPARM
+TS	TSVAL	Parameter Value	Char	Exp	
+TS	TSVALNF	Parameter Null Flavor	Char	Perm	
+TS	TSVALCD	Parameter Value Code	Char	Exp	
+TS	TSVCDREF	Name of the Reference Terminology	Char	Exp	
+TS	TSVCDVER	Version of the Reference Terminology	Char	Exp	
+DM	STUDYID	Study Identifier	Char	Req	
+DM	DOMAIN	Domain Abbreviation	Char	Req	DOMAIN
+DM	USUBJID	Unique Subject Identifier	Char	Req	
+DM	SUBJID	Subject Identifier for the Study	Char	Req	
+DM	RFSTDTC	Subject Reference Start Date/Time	Char	Exp	
+DM	RFENDTC	Subject Reference End Date/Time	Char	Exp	
+DM	RFXSTDTC	Date/Time of First Study Treatment	Char	Exp	
+DM	RFXENDTC	Date/Time of Last Study Treatment	Char	Exp	
+DM	RFICDTC	Date/Time of Informed Consent	Char	Exp	
+DM	RFPENDTC	Date/Time of End of Participation	Char	Exp	
+DM	DTHDTC	Date/Time of Death	Char	Exp	
+DM	DTHFL	Subject Death Flag	Char	Exp	NY
+DM	SITEID	Study Site Identifier	Char	Req	
+DM	AGE	Age	Num	Exp	
+DM	AGEU	Age Units	Char	Exp	AGEU
+DM	SEX	Sex	Char	Req	SEX
+DM	RACE	Race	Char	Exp	RACE
+DM	ETHNIC	Ethnicity	Char	Perm	ETHNIC
+DM	ARMCD	Planned Arm Code	Char	Exp	
+DM	ARM	Description of Planned Arm	Char	Exp	
+DM	ACTARMCD	Actual Arm Code	Char	Exp	
+DM	ACTARM	Description of Actual Arm	Char	Exp	
+DM	COUNTRY	Country	Char	Req	COUNTRY
+DM	DMDTC	Date/Time of Collection	Char	Perm	
+DM	DMDY	Study Day of Collection	Num	Perm	
+SE	STUDYID	Study Identifier	Char	Req	
+SE	DOMAIN	Domain Abbreviation	Char	Req	DOMAIN
+SE	USUBJID	Unique Subject Identifier	Char	Req	
+SE	SESEQ	Sequence Number	Num	Req	
+SE	ETCD	Element Code	Char	Req	
+SE	ELEMENT	Description of Element	Char	Perm	
+SE	TAETORD	Planned Order of Element within Arm	Num	Perm	
+SE	EPOCH	Epoch	Char	Perm	EPOCH
+SE	SESTDTC	Start Date/Time of Element	Char	Req	
+SE	SEENDTC	End Date/Time of Element	Char	Exp	
+SE	SESTDY	Study Day of Start of Element	Num	Perm	
+SE	SEENDY	Study Day of End of Element	Num	Perm	
+SV	STUDYID	Study Identifier	Char	Req	
+SV	DOMAIN	Domain Abbreviation	Char	Req	DOMAIN
+SV	USUBJID	Unique Subject Identifier	Char	Req	
+SV	VISITNUM	Visit Number	Num	Req	
+SV	VISIT	Visit Name	Char	Perm	
+SV	VISITDY	Planned Study Day of Visit	Num	Perm	
+SV	EPOCH	Epoch	Char	Perm	EPOCH
+SV	SVSTDTC	Start Date/Time of Visit	Char	Exp	
+SV	SVENDTC	End Date/Time of Visit	Char	Exp	
+SV	SVSTDY	Study Day of Start of Visit	Num	Perm	
+SV	SVENDY	Study Day of End of Visit	Num	Perm	
+EX	STUDYID	Study Identifier	Char	Req	
+EX	DOMAIN	Domain Abbreviation	Char	Req	DOMAIN
+EX	USUBJID	Unique Subject Identifier	Char	Req	
+EX	EXSEQ	Sequence Number	Num	Req	
+EX	EXTRT	Name of Treatment	Char	Req	
+EX	EXDOSE	Dose	Num	Exp	
+EX	EXDOSU	Dose Units	Char	Exp	UNIT
+EX	EXDOSFRM	Dose Form	Char	Exp	FRM
+EX	EXDOSFRQ	Dosing Frequency per Interval	Char	Perm	FREQ
+EX	EXROUTE	Route of Administration	Char	Perm	ROUTE
+EX	EPOCH	Epoch	Char	Perm	EPOCH
+EX	EXSTDTC	Start Date/Time of Treatment	Char	Exp	
+EX	EXENDTC	End Date/Time of Treatment	Char	Exp	
+EX	EXSTDY	Study Day of Start of Treatment	Num	Perm	
+EX	EXENDY	Study Day of End of Treatment	Num	Perm	
+CM	STUDYID	Study Identifier	Char	Req	
+CM	DOMAIN	Domain Abbreviation	Char	Req	DOMAIN
+CM	USUBJID	Unique Subject Identifier	Char	Req	
+CM	CMSEQ	Sequence Number	Num	Req	
+CM	CMTRT	Reported Name of Drug, Med, or Therapy	Char	Req	
+CM	CMDECOD	Standardized Medication Name	Char	Perm	
+CM	CMCLAS	Medication Class	Char	Perm	
+CM	CMINDC	Indication	Char	Perm	
+CM	CMDOSE	Dose per Administration	Num	Perm	
+CM	CMDOSU	Dose Units	Char	Perm	UNIT
+CM	CMDOSFRQ	Dosing Frequency per Interval	Char	Perm	FREQ
+CM	CMROUTE	Route of Administration	Char	Perm	ROUTE
+CM	EPOCH	Epoch	Char	Perm	EPOCH
+CM	CMSTDTC	Start Date/Time of Medication	Char	Perm	
+CM	CMENDTC	End Date/Time of Medication	Char	Perm	
+CM	CMSTDY	Study Day of Start of Medication	Num	Perm	
+CM	CMENDY	Study Day of End of Medication	Num	Perm	
+CM	CMENRTPT	End Relative to Reference Time Point	Char	Perm	STENRF
+CM	CMENTPT	End Reference Time Point	Char	Perm	
+AE	STUDYID	Study Identifier	Char	Req	
+AE	DOMAIN	Domain Abbreviation	Char	Req	DOMAIN
+AE	USUBJID	Unique Subject Identifier	Char	Req	
+AE	AESEQ	Sequence Number	Num	Req	
+AE	AETERM	Reported Term for the Adverse Event	Char	Req	
+AE	AEDECOD	Dictionary-Derived Term	Char	Req	
+AE	AEBODSYS	Body System or Organ Class	Char	Exp	
+AE	AESOC	Primary System Organ Class	Char	Exp	
+AE	AESEV	Severity/Intensity	Char	Perm	AESEV
+AE	AESER	Serious Event	Char	Exp	NY
+AE	AEACN	Action Taken with Study Treatment	Char	Exp	ACN
+AE	AEREL	Causality	Char	Exp	AEREL
+AE	AEOUT	Outcome of Adverse Event	Char	Perm	OUT
+AE	AESCONG	Congenital Anomaly or Birth Defect	Char	Perm	NY
+AE	AESDISAB	Persist or Signif Disability/Incapacity	Char	Perm	NY
+AE	AESDTH	Results in Death	Char	Perm	NY
+AE	AESHOSP	Requires or Prolongs Hospitalization	Char	Perm	NY
+AE	AESLIFE	Is Life Threatening	Char	Perm	NY
+AE	AESMIE	Other Medically Important Serious Event	Char	Perm	NY
+AE	AECONTRT	Concomitant or Additional Trtmnt Given	Char	Perm	NY
+AE	EPOCH	Epoch	Char	Perm	EPOCH
+AE	AESTDTC	Start Date/Time of Adverse Event	Char	Exp	
+AE	AEENDTC	End Date/Time of Adverse Event	Char	Exp	
+AE	AESTDY	Study Day of Start of Adverse Event	Num	Perm	
+AE	AEENDY	Study Day of End of Adverse Event	Num	Perm	
+AE	AEENRTPT	End Relative to Reference Time Point	Char	Perm	STENRF
+AE	AEENTPT	End Reference Time Point	Char	Perm	
+DS	STUDYID	Study Identifier	Char	Req	
+DS	DOMAIN	Domain Abbreviation	Char	Req	DOMAIN
+DS	USUBJID	Unique Subject Identifier	Char	Req	
+DS	DSSEQ	Sequence Number	Num	Req	
+DS	DSTERM	Reported Term for the Disposition Event	Char	Req	
+DS	DSDECOD	Standardized Disposition Term	Char	Req	DSDECOD
+DS	DSCAT	Category for Disposition Event	Char	Exp	DSCAT
+DS	DSSCAT	Subcategory for Disposition Event	Char	Perm	
+DS	EPOCH	Epoch	Char	Perm	EPOCH
+DS	DSSTDTC	Start Date/Time of Disposition Event	Char	Exp	
+DS	DSSTDY	Study Day of Start of Disposition Event	Num	Perm	
+MH	STUDYID	Study Identifier	Char	Req	
+MH	DOMAIN	Domain Abbreviation	Char	Req	DOMAIN
+MH	USUBJID	Unique Subject Identifier	Char	Req	
+MH	MHSEQ	Sequence Number	Num	Req	
+MH	MHTERM	Reported Term for the Medical History	Char	Req	
+MH	MHDECOD	Dictionary-Derived Term	Char	Perm	
+MH	MHBODSYS	Body System or Organ Class	Char	Perm	
+MH	MHCAT	Category for Medical History	Char	Perm	
+MH	MHSTDTC	Start Date/Time of Medical History Event	Char	Perm	
+MH	MHENDTC	End Date/Time of Medical History Event	Char	Perm	
+MH	MHENRTPT	End Relative to Reference Time Point	Char	Perm	STENRF
+MH	MHENTPT	End Reference Time Point	Char	Perm	
+LB	STUDYID	Study Identifier	Char	Req	
+LB	DOMAIN	Domain Abbreviation	Char	Req	DOMAIN
+LB	USUBJID	Unique Subject Identifier	Char	Req	
+LB	LBSEQ	Sequence Number	Num	Req	
+LB	LBTESTCD	Lab Test or Examination Short Name	Char	Req	LBTESTCD
+LB	LBTEST	Lab Test or Examination Name	Char	Req	LBTEST
+LB	LBCAT	Category for Lab Test	Char	Exp	
+LB	LBORRES	Result or Finding in Original Units	Char	Exp	
+LB	LBORRESU	Original Units	Char	Exp	UNIT
+LB	LBORNRLO	Reference Range Lower Limit in Orig Unit	Char	Exp	
+LB	LBORNRHI	Reference Range Upper Limit in Orig Unit	Char	Exp	
+LB	LBSTRESC	Character Result/Finding in Std Format	Char	Exp	
+LB	LBSTRESN	Numeric Result/Finding in Standard Units	Num	Exp	
+LB	LBSTRESU	Standard Units	Char	Exp	UNIT
+LB	LBSTNRLO	Reference Range Lower Limit-Std Units	Num	Exp	
+LB	LBSTNRHI	Reference Range Upper Limit-Std Units	Num	Exp	
+LB	LBNRIND	Reference Range Indicator	Char	Exp	NRIND
+LB	LBSPEC	Specimen Type	Char	Perm	SPECTYPE
+LB	LBLOBXFL	Last Observation Before Exposure Flag	Char	Exp	NY
+LB	LBBLFL	Baseline Flag	Char	Perm	NY
+LB	VISITNUM	Visit Number	Num	Exp	
+LB	VISIT	Visit Name	Char	Perm	
+LB	VISITDY	Planned Study Day of Visit	Num	Perm	
+LB	EPOCH	Epoch	Char	Perm	EPOCH
+LB	LBDTC	Date/Time of Specimen Collection	Char	Exp	
+LB	LBDY	Study Day of Specimen Collection	Num	Perm	
+VS	STUDYID	Study Identifier	Char	Req	
+VS	DOMAIN	Domain Abbreviation	Char	Req	DOMAIN
+VS	USUBJID	Unique Subject Identifier	Char	Req	
+VS	VSSEQ	Sequence Number	Num	Req	
+VS	VSTESTCD	Vital Signs Test Short Name	Char	Req	VSTESTCD
+VS	VSTEST	Vital Signs Test Name	Char	Req	VSTEST
+VS	VSPOS	Vital Signs Position of Subject	Char	Perm	POSITION
+VS	VSORRES	Result or Finding in Original Units	Char	Exp	
+VS	VSORRESU	Original Units	Char	Exp	UNIT
+VS	VSSTRESC	Character Result/Finding in Std Format	Char	Exp	
+VS	VSSTRESN	Numeric Result/Finding in Standard Units	Num	Exp	
+VS	VSSTRESU	Standard Units	Char	Exp	UNIT
+VS	VSLOBXFL	Last Observation Before Exposure Flag	Char	Exp	NY
+VS	VSBLFL	Baseline Flag	Char	Perm	NY
+VS	VISITNUM	Visit Number	Num	Exp	
+VS	VISIT	Visit Name	Char	Perm	
+VS	VISITDY	Planned Study Day of Visit	Num	Perm	
+VS	EPOCH	Epoch	Char	Perm	EPOCH
+VS	VSDTC	Date/Time of Measurements	Char	Exp	
+VS	VSDY	Study Day of Vital Signs	Num	Perm	
+SUPPAE	STUDYID	Study Identifier	Char	Req	
+SUPPAE	RDOMAIN	Related Domain Abbreviation	Char	Req	DOMAIN
+SUPPAE	USUBJID	Unique Subject Identifier	Char	Req	
+SUPPAE	IDVAR	Identifying Variable	Char	Exp	
+SUPPAE	IDVARVAL	Identifying Variable Value	Char	Exp	
+SUPPAE	QNAM	Qualifier Variable Name	Char	Req	
+SUPPAE	QLABEL	Qualifier Variable Label	Char	Req	
+SUPPAE	QVAL	Data Value	Char	Req	
+SUPPAE	QORIG	Origin	Char	Req	
+SUPPAE	QEVAL	Evaluator	Char	Exp	
