@@ -9,8 +9,17 @@ repository.workspace = true
 authors.workspace = true
 
 [dependencies]
+arrow-array = { version = "59", optional = true }
+arrow-schema = { version = "59", optional = true }
+parquet = { version = "59", optional = true, default-features = false, features = ["arrow"] }
 trialforge-core.workspace = true
 trialforge-cdisc.workspace = true
+
+[features]
+# Dataset → Arrow conversion (used by the Python binding and the Parquet writer).
+arrow = ["dep:arrow-array", "dep:arrow-schema"]
+# Parquet writer. Off by default to keep the R package's vendored crates small.
+parquet = ["arrow", "dep:parquet"]
 
 [lints]
 workspace = true
