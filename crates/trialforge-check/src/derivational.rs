@@ -24,6 +24,7 @@ pub(crate) fn run(sdtm: &[Dataset], adam: &[Dataset], r: &mut Report) {
             basic(&b, &s, src, adam, r);
         }
     }
+    crate::onco::l2(sdtm, adam, r);
 }
 
 fn adsl(sdtm: &[Dataset], adam: &[Dataset], r: &mut Report) {
