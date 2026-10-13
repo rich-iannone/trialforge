@@ -32,3 +32,7 @@ def test_study_xpt(case: dict[str, Any], tmp_path: Path) -> None:
         if p.suffix == ".xpt"
     }
     assert written == case["xpt_md5"]
+    defines = {
+        std: hashlib.md5(study.define_xml(std).encode()).hexdigest() for std in ("sdtm", "adam")
+    }
+    assert defines == case["define_md5"]

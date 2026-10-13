@@ -137,3 +137,67 @@ def test_parquet_and_csv_round_trip(par: tf.Study, tmp_path: Path) -> None:
         expected = mem.with_columns(pl.col(pl.String).fill_null(""))
         assert back.with_columns(pl.col(pl.String).fill_null("")).equals(expected), name
     assert (tmp_path / "truth.json").exists()
+
+
+def test_write_submission_layout(tmp_path: Path) -> None:
+    study = tf.study("parallel_continuous", n=30, seed=4)
+    written = study.write_submission(tmp_path)
+    assert (tmp_path / "sdtm" / "define.xml") in written
+    assert (tmp_path / "adam" / "define.xml") in written
+    assert sorted(p.stem.upper() for p in (tmp_path / "sdtm").glob("*.xpt")) == sorted(study.sdtm)
+    assert sorted(p.stem.upper() for p in (tmp_path / "adam").glob("*.xpt")) == sorted(study.adam)
+    assert study.define_xml("adam").startswith('<?xml version="1.0" encoding="UTF-8"?>')
+    with pytest.raises(ValueError, match="sdtm"):
+        study.define_xml("send")  # pyright: ignore[reportArgumentType]
+
+
+@pytest.mark.parametrize("archetype", ["parallel_continuous", "oncology_solid_tumor"])
+@pytest.mark.parametrize("standard", ["sdtm", "adam"])
+def test_define_xml_is_schema_valid(archetype: str, standard: str) -> None:
+    xmlschema = pytest.importorskip("xmlschema")
+    odmlib = pytest.importorskip("odmlib")
+    xsd = Path(odmlib.__file__).parent / "schemas" / "define" / "2.1" / "define2-1-0.xsd"
+    schema = xmlschema.XMLSchema(str(xsd))
+    xml = tf.study(archetype, n=40, seed=6).define_xml(standard)  # pyright: ignore[reportArgumentType]
+    errors = [str(e.reason) for e in schema.iter_errors(xml)]
+    assert not errors, errors[:5]
+
+
+def test_dataset_json_round_trip(par: tf.Study, tmp_path: Path) -> None:
+    import json
+
+    par.write(tmp_path, ["dataset-json"])
+    for name, mem in {**par.sdtm, **par.adam}.items():
+        doc = json.loads((tmp_path / f"{name.lower()}.json").read_text())
+        assert doc["datasetJSONVersion"] == "1.1.0"
+        assert doc["itemGroupOID"] == f"IG.{name}"
+        assert doc["records"] == mem.height == len(doc["rows"])
+        assert [c["name"] for c in doc["columns"]] == mem.columns
+        for j, col in enumerate(mem.columns):
+            got = [row[j] for row in doc["rows"]]
+            expected = mem[col].to_list()
+            if mem[col].dtype == pl.Date:
+                expected = [None if v is None else v.isoformat() for v in expected]
+            assert got == expected, f"{name}.{col}"
+
+
+def test_study_from_spec_matches_study(tmp_path: Path) -> None:
+    yaml = (Path(__file__).resolve().parents[3] / "examples" / "hypertension.yaml").read_text()
+    from_file = tf.study_from_spec(
+        Path(__file__).resolve().parents[3] / "examples" / "hypertension.yaml"
+    )
+    from_text = tf.study_from_spec(yaml)
+    direct = tf.study(
+        "parallel_continuous", n=240, seed=20261013, studyid="HTN001",
+        indication="hypertension", weeks=12, change=[-4, -11], dropout_rate=0.12,
+    )  # fmt: skip
+    assert from_file.sdtm["LB"].equals(direct.sdtm["LB"])
+    assert from_text.adam["ADSL"].equals(direct.adam["ADSL"])
+    as_dict = tf.study_from_spec(
+        {"study": {"archetype": "parallel_continuous", "seed": 1}, "population": {"n": 10}}
+    )
+    assert as_dict.sdtm["DM"].height == 10
+    with pytest.raises(ValueError, match="not supported yet"):
+        tf.study_from_spec(
+            {"study": {"archetype": "parallel_continuous", "seed": 1}, "dropout": {}}
+        )
