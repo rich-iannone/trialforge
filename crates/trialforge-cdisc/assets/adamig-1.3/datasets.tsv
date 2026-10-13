@@ -3,3 +3,6 @@ ADSL	Subject-Level Analysis Dataset	SUBJECT LEVEL ANALYSIS DATASET	One record pe
 ADAE	Adverse Events Analysis Dataset	OCCURRENCE DATA STRUCTURE	One record per adverse event per subject	STUDYID,USUBJID,AESEQ
 ADLB	Laboratory Analysis Dataset	BASIC DATA STRUCTURE	One record per parameter per analysis visit per subject	STUDYID,USUBJID,PARAMCD,AVISITN,ADT,SRCSEQ
 ADVS	Vital Signs Analysis Dataset	BASIC DATA STRUCTURE	One record per parameter per analysis visit per subject	STUDYID,USUBJID,PARAMCD,AVISITN,ADT,SRCSEQ
+ADRS	Response Analysis Dataset	BASIC DATA STRUCTURE	One record per subject per parameter per analysis date	STUDYID,USUBJID,ASEQ
+ADTTE	Time-to-Event Analysis Dataset	BASIC DATA STRUCTURE	One record per subject per parameter	STUDYID,USUBJID,PARAMCD
+ADTR	Tumor Results Analysis Dataset	BASIC DATA STRUCTURE	One record per subject per parameter per analysis visit	STUDYID,USUBJID,PARAMCD,AVISITN

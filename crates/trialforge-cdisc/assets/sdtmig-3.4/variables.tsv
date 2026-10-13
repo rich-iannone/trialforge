@@ -229,3 +229,60 @@ SUPPAE	QLABEL	Qualifier Variable Label	Char	Req		Assigned	Sponsor
 SUPPAE	QVAL	Data Value	Char	Req		Derived		AETRTEM: 'Y' if AESTDTC is on or after DM.RFXSTDTC and no later than 30 days after DM.RFXENDTC, else 'N'.
 SUPPAE	QORIG	Origin	Char	Req		Assigned	Sponsor	
 SUPPAE	QEVAL	Evaluator	Char	Exp		Assigned	Sponsor	
+TU	STUDYID	Study Identifier	Char	Req		Assigned	Sponsor	
+TU	DOMAIN	Domain Abbreviation	Char	Req	DOMAIN	Assigned	Sponsor	
+TU	USUBJID	Unique Subject Identifier	Char	Req		Assigned	Sponsor	
+TU	TUSEQ	Sequence Number	Num	Req		Assigned	Sponsor	
+TU	TULNKID	Link ID	Char	Exp		Collected	Investigator	
+TU	TUTESTCD	Tumor/Lesion ID Short Name	Char	Req	TUTESTCD	Assigned	Sponsor	
+TU	TUTEST	Tumor/Lesion ID Test Name	Char	Req	TUTEST	Assigned	Sponsor	
+TU	TUORRES	Tumor/Lesion ID Result	Char	Exp		Collected	Investigator	
+TU	TUSTRESC	Tumor/Lesion ID Result Std. Format	Char	Exp		Derived		TUORRES in standard format.
+TU	TULOC	Location of the Tumor/Lesion	Char	Exp	LOC	Collected	Investigator	
+TU	TULAT	Laterality	Char	Perm	LAT	Collected	Investigator	
+TU	TUMETHOD	Method of Identification	Char	Exp	METHOD	Collected	Investigator	
+TU	TUEVAL	Evaluator	Char	Perm	EVAL	Assigned	Sponsor	
+TU	VISITNUM	Visit Number	Num	Exp		Assigned	Sponsor	
+TU	VISIT	Visit Name	Char	Perm		Assigned	Sponsor	
+TU	EPOCH	Epoch	Char	Perm	EPOCH	Derived		The epoch of the subject's SE element that contains the record's start date.
+TU	TUDTC	Date/Time of Tumor/Lesion Identification	Char	Exp		Collected	Investigator	
+TU	TUDY	Study Day of Tumor/Lesion Identification	Num	Perm		Derived		Study day of TUDTC relative to DM.RFSTDTC: date - RFSTDTC + 1 on or after RFSTDTC, date - RFSTDTC before it (no day 0).
+TR	STUDYID	Study Identifier	Char	Req		Assigned	Sponsor	
+TR	DOMAIN	Domain Abbreviation	Char	Req	DOMAIN	Assigned	Sponsor	
+TR	USUBJID	Unique Subject Identifier	Char	Req		Assigned	Sponsor	
+TR	TRSEQ	Sequence Number	Num	Req		Assigned	Sponsor	
+TR	TRGRPID	Group ID	Char	Perm		Assigned	Sponsor	
+TR	TRLNKGRP	Link Group ID	Char	Perm		Assigned	Sponsor	
+TR	TRLNKID	Link ID	Char	Exp		Collected	Investigator	
+TR	TRTESTCD	Tumor/Lesion Assessment Short Name	Char	Req	TRTESTCD	Assigned	Sponsor	
+TR	TRTEST	Tumor/Lesion Assessment Test Name	Char	Req	TRTEST	Assigned	Sponsor	
+TR	TRORRES	Result or Finding in Original Units	Char	Exp		Collected	Investigator	
+TR	TRORRESU	Original Units	Char	Exp	UNIT	Collected	Investigator	
+TR	TRSTRESC	Character Result/Finding in Std Format	Char	Exp		Derived		TRORRES in standard format; SUMDIAM is the sum of the target lesion measurements when all were evaluated.
+TR	TRSTRESN	Numeric Result/Finding in Standard Units	Num	Exp		Derived		TRSTRESC as a number for measurements.
+TR	TRSTRESU	Standard Units	Char	Exp	UNIT	Assigned	Sponsor	
+TR	TRSTAT	Completion Status	Char	Perm	ND	Collected	Investigator	
+TR	TRREASND	Reason Not Done	Char	Perm		Collected	Investigator	
+TR	TRMETHOD	Method Used to Identify the Tumor	Char	Exp	METHOD	Collected	Investigator	
+TR	TREVAL	Evaluator	Char	Perm	EVAL	Assigned	Sponsor	
+TR	VISITNUM	Visit Number	Num	Exp		Assigned	Sponsor	
+TR	VISIT	Visit Name	Char	Perm		Assigned	Sponsor	
+TR	EPOCH	Epoch	Char	Perm	EPOCH	Derived		The epoch of the subject's SE element that contains the record's start date.
+TR	TRDTC	Date/Time of Tumor/Lesion Measurement	Char	Exp		Collected	Investigator	
+TR	TRDY	Study Day of Tumor/Lesion Measurement	Num	Perm		Derived		Study day of TRDTC relative to DM.RFSTDTC: date - RFSTDTC + 1 on or after RFSTDTC, date - RFSTDTC before it (no day 0).
+RS	STUDYID	Study Identifier	Char	Req		Assigned	Sponsor	
+RS	DOMAIN	Domain Abbreviation	Char	Req	DOMAIN	Assigned	Sponsor	
+RS	USUBJID	Unique Subject Identifier	Char	Req		Assigned	Sponsor	
+RS	RSSEQ	Sequence Number	Num	Req		Assigned	Sponsor	
+RS	RSLNKGRP	Link Group ID	Char	Perm		Assigned	Sponsor	
+RS	RSTESTCD	Assessment Short Name	Char	Req		Assigned	Sponsor	
+RS	RSTEST	Assessment Name	Char	Req		Assigned	Sponsor	
+RS	RSCAT	Category for Assessment	Char	Exp		Assigned	Sponsor	
+RS	RSORRES	Result or Finding in Original Units	Char	Exp		Derived		RECIST 1.1 response derived from the TR measurements and lesion states at the visit.
+RS	RSSTRESC	Character Result/Finding in Std Format	Char	Exp		Derived		RSORRES in standard format.
+RS	RSEVAL	Evaluator	Char	Exp	EVAL	Assigned	Sponsor	
+RS	VISITNUM	Visit Number	Num	Exp		Assigned	Sponsor	
+RS	VISIT	Visit Name	Char	Perm		Assigned	Sponsor	
+RS	EPOCH	Epoch	Char	Perm	EPOCH	Derived		The epoch of the subject's SE element that contains the record's start date.
+RS	RSDTC	Date/Time of Assessment	Char	Exp		Collected	Investigator	
+RS	RSDY	Study Day of Assessment	Num	Perm		Derived		Study day of RSDTC relative to DM.RFSTDTC: date - RFSTDTC + 1 on or after RFSTDTC, date - RFSTDTC before it (no day 0).

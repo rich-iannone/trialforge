@@ -138,3 +138,94 @@ ADVS	ANL01FL	Analysis Flag 01	Char	Cond	NY	Derived		'Y' on the baseline record a
 ADVS	SRCDOM	Source Data	Char	Perm		Assigned	Sponsor	
 ADVS	SRCVAR	Source Variable	Char	Perm		Assigned	Sponsor	
 ADVS	SRCSEQ	Source Sequence Number	Num	Perm		Predecessor	VS.VSSEQ	
+ADRS	STUDYID	Study Identifier	Char	Req		Predecessor	ADSL.STUDYID	
+ADRS	USUBJID	Unique Subject Identifier	Char	Req		Predecessor	ADSL.USUBJID	
+ADRS	SUBJID	Subject Identifier for the Study	Char	Perm		Predecessor	ADSL.SUBJID	
+ADRS	SITEID	Study Site Identifier	Char	Perm		Predecessor	ADSL.SITEID	
+ADRS	ARMCD	Planned Arm Code	Char	Perm		Predecessor	ADSL.ARMCD	
+ADRS	ARM	Description of Planned Arm	Char	Perm		Predecessor	ADSL.ARM	
+ADRS	TRT01P	Planned Treatment for Period 01	Char	Perm		Predecessor	ADSL.TRT01P	
+ADRS	TRT01A	Actual Treatment for Period 01	Char	Perm		Predecessor	ADSL.TRT01A	
+ADRS	STRAT1R	Stratification Factor 1 (Randomized)	Char	Perm		Predecessor	ADSL.STRAT1R	
+ADRS	ITTFL	Intent-To-Treat Population Flag	Char	Perm	NY	Predecessor	ADSL.ITTFL	
+ADRS	RANDDT	Date of Randomization	Num	Perm		Predecessor	ADSL.RANDDT	
+ADRS	ASEQ	Analysis Sequence Number	Num	Req		Derived		Sequence within subject, ordered by PARAMCD, ADT, AVISITN and SRCSEQ (missing values last).
+ADRS	PARAMCD	Parameter Code	Char	Req		Assigned	Sponsor	
+ADRS	PARAM	Parameter	Char	Req		Assigned	Sponsor	
+ADRS	PARCAT1	Parameter Category 1	Char	Perm		Assigned	Sponsor	
+ADRS	PARCAT2	Parameter Category 2	Char	Perm		Assigned	Sponsor	
+ADRS	PARCAT3	Parameter Category 3	Char	Perm		Assigned	Sponsor	
+ADRS	AVALC	Analysis Value (C)	Char	Cond		Derived		OVR: RS.RSSTRESC of OVRLRESP. PD, RSP, CB, BCP, CRSP, CCB, CBCP, DEATH, MDIS: 'Y'/'N'. BOR, CBOR: best (confirmed) overall response by admiralonco's events: CR > PR > SD (CR/PR/SD at least 42 days after RANDDT) > NON-CR/NON-PD > PD > NE > MISSING; confirmation requires a CR (for CR) or CR/PR (for PR) at least 28 days later, with only CR/PR/NE between, at most one NE and no PR after a CR. LSTA: AVALC of the last OVR record. OVR records feed the derived parameters only up to the first PD (ANL02FL).
+ADRS	AVAL	Analysis Value	Num	Cond		Derived		Responses: 1 CR, 2 PR, 3 SD, 4 NON-CR/NON-PD, 5 PD, 6 NE, 7 MISSING (admiralonco aval_resp). Flags: 1 for 'Y', 0 for 'N'.
+ADRS	ADT	Analysis Date	Num	Cond		Derived		RS.RSDTC for OVR; for derived parameters the date of the selected OVR record (the earliest qualifying one; for LSTA the last); ADSL.DTHDT for DEATH.
+ADRS	AVISIT	Analysis Visit	Char	Perm		Predecessor	RS.VISIT	
+ADRS	AVISITN	Analysis Visit (N)	Num	Perm		Predecessor	RS.VISITNUM	
+ADRS	ANL01FL	Analysis Flag 01	Char	Cond	NY	Derived		OVR: 'Y' on the last record per date with a response on or after RANDDT. Derived parameters: 'Y'.
+ADRS	ANL02FL	Analysis Flag 02	Char	Perm	NY	Derived		OVR: 'Y' on records up to and including the first PD.
+ADRS	SRCDOM	Source Data	Char	Perm		Assigned	Sponsor	
+ADRS	SRCVAR	Source Variable	Char	Perm		Assigned	Sponsor	
+ADRS	SRCSEQ	Source Sequence Number	Num	Perm		Predecessor	RS.RSSEQ	
+ADTTE	STUDYID	Study Identifier	Char	Req		Predecessor	ADSL.STUDYID	
+ADTTE	USUBJID	Unique Subject Identifier	Char	Req		Predecessor	ADSL.USUBJID	
+ADTTE	SUBJID	Subject Identifier for the Study	Char	Perm		Predecessor	ADSL.SUBJID	
+ADTTE	SITEID	Study Site Identifier	Char	Perm		Predecessor	ADSL.SITEID	
+ADTTE	ARMCD	Planned Arm Code	Char	Perm		Predecessor	ADSL.ARMCD	
+ADTTE	ARM	Description of Planned Arm	Char	Perm		Predecessor	ADSL.ARM	
+ADTTE	TRT01P	Planned Treatment for Period 01	Char	Perm		Predecessor	ADSL.TRT01P	
+ADTTE	TRT01A	Actual Treatment for Period 01	Char	Perm		Predecessor	ADSL.TRT01A	
+ADTTE	STRAT1R	Stratification Factor 1 (Randomized)	Char	Perm		Predecessor	ADSL.STRAT1R	
+ADTTE	ITTFL	Intent-To-Treat Population Flag	Char	Perm	NY	Predecessor	ADSL.ITTFL	
+ADTTE	AGE	Age	Num	Perm		Predecessor	ADSL.AGE	
+ADTTE	SEX	Sex	Char	Perm	SEX	Predecessor	ADSL.SEX	
+ADTTE	RANDDT	Date of Randomization	Num	Perm		Predecessor	ADSL.RANDDT	
+ADTTE	ASEQ	Analysis Sequence Number	Num	Req		Derived		Sequence within subject, ordered by PARAMCD.
+ADTTE	PARAMCD	Parameter Code	Char	Req		Assigned	Sponsor	
+ADTTE	PARAM	Parameter	Char	Req		Assigned	Sponsor	
+ADTTE	AVAL	Analysis Value	Num	Req		Derived		ADT - STARTDT + 1, in days.
+ADTTE	AVALU	Analysis Value Unit	Char	Perm		Assigned	Sponsor	
+ADTTE	STARTDT	Time-to-Event Origin Date for Subject	Num	Cond		Derived		RANDDT for OS and PFS; for RSD (duration of response) the date of the first response (ADRS RSP = 'Y').
+ADTTE	ADT	Analysis Date	Num	Req		Derived		Event: the earliest event date (OS: ADRS DEATH; PFS and RSD: ADRS PD, then DEATH on ties). Otherwise the latest censoring date (OS: ADSL.LSTALVDT, then RANDDT on ties; PFS: ADRS LSTA, then RANDDT; RSD: ADRS LSTA). Not before STARTDT.
+ADTTE	CNSR	Censor	Num	Req		Derived		0 for an event, 1 for a censored observation.
+ADTTE	EVNTDESC	Event or Censoring Description	Char	Perm		Derived		'Death', 'Disease Progression', 'Alive', 'Last Tumor Assessment' or 'Randomization', from the selected event or censoring source.
+ADTTE	CNSDTDSC	Censor Date Description	Char	Perm		Derived		Description of the censoring date for censored observations.
+ADTTE	SRCDOM	Source Data	Char	Perm		Assigned	Sponsor	
+ADTTE	SRCVAR	Source Variable	Char	Perm		Assigned	Sponsor	
+ADTTE	SRCSEQ	Source Sequence Number	Num	Perm		Derived		ADRS.ASEQ of the source record, for ADRS sources.
+ADTR	STUDYID	Study Identifier	Char	Req		Predecessor	ADSL.STUDYID	
+ADTR	USUBJID	Unique Subject Identifier	Char	Req		Predecessor	ADSL.USUBJID	
+ADTR	SUBJID	Subject Identifier for the Study	Char	Perm		Predecessor	ADSL.SUBJID	
+ADTR	SITEID	Study Site Identifier	Char	Perm		Predecessor	ADSL.SITEID	
+ADTR	TRT01P	Planned Treatment for Period 01	Char	Perm		Predecessor	ADSL.TRT01P	
+ADTR	TRT01A	Actual Treatment for Period 01	Char	Perm		Predecessor	ADSL.TRT01A	
+ADTR	STRAT1R	Stratification Factor 1 (Randomized)	Char	Perm		Predecessor	ADSL.STRAT1R	
+ADTR	RANDDT	Date of Randomization	Num	Perm		Predecessor	ADSL.RANDDT	
+ADTR	ASEQ	Analysis Sequence Number	Num	Req		Derived		Sequence within subject, ordered by PARAMCD, AVISITN and SRCSEQ.
+ADTR	PARAMCD	Parameter Code	Char	Req		Derived		LDIAMnn (non-nodal) or NLDIAMnn (nodal) per target lesion, from the digits of TR.TRLNKID; SDIAM for the sum of diameters.
+ADTR	PARAM	Parameter	Char	Req		Assigned	Sponsor	
+ADTR	PARCAT1	Parameter Category 1	Char	Perm		Assigned	Sponsor	
+ADTR	PARCAT2	Parameter Category 2	Char	Perm		Assigned	Sponsor	
+ADTR	PARCAT3	Parameter Category 3	Char	Perm		Assigned	Sponsor	
+ADTR	TULOC	Location of the Tumor/Lesion	Char	Perm		Predecessor	TU.TULOC	
+ADTR	TULOCGR1	Location of Tumor/Lesion Group 1	Char	Perm		Derived		'NODAL' if TULOC is LYMPH NODE, otherwise 'NON-NODAL'.
+ADTR	LSEXP	Lesions Expected	Char	Perm		Derived		Per lesion: TRLNKID. SDIAM: the baseline target lesions, sorted and comma-separated.
+ADTR	LSASS	Lesions Assessed	Char	Perm		Derived		Per lesion: TRLNKID when measured. SDIAM: the measured target lesions at the visit, sorted and comma-separated.
+ADTR	AVAL	Analysis Value	Num	Cond		Derived		Per lesion: TR.TRSTRESN. SDIAM: the sum of the lesion AVALs at the visit (missing ones ignored).
+ADTR	BASE	Baseline Value	Num	Cond		Derived		SDIAM: AVAL of the ABLFL = 'Y' record.
+ADTR	CHG	Change from Baseline	Num	Cond		Derived		SDIAM: AVAL - BASE.
+ADTR	PCHG	Percent Change from Baseline	Num	Cond		Derived		SDIAM: (AVAL - BASE) / abs(BASE) * 100, not rounded (admiral derive_var_pchg()).
+ADTR	NADIR	Nadir	Num	Perm		Derived		SDIAM: the smallest AVAL among earlier ANL01FL = 'Y' records.
+ADTR	CHGNAD	Change from Nadir	Num	Perm		Derived		SDIAM: AVAL - NADIR.
+ADTR	PCHGNAD	Percent Change from Nadir	Num	Perm		Derived		SDIAM: 100 * CHGNAD / NADIR; missing if NADIR is 0.
+ADTR	ADT	Analysis Date	Num	Cond		Derived		TR.TRDTC as a date; SDIAM: the earliest at the visit.
+ADTR	ADY	Analysis Relative Day	Num	Perm		Derived		ADT - RANDDT + 1 if ADT >= RANDDT, else ADT - RANDDT.
+ADTR	AVISIT	Analysis Visit	Char	Cond		Derived		TR.VISIT; SCREENING becomes BASELINE.
+ADTR	AVISITN	Analysis Visit (N)	Num	Perm		Derived		TR.VISITNUM; 0 for BASELINE.
+ADTR	ABLFL	Baseline Record Flag	Char	Cond	NY	Derived		SDIAM: 'Y' on the last record with ADY <= 1.
+ADTR	PDFL	Progressive Disease Flag	Char	Perm	NY	Derived		SDIAM: 'Y' if the RS overall response on ADT is PD.
+ADTR	ANL01FL	Analysis Flag 01	Char	Cond	NY	Derived		Per lesion: 'Y' when measured. SDIAM: 'Y' when every baseline target lesion was measured (LSEXP = LSASS).
+ADTR	ANL02FL	Analysis Flag 02	Char	Perm	NY	Derived		SDIAM: 'Y' on the post-randomisation ANL01FL record with the smallest PCHG (best response).
+ADTR	ANL03FL	Analysis Flag 03	Char	Perm	NY	Derived		SDIAM: among ANL01FL or PDFL records, 'Y' before the first PD (all if no PD).
+ADTR	ANL04FL	Analysis Flag 04	Char	Perm	NY	Derived		SDIAM: 'Y' if ANL01FL or PDFL is 'Y'.
+ADTR	SRCDOM	Source Data	Char	Perm		Assigned	Sponsor	
+ADTR	SRCVAR	Source Variable	Char	Perm		Assigned	Sponsor	
+ADTR	SRCSEQ	Source Sequence Number	Num	Perm		Predecessor	TR.TRSEQ	

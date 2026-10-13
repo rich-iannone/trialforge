@@ -15,3 +15,6 @@ MH	Medical History	EVENTS	One record per medical history event per subject	STUDY
 LB	Laboratory Test Results	FINDINGS	One record per lab test per time point per visit per subject	STUDYID,USUBJID,LBTESTCD,VISITNUM
 VS	Vital Signs	FINDINGS	One record per vital sign measurement per time point per visit per subject	STUDYID,USUBJID,VSTESTCD,VISITNUM
 SUPPAE	Supplemental Qualifiers for AE	RELATIONSHIP	One record per IDVAR, IDVARVAL, and QNAM value per subject	STUDYID,RDOMAIN,USUBJID,IDVAR,IDVARVAL,QNAM
+TU	Tumor/Lesion Identification	FINDINGS	One record per identified tumor per subject per assessor	STUDYID,USUBJID,TULNKID,TUEVAL
+TR	Tumor/Lesion Results	FINDINGS	One record per tumor measurement/assessment per visit per subject per assessor	STUDYID,USUBJID,TRTESTCD,TRLNKID,VISITNUM
+RS	Disease Response and Clin Classification	FINDINGS	One record per response assessment per visit per subject per assessor	STUDYID,USUBJID,RSTESTCD,VISITNUM
