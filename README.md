@@ -8,9 +8,9 @@ trialforge has a Rust core with Python and R bindings. The same spec and seed pr
 data in both languages.
 
 > **Status: pre-alpha.** Two archetypes generate a complete, verified study: trial design
-> (TA, TE, TV, TI, TS), SDTM (DM, SE, SV, EX, CM, AE + SUPPAE, DS, MH, LB, VS) and ADaM (ADSL,
-> ADAE, ADLB, ADVS), written as XPT v5, CSV, Dataset-JSON 1.1 or Parquet, with a Define-XML
-> 2.1 `define.xml` for each standard.
+> (TA, TE, TV, TI, TS), SDTM (DM, SE, SV, EX, CM, AE + SUPPAE, DS, MH, LB, VS; TU, TR, RS for
+> oncology) and ADaM (ADSL, ADAE, ADLB, ADVS; ADRS, ADTTE, ADTR for oncology), written as XPT
+> v5, CSV, Dataset-JSON 1.1 or Parquet, with a Define-XML 2.1 `define.xml` for each standard.
 
 ```python
 import trialforge as tf
@@ -40,13 +40,23 @@ trialforge generate examples/hypertension.yaml -o out/
 
 The same `seed` and controls give byte-identical files from Python and R. Every study passes
 trialforge's structural, referential and derivational checks before it is returned
-(`verify()` re-runs them after you modify the data), and its ADaM matches admiral: admiral
-re-derives it from trialforge's SDTM with no differences.
+(`verify()` re-runs them after you modify the data), and its ADaM matches admiral: admiral and
+admiralonco re-derive it from trialforge's SDTM with no differences.
 
 | Archetype | What it simulates |
 |---|---|
 | `parallel_continuous` | Randomised, double-blind, placebo-controlled study with a continuous endpoint: `type_2_diabetes` (HbA1c), `hypertension` (SBP) or `obesity` (weight) |
-| `oncology_solid_tumor` | Randomised solid-tumour study with progression, death and disposition (tumour data comes later) |
+| `oncology_solid_tumor` | Randomised solid-tumour study: RECIST 1.1 tumour assessments, confirmed response, progression and death, calibrated to target medians, hazard ratios and response rates |
+
+Oncology controls are clinical targets (`os_median_months`, `os_hr`, `pfs_median_months`,
+`pfs_hr`, `orr`, …); trialforge calibrates its latent model to them, and `trial.truth` reports
+what the generated study realised (Kaplan-Meier medians, stratified Cox hazard ratios with 95%
+CIs, confirmed response rates) next to the targets.
+
+```python
+trial = tf.study("oncology_solid_tumor", n=400, seed=1, os_hr=0.7, orr=[0.4, 0.2])
+trial.truth["overall_survival"]["stratified_cox_hr"]   # {'hr': ..., 'ci95': [..., ...]}
+```
 
 Coding uses open dictionaries: MedDRA System Organ Class names with common Preferred Terms (no
 MedDRA codes), and RxNorm ingredients with ATC classes. Bring-your-own MedDRA and WHODrug are
