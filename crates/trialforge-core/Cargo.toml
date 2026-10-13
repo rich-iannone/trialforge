@@ -1,0 +1,16 @@
+[package]
+name = "trialforge-core"
+description = "RNG streams, distributions, calendar and ISO 8601 handling for trialforge"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+rand_chacha = "0.10.0"
+rand_core = "0.10.1"
+
+[lints]
+workspace = true
