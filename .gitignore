@@ -218,3 +218,20 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# R
+.Rproj.user/
+.Rhistory
+.RData
+*.Rcheck/
+bindings/r/src/*.o
+bindings/r/src/*.so
+bindings/r/src/*.dll
+
+# Rust
+**/*.rs.bk
+
+# Top-level planning and agent docs
+/*.md
+!README.md
+.DS_Store
