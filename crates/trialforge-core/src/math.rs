@@ -16,3 +16,14 @@ pub fn exp(x: f64) -> f64 {
 pub fn sqrt(x: f64) -> f64 {
     libm::sqrt(x)
 }
+
+/// `x` raised to `y`.
+pub fn pow(x: f64, y: f64) -> f64 {
+    libm::pow(x, y)
+}
+
+/// Rounds half away from zero to `dp` decimal places.
+pub fn round_dp(x: f64, dp: u32) -> f64 {
+    let m = libm::pow(10.0, f64::from(dp));
+    libm::round(x * m) / m
+}
