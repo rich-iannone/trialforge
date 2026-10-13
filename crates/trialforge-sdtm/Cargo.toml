@@ -1,0 +1,18 @@
+[package]
+name = "trialforge-sdtm"
+description = "SDTM emitters for trialforge"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+trialforge-core.workspace = true
+trialforge-model.workspace = true
+trialforge-processes.workspace = true
+trialforge-cdisc.workspace = true
+
+[lints]
+workspace = true
