@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import datetime
+import json
 from collections.abc import Sequence
+from dataclasses import dataclass
 from functools import cached_property
 from os import PathLike
 from pathlib import Path
@@ -23,13 +25,14 @@ def study(
     seed: int | None = None,
     studyid: str | None = None,
     output: Output = "polars",
+    **controls: Any,
 ) -> Study:
     """Generate a mock study.
 
     Parameters
     ----------
     archetype
-        The study type, e.g. `"oncology_solid_tumor"`. See `archetypes()`.
+        The study type, e.g. `"parallel_continuous"`. See `archetypes()`.
     n
         Number of randomized subjects.
     seed
@@ -40,15 +43,61 @@ def study(
     output
         DataFrame type for `Study.sdtm` and `Study.adam`: `"polars"`, `"pandas"` or
         `"pyarrow"`.
+    **controls
+        Archetype controls, e.g. `indication="hypertension", weeks=12`. See `controls()`.
+        Unknown names are an error.
     """
     if output not in _OUTPUTS:
         raise ValueError(f"`output` must be one of {', '.join(map(repr, _OUTPUTS))}")
-    return Study(_core.study(archetype, n, seed, studyid), output)
+    payload = json.dumps(controls) if controls else None
+    return Study(_core.study(archetype, n, seed, studyid, payload), output)
 
 
 def archetypes() -> dict[str, str]:
     """The available study archetypes, mapped to one-line descriptions."""
     return dict(_core.archetypes())
+
+
+@dataclass(frozen=True)
+class Control:
+    """One archetype control."""
+
+    name: str
+    description: str
+    default: Any
+
+
+def controls(archetype: str) -> list[Control]:
+    """The controls an archetype accepts, with descriptions and defaults."""
+    return [
+        Control(c["name"], c["description"], c["default"])
+        for c in json.loads(_core.controls(archetype))
+    ]
+
+
+def formats() -> list[str]:
+    """Output formats `Study.write()` supports."""
+    return _core.formats()
+
+
+@dataclass(frozen=True)
+class Finding:
+    """One failed verification check."""
+
+    level: str
+    rule: str
+    dataset: str
+    variable: str | None
+    row: int | None
+    message: str
+
+
+@dataclass(frozen=True)
+class Report:
+    """The result of `Study.verify()`."""
+
+    passed: bool
+    findings: list[Finding]
 
 
 class Study:
@@ -75,8 +124,18 @@ class Study:
 
     @property
     def cutoff(self) -> datetime.date:
-        """The data cutoff date."""
+        """The data cutoff (event-driven studies) or last contact date (fixed-duration)."""
         return _EPOCH + datetime.timedelta(days=self._core.cutoff_days)
+
+    @cached_property
+    def controls(self) -> dict[str, Any]:
+        """The full control set used (defaults merged with the ones you passed)."""
+        return json.loads(self._core.controls_json)
+
+    @cached_property
+    def truth(self) -> dict[str, Any]:
+        """The truth manifest: targets and the values realised in the generated ADaM."""
+        return json.loads(self._core.truth_json)
 
     @cached_property
     def sdtm(self) -> dict[str, Any]:
@@ -89,13 +148,22 @@ class Study:
         return {name: self._frame(name) for name in self._core.adam_names}
 
     def write(self, path: str | PathLike[str], formats: Sequence[str] = ("xpt",)) -> list[Path]:
-        """Write every dataset to the directory `path` (created if needed).
+        """Write every dataset to the directory `path` (created if needed), plus `truth.json`.
 
-        Files are named by lower-case dataset name, e.g. `dm.xpt`. Returns the paths written.
+        Files are named by lower-case dataset name, e.g. `dm.xpt`. See `formats()` for the
+        supported formats. Returns the paths written.
         """
         if isinstance(formats, str):
             formats = [formats]
         return [Path(p) for p in self._core.write(Path(path), list(formats))]
+
+    def verify(self) -> Report:
+        """Re-run verification levels 0–2 (structural, referential, derivational).
+
+        Generation already guarantees these pass; this is for after you modify the data.
+        """
+        passed, findings = self._core.verify()
+        return Report(passed, [Finding(*f) for f in findings])
 
     def _frame(self, name: str) -> Any:
         table = self._core.table(name)
