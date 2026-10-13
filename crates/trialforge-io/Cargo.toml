@@ -14,6 +14,7 @@ arrow-schema = { version = "59", optional = true }
 parquet = { version = "59", optional = true, default-features = false, features = ["arrow"] }
 trialforge-core.workspace = true
 trialforge-cdisc.workspace = true
+serde_json = "1.0.154"
 
 [features]
 # Dataset → Arrow conversion (used by the Python binding and the Parquet writer).
