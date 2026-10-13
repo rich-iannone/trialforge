@@ -1,0 +1,174 @@
+# Open MedDRA-shaped AE dictionary: MedDRA System Organ Class names and common Preferred Terms
+# (British spelling, primary SOC), without LLT/HLT/HLGT levels or MedDRA codes. Not MedDRA itself;
+# bring-your-own licensed MedDRA for production coding.
+pt	soc
+Nausea	Gastrointestinal disorders
+Vomiting	Gastrointestinal disorders
+Diarrhoea	Gastrointestinal disorders
+Constipation	Gastrointestinal disorders
+Abdominal pain	Gastrointestinal disorders
+Abdominal pain upper	Gastrointestinal disorders
+Dyspepsia	Gastrointestinal disorders
+Dry mouth	Gastrointestinal disorders
+Flatulence	Gastrointestinal disorders
+Gastrooesophageal reflux disease	Gastrointestinal disorders
+Abdominal distension	Gastrointestinal disorders
+Stomatitis	Gastrointestinal disorders
+Toothache	Gastrointestinal disorders
+Haemorrhoids	Gastrointestinal disorders
+Fatigue	General disorders and administration site conditions
+Pyrexia	General disorders and administration site conditions
+Asthenia	General disorders and administration site conditions
+Oedema peripheral	General disorders and administration site conditions
+Chest pain	General disorders and administration site conditions
+Influenza like illness	General disorders and administration site conditions
+Malaise	General disorders and administration site conditions
+Chills	General disorders and administration site conditions
+Injection site reaction	General disorders and administration site conditions
+Pain	General disorders and administration site conditions
+Headache	Nervous system disorders
+Dizziness	Nervous system disorders
+Somnolence	Nervous system disorders
+Paraesthesia	Nervous system disorders
+Dysgeusia	Nervous system disorders
+Syncope	Nervous system disorders
+Tremor	Nervous system disorders
+Migraine	Nervous system disorders
+Hypoaesthesia	Nervous system disorders
+Lethargy	Nervous system disorders
+Sciatica	Nervous system disorders
+Nasopharyngitis	Infections and infestations
+Upper respiratory tract infection	Infections and infestations
+Urinary tract infection	Infections and infestations
+Influenza	Infections and infestations
+Bronchitis	Infections and infestations
+Sinusitis	Infections and infestations
+Pharyngitis	Infections and infestations
+Gastroenteritis	Infections and infestations
+Pneumonia	Infections and infestations
+Herpes zoster	Infections and infestations
+Cellulitis	Infections and infestations
+Oral herpes	Infections and infestations
+COVID-19	Infections and infestations
+Arthralgia	Musculoskeletal and connective tissue disorders
+Back pain	Musculoskeletal and connective tissue disorders
+Myalgia	Musculoskeletal and connective tissue disorders
+Pain in extremity	Musculoskeletal and connective tissue disorders
+Muscle spasms	Musculoskeletal and connective tissue disorders
+Musculoskeletal pain	Musculoskeletal and connective tissue disorders
+Neck pain	Musculoskeletal and connective tissue disorders
+Osteoarthritis	Musculoskeletal and connective tissue disorders
+Joint swelling	Musculoskeletal and connective tissue disorders
+Muscular weakness	Musculoskeletal and connective tissue disorders
+Osteoporosis	Musculoskeletal and connective tissue disorders
+Cough	Respiratory, thoracic and mediastinal disorders
+Dyspnoea	Respiratory, thoracic and mediastinal disorders
+Oropharyngeal pain	Respiratory, thoracic and mediastinal disorders
+Nasal congestion	Respiratory, thoracic and mediastinal disorders
+Epistaxis	Respiratory, thoracic and mediastinal disorders
+Rhinorrhoea	Respiratory, thoracic and mediastinal disorders
+Asthma	Respiratory, thoracic and mediastinal disorders
+Dysphonia	Respiratory, thoracic and mediastinal disorders
+Chronic obstructive pulmonary disease	Respiratory, thoracic and mediastinal disorders
+Rash	Skin and subcutaneous tissue disorders
+Pruritus	Skin and subcutaneous tissue disorders
+Erythema	Skin and subcutaneous tissue disorders
+Alopecia	Skin and subcutaneous tissue disorders
+Dry skin	Skin and subcutaneous tissue disorders
+Hyperhidrosis	Skin and subcutaneous tissue disorders
+Urticaria	Skin and subcutaneous tissue disorders
+Eczema	Skin and subcutaneous tissue disorders
+Dermatitis	Skin and subcutaneous tissue disorders
+Night sweats	Skin and subcutaneous tissue disorders
+Psoriasis	Skin and subcutaneous tissue disorders
+Insomnia	Psychiatric disorders
+Anxiety	Psychiatric disorders
+Depression	Psychiatric disorders
+Agitation	Psychiatric disorders
+Confusional state	Psychiatric disorders
+Irritability	Psychiatric disorders
+Abnormal dreams	Psychiatric disorders
+Decreased appetite	Metabolism and nutrition disorders
+Hypokalaemia	Metabolism and nutrition disorders
+Hyperglycaemia	Metabolism and nutrition disorders
+Hypoglycaemia	Metabolism and nutrition disorders
+Dehydration	Metabolism and nutrition disorders
+Hyponatraemia	Metabolism and nutrition disorders
+Hypercholesterolaemia	Metabolism and nutrition disorders
+Hyperlipidaemia	Metabolism and nutrition disorders
+Gout	Metabolism and nutrition disorders
+Hyperuricaemia	Metabolism and nutrition disorders
+Type 2 diabetes mellitus	Metabolism and nutrition disorders
+Obesity	Metabolism and nutrition disorders
+Vitamin D deficiency	Metabolism and nutrition disorders
+Hypertension	Vascular disorders
+Hypotension	Vascular disorders
+Hot flush	Vascular disorders
+Flushing	Vascular disorders
+Orthostatic hypotension	Vascular disorders
+Haematoma	Vascular disorders
+Deep vein thrombosis	Vascular disorders
+Palpitations	Cardiac disorders
+Tachycardia	Cardiac disorders
+Atrial fibrillation	Cardiac disorders
+Bradycardia	Cardiac disorders
+Angina pectoris	Cardiac disorders
+Myocardial infarction	Cardiac disorders
+Cardiac failure	Cardiac disorders
+Coronary artery disease	Cardiac disorders
+Alanine aminotransferase increased	Investigations
+Aspartate aminotransferase increased	Investigations
+Blood creatinine increased	Investigations
+Weight decreased	Investigations
+Weight increased	Investigations
+Blood glucose increased	Investigations
+Gamma-glutamyltransferase increased	Investigations
+Blood alkaline phosphatase increased	Investigations
+Electrocardiogram QT prolonged	Investigations
+Blood creatine phosphokinase increased	Investigations
+Neutrophil count decreased	Investigations
+Platelet count decreased	Investigations
+White blood cell count decreased	Investigations
+Haemoglobin decreased	Investigations
+Blood bilirubin increased	Investigations
+Anaemia	Blood and lymphatic system disorders
+Neutropenia	Blood and lymphatic system disorders
+Thrombocytopenia	Blood and lymphatic system disorders
+Leukopenia	Blood and lymphatic system disorders
+Lymphopenia	Blood and lymphatic system disorders
+Pollakiuria	Renal and urinary disorders
+Dysuria	Renal and urinary disorders
+Haematuria	Renal and urinary disorders
+Acute kidney injury	Renal and urinary disorders
+Nocturia	Renal and urinary disorders
+Vision blurred	Eye disorders
+Dry eye	Eye disorders
+Cataract	Eye disorders
+Conjunctival haemorrhage	Eye disorders
+Lacrimation increased	Eye disorders
+Glaucoma	Eye disorders
+Vertigo	Ear and labyrinth disorders
+Tinnitus	Ear and labyrinth disorders
+Hepatic steatosis	Hepatobiliary disorders
+Cholelithiasis	Hepatobiliary disorders
+Hepatic function abnormal	Hepatobiliary disorders
+Hypersensitivity	Immune system disorders
+Seasonal allergy	Immune system disorders
+Fall	Injury, poisoning and procedural complications
+Contusion	Injury, poisoning and procedural complications
+Ligament sprain	Injury, poisoning and procedural complications
+Skin laceration	Injury, poisoning and procedural complications
+Procedural pain	Injury, poisoning and procedural complications
+Arthropod bite	Injury, poisoning and procedural complications
+Excoriation	Injury, poisoning and procedural complications
+Hypothyroidism	Endocrine disorders
+Hyperthyroidism	Endocrine disorders
+Erectile dysfunction	Reproductive system and breast disorders
+Benign prostatic hyperplasia	Reproductive system and breast disorders
+Basal cell carcinoma	Neoplasms benign, malignant and unspecified (incl cysts and polyps)
+Skin papilloma	Neoplasms benign, malignant and unspecified (incl cysts and polyps)
+Tooth extraction	Surgical and medical procedures
+Appendicectomy	Surgical and medical procedures
+Cholecystectomy	Surgical and medical procedures
+Hysterectomy	Surgical and medical procedures
+Knee arthroplasty	Surgical and medical procedures
