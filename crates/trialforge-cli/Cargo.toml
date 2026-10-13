@@ -1,0 +1,19 @@
+[package]
+name = "trialforge-cli"
+description = "Command-line interface for trialforge"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[[bin]]
+name = "trialforge"
+path = "src/main.rs"
+
+[dependencies]
+trialforge.workspace = true
+
+[lints]
+workspace = true
