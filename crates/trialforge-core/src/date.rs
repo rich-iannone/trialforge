@@ -74,9 +74,15 @@ impl Date {
     }
 
     /// The date `n` days later (or earlier, for negative `n`).
+    ///
+    /// # Panics
+    /// If the result is outside the `i32` day range (a bug in the caller, never valid data).
     #[must_use]
     pub const fn add_days(self, n: i32) -> Self {
-        Self(self.0 + n)
+        match self.0.checked_add(n) {
+            Some(d) => Self(d),
+            None => panic!("date arithmetic overflowed"),
+        }
     }
 
     /// Days from `other` to `self`.
