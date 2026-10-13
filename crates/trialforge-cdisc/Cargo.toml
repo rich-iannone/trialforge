@@ -1,0 +1,15 @@
+[package]
+name = "trialforge-cdisc"
+description = "CDISC metadata bundle for trialforge: SDTM/ADaM variables, controlled terminology"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+trialforge-core.workspace = true
+
+[lints]
+workspace = true
