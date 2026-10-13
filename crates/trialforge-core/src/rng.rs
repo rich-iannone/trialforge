@@ -4,7 +4,8 @@
 //! seed, for example `study seed → "subject" → 17 → "ae"`. A stream's seed depends only on its
 //! path, so:
 //!
-//! - raising `n` from 300 to 301 leaves the first 300 subjects unchanged;
+//! - a subject's own draws do not depend on how many other subjects there are (enrollment
+//!   order and block randomisation, being sequential, can still shift when `n` changes);
 //! - turning a domain on or off (e.g. EG) does not change any other domain;
 //! - user hooks get their own derived seeds and stay deterministic.
 //!
