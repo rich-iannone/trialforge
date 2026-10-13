@@ -1,0 +1,16 @@
+[package]
+name = "trialforge-io"
+description = "Writers for trialforge: Arrow, Parquet, XPT, Dataset-JSON, CSV, define.xml"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+trialforge-core.workspace = true
+trialforge-cdisc.workspace = true
+
+[lints]
+workspace = true
