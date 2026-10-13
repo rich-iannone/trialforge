@@ -30,19 +30,21 @@ check: rs-check py-check r-test ## Run every lint, type check and test suite (th
 
 .PHONY: rs-test
 rs-test: ## Run the Rust workspace tests
-	cargo test --workspace --exclude trialforge-python
+	cargo test --workspace --exclude trialforge-python --all-features
 
 .PHONY: rs-lint
 rs-lint: ## Format the Rust code and apply clippy fixes
 	cargo fmt --all
-	cargo clippy --workspace --exclude trialforge-python --all-targets --fix --allow-dirty
+	cargo clippy --workspace --exclude trialforge-python --all-targets --all-features --fix --allow-dirty
 
 .PHONY: rs-check
 rs-check: ## Rust gate: rustfmt check, clippy (warnings are errors), tests
 	cargo fmt --all --check
 	cargo fmt --manifest-path $(R_DIR)/src/rust/Cargo.toml --check
-	cargo clippy --workspace --exclude trialforge-python --all-targets -- -D warnings
-	cargo test --workspace --exclude trialforge-python
+	cargo clippy --workspace --exclude trialforge-python --all-targets --all-features -- -D warnings
+	cargo clippy -p trialforge-python -- -D warnings
+	cargo clippy --manifest-path $(R_DIR)/src/rust/Cargo.toml --lib -- -D warnings
+	cargo test --workspace --exclude trialforge-python --all-features
 
 # -- Python -------------------------------------------------------------------------------------
 
@@ -51,7 +53,7 @@ rs-check: ## Rust gate: rustfmt check, clippy (warnings are errors), tests
 
 .PHONY: py-install
 py-install: .venv ## Build the extension and install the Python package (editable) into .venv
-	uv pip install --python "$(PYTHON)" "maturin>=1.8,<2" pytest ruff pyright polars pandas pyarrow pyreadstat
+	uv pip install --python "$(PYTHON)" "maturin>=1.8,<2" pytest ruff pyright polars pandas pyarrow pyreadstat pointblank
 	cd $(PY_DIR) && VIRTUAL_ENV=$(CURDIR)/.venv $(CURDIR)/.venv/bin/maturin develop --uv
 
 .PHONY: py-test
