@@ -8,7 +8,9 @@
 //! (common random numbers).
 
 use trialforge_core::{Date, Draws, math};
-use trialforge_model::{Design, Subject};
+use trialforge_model::{Design, Epoch, Subject};
+
+use crate::timeline::{DispositionEvent, DispositionKind, ElementSpan, Exposure, Timeline};
 
 /// Days per month, as used for medians given in months.
 pub const DAYS_PER_MONTH: f64 = 30.4375;
@@ -165,11 +167,17 @@ fn simulate_one(design: &Design, p: &OncologyParams, s: &Subject) -> Course {
         .collect();
     let last_dose = *doses.last().expect("the first dose is always given");
 
+    let stopped = treatment_stop_reason != TreatmentStop::Ongoing;
     let last_contact = death
         .or(withdrawal)
         .unwrap_or_else(|| cutoff.add_days(-contact_lag))
         .max(last_dose)
-        .max(s.treatment_start);
+        .max(s.treatment_start)
+        .max(if stopped {
+            treatment_stop
+        } else {
+            s.treatment_start
+        });
 
     Course {
         progression,
@@ -180,5 +188,95 @@ fn simulate_one(design: &Design, p: &OncologyParams, s: &Subject) -> Course {
         treatment_stop_reason,
         doses,
         last_contact,
+    }
+}
+
+/// The course as a [`Timeline`] for the shared SDTM emitters. Subjects still on treatment at
+/// the cutoff have no end-of-treatment or end-of-study disposition yet.
+pub fn to_timeline(design: &Design, s: &Subject, c: &Course) -> Timeline {
+    let dose = design.arms[s.arm].treatment.dose;
+    let exposure = c
+        .doses
+        .iter()
+        .map(|&d| Exposure {
+            start: d,
+            end: d,
+            dose,
+        })
+        .collect();
+    let first_dose = s.treatment_start;
+    let treatment_end = match c.treatment_stop_reason {
+        TreatmentStop::Ongoing => c.last_contact,
+        _ => c.treatment_stop,
+    };
+    let mut elements = vec![
+        ElementSpan {
+            epoch: Epoch::Screening,
+            start: s.consent,
+            end: first_dose,
+        },
+        ElementSpan {
+            epoch: Epoch::Treatment,
+            start: first_dose,
+            end: treatment_end,
+        },
+    ];
+    if c.last_contact > treatment_end {
+        elements.push(ElementSpan {
+            epoch: Epoch::FollowUp,
+            start: treatment_end,
+            end: c.last_contact,
+        });
+    }
+    let mut disposition = vec![
+        DispositionEvent {
+            decod: "INFORMED CONSENT OBTAINED".into(),
+            kind: DispositionKind::Milestone,
+            date: s.consent,
+        },
+        DispositionEvent {
+            decod: "RANDOMIZED".into(),
+            kind: DispositionKind::Milestone,
+            date: s.randomization,
+        },
+    ];
+    let treatment_term = match &c.treatment_stop_reason {
+        TreatmentStop::Ongoing => None,
+        TreatmentStop::Progression => Some("PROGRESSIVE DISEASE".to_string()),
+        TreatmentStop::Death => Some("DEATH".to_string()),
+        TreatmentStop::Withdrawal(reason) => Some(reason.clone()),
+        TreatmentStop::AdverseEvent => Some("ADVERSE EVENT".to_string()),
+    };
+    if let Some(decod) = treatment_term {
+        disposition.push(DispositionEvent {
+            decod,
+            kind: DispositionKind::EndOfTreatment,
+            date: c.treatment_stop,
+        });
+    }
+    let study_end = match (c.death, c.withdrawal) {
+        (Some(d), _) => Some(("DEATH".to_string(), d)),
+        (None, Some(w)) => c.withdrawal_reason.clone().map(|r| (r, w)),
+        (None, None) => None,
+    };
+    if let Some((decod, date)) = study_end {
+        disposition.push(DispositionEvent {
+            decod,
+            kind: DispositionKind::EndOfStudy,
+            date,
+        });
+    }
+    Timeline {
+        exposure,
+        elements,
+        visits: Vec::new(),
+        disposition,
+        death: c.death,
+        last_contact: c.last_contact,
+        treatment_end,
+        adverse_events: Vec::new(),
+        medications: Vec::new(),
+        history: Vec::new(),
+        findings: Vec::new(),
     }
 }
