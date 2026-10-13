@@ -59,6 +59,14 @@ pub struct VariableSpec {
     pub core: Core,
     /// Controlling codelist, if any (a key into [`ct`]).
     pub codelist: Option<String>,
+    /// Define-XML origin type: `Collected`, `Derived`, `Assigned`, `Protocol` or
+    /// `Predecessor`.
+    pub origin: String,
+    /// Origin source (`Investigator`, `Sponsor`, `Vendor`, `Subject`) or, for predecessors, the
+    /// source variable (e.g. `DM.AGE`). Empty if not applicable.
+    pub source: String,
+    /// How a derived variable is computed (Define-XML method). Empty if not derived.
+    pub method: String,
 }
 
 /// A dataset's metadata.
@@ -180,6 +188,9 @@ fn load_standard(
                     codelist: Some(v["codelist"])
                         .filter(|c| !c.is_empty())
                         .map(str::to_string),
+                    origin: v["origin"].to_string(),
+                    source: v["source"].to_string(),
+                    method: v["method"].to_string(),
                 })
                 .collect(),
         })
@@ -350,6 +361,50 @@ mod tests {
                     v.name,
                     v.label
                 );
+            }
+        }
+    }
+
+    #[test]
+    fn every_variable_has_a_define_origin() {
+        let types = [
+            "Collected",
+            "Derived",
+            "Assigned",
+            "Protocol",
+            "Predecessor",
+        ];
+        for spec in sdtmig().datasets.iter().chain(&adamig().datasets) {
+            for v in &spec.variables {
+                assert!(
+                    types.contains(&v.origin.as_str()),
+                    "{}.{}: {:?}",
+                    spec.name,
+                    v.name,
+                    v.origin
+                );
+                assert_eq!(
+                    v.origin == "Derived",
+                    !v.method.is_empty() && v.origin != "Assigned",
+                    "{}.{} method",
+                    spec.name,
+                    v.name
+                );
+                if v.origin == "Predecessor" {
+                    let (ds, var) = v
+                        .source
+                        .split_once('.')
+                        .unwrap_or_else(|| panic!("{}.{}", spec.name, v.name));
+                    let src = super::spec(ds)
+                        .unwrap_or_else(|| panic!("{}.{} → {ds}", spec.name, v.name));
+                    assert!(
+                        src.variable(var).is_some(),
+                        "{}.{} → {}",
+                        spec.name,
+                        v.name,
+                        v.source
+                    );
+                }
             }
         }
     }
