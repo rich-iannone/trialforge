@@ -37,6 +37,22 @@ missing_docs = "warn"
 [workspace.lints.clippy]
 all = { level = "warn", priority = -1 }
 
+# Oncology calibration simulates large cohorts; keep the simulation path fast in test builds.
+[profile.dev.package.trialforge-core]
+opt-level = 3
+
+[profile.dev.package.trialforge-model]
+opt-level = 3
+
+[profile.dev.package.trialforge-processes]
+opt-level = 3
+
+[profile.dev.package.trialforge-calibrate]
+opt-level = 3
+
+[profile.dev.package.rand_chacha]
+opt-level = 3
+
 [profile.release]
 lto = "thin"
 codegen-units = 1
