@@ -31,7 +31,16 @@ pa = ["pyarrow>=14"]
 # Verification levels 3–4 and the TLF pack.
 verify = ["pointblank", "greenwood"]
 tables = ["great-tables"]
-dev = ["maturin>=1.8,<2", "pytest>=8", "ruff>=0.6", "pyright>=1.1.380"]
+dev = [
+    "maturin>=1.8,<2",
+    "pytest>=8",
+    "ruff>=0.6",
+    "pyright>=1.1.380",
+    "polars>=1.0",
+    "pandas>=2.0",
+    "pyarrow>=14",
+    "pyreadstat>=1.2",
+]
 
 [project.urls]
 Repository = "https://github.com/rich-iannone/trialforge"
@@ -59,6 +68,13 @@ known-first-party = ["trialforge"]
 include = ["python/trialforge", "tests"]
 typeCheckingMode = "strict"
 pythonVersion = "3.10"
+# Keep strict, but relax the "unknown type" family (as greenwood does): they fire on interop
+# with untyped scientific deps (pyarrow, pandas, pyreadstat ship no stubs). The valuable
+# strict checks (missing annotations, type mismatches) stay on.
+reportMissingTypeStubs = false
+reportUnknownMemberType = false
+reportUnknownArgumentType = false
+reportUnknownVariableType = false
 # The dev venv lives at the repository root (see the Makefile).
 venvPath = "../.."
 venv = ".venv"
