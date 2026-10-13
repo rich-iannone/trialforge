@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/rich-iannone/trialforge/spec/study-spec.schema.json",
   "title": "trialforge study spec",
-  "description": "v0 draft of the language-neutral study spec (PLAN.md \u00a76.1). The engine currently consumes `study.archetype`, `study.seed`, `study.studyid`, `population.n` and `controls`; the other sections are sketched and stay open until their engine work lands.",
+  "description": "v0 study spec (JSON or YAML). The engine consumes `study` (archetype, seed, studyid, standards), `population.n`, `controls` and `outputs`. The other sections are reserved for later phases and are rejected with a pointer to `controls` until their engine work lands.",
   "type": "object",
   "required": [
     "study"
@@ -15,7 +15,7 @@
     "study": {
       "type": "object",
       "required": [
-        "studyid",
+        "archetype",
         "seed"
       ],
       "additionalProperties": false,
@@ -98,27 +98,14 @@
     },
     "population": {
       "type": "object",
+      "additionalProperties": false,
       "properties": {
         "n": {
           "type": "integer",
-          "minimum": 1
-        },
-        "countries": {
-          "description": "ISO 3166-1 alpha-3 codes mapped to enrollment weights.",
-          "type": "object",
-          "propertyNames": {
-            "pattern": "^[A-Z]{3}$"
-          },
-          "additionalProperties": {
-            "type": "number",
-            "exclusiveMinimum": 0
-          }
-        },
-        "sites": {
-          "type": "object"
+          "minimum": 1,
+          "default": 300
         }
-      },
-      "additionalProperties": true
+      }
     },
     "design": {
       "type": "object",
@@ -180,51 +167,32 @@
     },
     "outputs": {
       "type": "object",
+      "additionalProperties": false,
       "properties": {
-        "layers": {
-          "type": "array",
-          "items": {
-            "enum": [
-              "raw",
-              "tdm",
-              "sdtm",
-              "adam",
-              "define"
-            ]
-          },
-          "uniqueItems": true
-        },
-        "domains": {
-          "oneOf": [
-            {
-              "const": "auto"
-            },
-            {
-              "type": "array",
-              "items": {
-                "type": "string",
-                "pattern": "^[A-Z]{2,8}$"
-              }
-            }
-          ]
-        },
         "formats": {
           "type": "array",
           "items": {
             "enum": [
-              "arrow",
-              "parquet",
               "xpt",
-              "xpt8",
+              "csv",
               "dataset-json",
-              "ndjson",
-              "csv"
+              "parquet"
             ]
           },
-          "uniqueItems": true
+          "uniqueItems": true,
+          "default": [
+            "xpt"
+          ]
+        },
+        "layout": {
+          "enum": [
+            "flat",
+            "submission"
+          ],
+          "default": "flat",
+          "description": "flat: one folder with every format; submission: sdtm/ and adam/ folders with XPT and define.xml"
         }
-      },
-      "additionalProperties": true
+      }
     },
     "controls": {
       "description": "Archetype controls (see `controls(archetype)` in either binding). Merged over the archetype's defaults; unknown names are an error.",
