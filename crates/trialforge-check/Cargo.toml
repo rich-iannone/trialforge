@@ -11,8 +11,6 @@ authors.workspace = true
 [dependencies]
 trialforge-core.workspace = true
 trialforge-cdisc.workspace = true
-trialforge-sdtm.workspace = true
-trialforge-adam.workspace = true
 
 [lints]
 workspace = true
