@@ -29,15 +29,28 @@ stream_seed <- function(seed, path) .Call(wrap__stream_seed, seed, path)
 #' @noRd
 archetypes_impl <- function() .Call(wrap__archetypes_impl)
 
-#' Generates a study. `seed` and `studyid` are `NA` when not supplied.
+#' The documented controls of an archetype, as a JSON string.
 #' @noRd
-study_impl <- function(archetype, n, seed, studyid) .Call(wrap__study_impl, archetype, n, seed, studyid)
+controls_impl <- function(archetype) .Call(wrap__controls_impl, archetype)
+
+#' Output formats `write_study()` supports.
+#' @noRd
+formats_impl <- function() .Call(wrap__formats_impl)
+
+#' Generates a study. `seed`, `studyid` and `controls` are `NA` when not supplied; `controls`
+#' is a JSON object string.
+#' @noRd
+study_impl <- function(archetype, n, seed, studyid, controls) .Call(wrap__study_impl, archetype, n, seed, studyid, controls)
 
 #' A generated study, held in Rust.
 #' @noRd
 #' @section Methods:
 #'\subsection{Method `seed`}{
 #'Seeds are at most 2^53, so a double holds them exactly.
+#'}
+#'
+#'\subsection{Method `verify`}{
+#'Verification levels 0–2: a list with `passed` and a `findings` data frame.
 #'}
 #'
 #'\subsection{Method `table`}{
@@ -53,6 +66,12 @@ RStudy$archetype <- function() .Call(wrap__RStudy__archetype, self)
 RStudy$seed <- function() .Call(wrap__RStudy__seed, self)
 
 RStudy$cutoff_days <- function() .Call(wrap__RStudy__cutoff_days, self)
+
+RStudy$controls_json <- function() .Call(wrap__RStudy__controls_json, self)
+
+RStudy$truth_json <- function() .Call(wrap__RStudy__truth_json, self)
+
+RStudy$verify <- function() .Call(wrap__RStudy__verify, self)
 
 RStudy$sdtm_names <- function() .Call(wrap__RStudy__sdtm_names, self)
 
