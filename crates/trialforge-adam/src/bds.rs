@@ -74,7 +74,8 @@ fn bds(
     let dtc = f.chars(&col("DTC"))?;
     let visitnum = f.ints("VISITNUM")?;
     let visit = f.chars("VISIT")?;
-    let (lo, hi) = if f.has(&col("STNRLO")) {
+    let has_ranges = f.has(&col("STNRLO"));
+    let (lo, hi) = if has_ranges {
         (f.nums(&col("STNRLO"))?, f.nums(&col("STNRHI"))?)
     } else {
         (vec![None; f.n()], vec![None; f.n()])
@@ -245,9 +246,7 @@ fn bds(
         .collect();
     let y = |b: bool| b.then(|| "Y".to_string());
 
-    Ok(build(
-        name,
-        vec![
+    let mut cols: Vec<(&str, Values)> = vec![
             ("STUDYID", sl_char("STUDYID")?),
             ("USUBJID", Values::Char(recs.iter().map(|r| usubjid[r.i].clone()).collect())),
             ("SUBJID", sl_char("SUBJID")?),
@@ -273,17 +272,16 @@ fn bds(
                 ),
             ),
             ("PARAMN", Values::Num(recs.iter().map(|r| Some(pn(&testcd[r.i]) as f64 + 1.0)).collect())),
-            ("PARCAT1", Values::Char(recs.iter().map(|r| cat.and_then(|c| c[r.i].clone())).collect())),
             ("AVAL", Values::Num(recs.iter().map(|r| stresn[r.i]).collect())),
             ("BASE", Values::Num(recs.iter().map(|r| r.base).collect())),
             ("CHG", Values::Num(chg.clone())),
             (
                 "PCHG",
                 Values::Num(
+                    // As admiral's derive_var_pchg: (AVAL - BASE) / |BASE| * 100, unrounded.
                     recs.iter()
-                        .zip(&chg)
-                        .map(|(r, c)| match (c, r.base) {
-                            (Some(c), Some(b)) if b != 0.0 => Some(math::round_dp(c / b * 100.0, 2)),
+                        .map(|r| match (r.post, stresn[r.i], r.base) {
+                            (true, Some(v), Some(b)) if b != 0.0 => Some((v - b) / b.abs() * 100.0),
                             _ => None,
                         })
                         .collect(),
@@ -306,10 +304,29 @@ fn bds(
                 ),
             ),
             ("ANL01FL", Values::Char(recs.iter().map(|r| y(r.anl)).collect())),
+            ("SRCDOM", Values::Char(vec![Some(src.to_string()); n])),
+            ("SRCVAR", Values::Char(vec![Some(col("STRESN")); n])),
+            ("SRCSEQ", Values::Int(recs.iter().map(|r| seq[r.i]).collect())),
+    ];
+    // Category and reference-range variables only exist where the source has them (LB, not VS).
+    if let Some(cat) = cat {
+        cols.push((
+            "PARCAT1",
+            Values::Char(recs.iter().map(|r| cat[r.i].clone()).collect()),
+        ));
+    }
+    if has_ranges {
+        cols.extend(vec![
             ("ANRLO", Values::Num(recs.iter().map(|r| lo[r.i]).collect())),
             ("ANRHI", Values::Num(recs.iter().map(|r| hi[r.i]).collect())),
-            ("ANRIND", Values::Char(recs.iter().map(|r| r.anrind.clone()).collect())),
-            ("BNRIND", Values::Char(recs.iter().map(|r| r.bnrind.clone()).collect())),
+            (
+                "ANRIND",
+                Values::Char(recs.iter().map(|r| r.anrind.clone()).collect()),
+            ),
+            (
+                "BNRIND",
+                Values::Char(recs.iter().map(|r| r.bnrind.clone()).collect()),
+            ),
             (
                 "SHIFT1",
                 Values::Char(
@@ -321,9 +338,7 @@ fn bds(
                         .collect(),
                 ),
             ),
-            ("SRCDOM", Values::Char(vec![Some(src.to_string()); n])),
-            ("SRCVAR", Values::Char(vec![Some(col("STRESN")); n])),
-            ("SRCSEQ", Values::Int(recs.iter().map(|r| seq[r.i]).collect())),
-        ],
-    )?)
+        ]);
+    }
+    Ok(build(name, cols)?)
 }
