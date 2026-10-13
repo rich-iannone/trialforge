@@ -41,6 +41,9 @@ dev = [
     "pyarrow>=14",
     "pyreadstat>=1.2",
     "pointblank",
+    "lxml",
+    "xmlschema",
+    "odmlib",
 ]
 
 [project.urls]
