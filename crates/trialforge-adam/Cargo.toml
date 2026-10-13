@@ -1,0 +1,17 @@
+[package]
+name = "trialforge-adam"
+description = "ADaM derivations for trialforge (admiral-compatible)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+trialforge-core.workspace = true
+trialforge-cdisc.workspace = true
+trialforge-sdtm.workspace = true
+
+[lints]
+workspace = true
