@@ -1,7 +1,7 @@
 """trialforge: synthetic CDISC clinical-trial data from declarative study specs.
 
-This is a pre-alpha preview: `study("oncology_solid_tumor", ...)` generates DM, EX, DS and
-ADSL.
+Pre-alpha. `study("parallel_continuous", ...)` and `study("oncology_solid_tumor", ...)`
+generate a verified SDTM + ADaM study; see `archetypes()` and `controls()`.
 """
 
 from __future__ import annotations
@@ -9,7 +9,17 @@ from __future__ import annotations
 from importlib.metadata import PackageNotFoundError, version
 
 from trialforge._core import MAX_SEED, core_version, stream_seed
-from trialforge._study import Output, Study, archetypes, study
+from trialforge._study import (
+    Control,
+    Finding,
+    Output,
+    Report,
+    Study,
+    archetypes,
+    controls,
+    formats,
+    study,
+)
 
 try:
     __version__ = version("trialforge")
@@ -18,11 +28,16 @@ except PackageNotFoundError:  # pragma: no cover - running from a source tree wi
 
 __all__ = [
     "MAX_SEED",
+    "Control",
+    "Finding",
     "Output",
+    "Report",
     "Study",
     "__version__",
     "archetypes",
+    "controls",
     "core_version",
+    "formats",
     "stream_seed",
     "study",
 ]
