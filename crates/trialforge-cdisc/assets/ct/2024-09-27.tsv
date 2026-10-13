@@ -1,0 +1,695 @@
+codelist	extensible	term	source
+ACN	N	DOSE INCREASED	curated
+ACN	N	DOSE NOT CHANGED	curated
+ACN	N	DOSE RATE REDUCED	curated
+ACN	N	DOSE REDUCED	curated
+ACN	N	DRUG INTERRUPTED	curated
+ACN	N	DRUG WITHDRAWN	curated
+ACN	N	NOT APPLICABLE	curated
+ACN	N	UNKNOWN	curated
+AEREL	Y	NOT RELATED	pointblank
+AEREL	Y	UNLIKELY RELATED	pointblank
+AEREL	Y	POSSIBLY RELATED	pointblank
+AEREL	Y	PROBABLY RELATED	pointblank
+AEREL	Y	RELATED	pointblank
+AESEV	N	MILD	pointblank
+AESEV	N	MODERATE	pointblank
+AESEV	N	SEVERE	pointblank
+AETOXGR	Y	1	pointblank
+AETOXGR	Y	2	pointblank
+AETOXGR	Y	3	pointblank
+AETOXGR	Y	4	pointblank
+AETOXGR	Y	5	pointblank
+AGEU	N	YEARS	pointblank
+AGEU	N	MONTHS	pointblank
+AGEU	N	WEEKS	pointblank
+AGEU	N	DAYS	pointblank
+AGEU	N	HOURS	pointblank
+AGEU	N	MINUTES	pointblank
+AGEU	N	SECONDS	pointblank
+COUNTRY	N	AFG	pointblank
+COUNTRY	N	ALB	pointblank
+COUNTRY	N	DZA	pointblank
+COUNTRY	N	AND	pointblank
+COUNTRY	N	AGO	pointblank
+COUNTRY	N	ATG	pointblank
+COUNTRY	N	ARG	pointblank
+COUNTRY	N	ARM	pointblank
+COUNTRY	N	AUS	pointblank
+COUNTRY	N	AUT	pointblank
+COUNTRY	N	AZE	pointblank
+COUNTRY	N	BHS	pointblank
+COUNTRY	N	BHR	pointblank
+COUNTRY	N	BGD	pointblank
+COUNTRY	N	BRB	pointblank
+COUNTRY	N	BLR	pointblank
+COUNTRY	N	BEL	pointblank
+COUNTRY	N	BLZ	pointblank
+COUNTRY	N	BEN	pointblank
+COUNTRY	N	BTN	pointblank
+COUNTRY	N	BOL	pointblank
+COUNTRY	N	BIH	pointblank
+COUNTRY	N	BWA	pointblank
+COUNTRY	N	BRA	pointblank
+COUNTRY	N	BRN	pointblank
+COUNTRY	N	BGR	pointblank
+COUNTRY	N	BFA	pointblank
+COUNTRY	N	BDI	pointblank
+COUNTRY	N	CPV	pointblank
+COUNTRY	N	KHM	pointblank
+COUNTRY	N	CMR	pointblank
+COUNTRY	N	CAN	pointblank
+COUNTRY	N	CAF	pointblank
+COUNTRY	N	TCD	pointblank
+COUNTRY	N	CHL	pointblank
+COUNTRY	N	CHN	pointblank
+COUNTRY	N	COL	pointblank
+COUNTRY	N	COM	pointblank
+COUNTRY	N	COD	pointblank
+COUNTRY	N	COG	pointblank
+COUNTRY	N	CRI	pointblank
+COUNTRY	N	CIV	pointblank
+COUNTRY	N	HRV	pointblank
+COUNTRY	N	CUB	pointblank
+COUNTRY	N	CYP	pointblank
+COUNTRY	N	CZE	pointblank
+COUNTRY	N	DNK	pointblank
+COUNTRY	N	DJI	pointblank
+COUNTRY	N	DOM	pointblank
+COUNTRY	N	ECU	pointblank
+COUNTRY	N	EGY	pointblank
+COUNTRY	N	SLV	pointblank
+COUNTRY	N	GNQ	pointblank
+COUNTRY	N	ERI	pointblank
+COUNTRY	N	EST	pointblank
+COUNTRY	N	SWZ	pointblank
+COUNTRY	N	ETH	pointblank
+COUNTRY	N	FJI	pointblank
+COUNTRY	N	FIN	pointblank
+COUNTRY	N	FRA	pointblank
+COUNTRY	N	GAB	pointblank
+COUNTRY	N	GMB	pointblank
+COUNTRY	N	GEO	pointblank
+COUNTRY	N	DEU	pointblank
+COUNTRY	N	GHA	pointblank
+COUNTRY	N	GRC	pointblank
+COUNTRY	N	GRD	pointblank
+COUNTRY	N	GTM	pointblank
+COUNTRY	N	GIN	pointblank
+COUNTRY	N	GNB	pointblank
+COUNTRY	N	GUY	pointblank
+COUNTRY	N	HTI	pointblank
+COUNTRY	N	HND	pointblank
+COUNTRY	N	HUN	pointblank
+COUNTRY	N	ISL	pointblank
+COUNTRY	N	IND	pointblank
+COUNTRY	N	IDN	pointblank
+COUNTRY	N	IRN	pointblank
+COUNTRY	N	IRQ	pointblank
+COUNTRY	N	IRL	pointblank
+COUNTRY	N	ISR	pointblank
+COUNTRY	N	ITA	pointblank
+COUNTRY	N	JAM	pointblank
+COUNTRY	N	JPN	pointblank
+COUNTRY	N	JOR	pointblank
+COUNTRY	N	KAZ	pointblank
+COUNTRY	N	KEN	pointblank
+COUNTRY	N	KIR	pointblank
+COUNTRY	N	PRK	pointblank
+COUNTRY	N	KOR	pointblank
+COUNTRY	N	KWT	pointblank
+COUNTRY	N	KGZ	pointblank
+COUNTRY	N	LAO	pointblank
+COUNTRY	N	LVA	pointblank
+COUNTRY	N	LBN	pointblank
+COUNTRY	N	LSO	pointblank
+COUNTRY	N	LBR	pointblank
+COUNTRY	N	LBY	pointblank
+COUNTRY	N	LIE	pointblank
+COUNTRY	N	LTU	pointblank
+COUNTRY	N	LUX	pointblank
+COUNTRY	N	MDG	pointblank
+COUNTRY	N	MWI	pointblank
+COUNTRY	N	MYS	pointblank
+COUNTRY	N	MDV	pointblank
+COUNTRY	N	MLI	pointblank
+COUNTRY	N	MLT	pointblank
+COUNTRY	N	MHL	pointblank
+COUNTRY	N	MRT	pointblank
+COUNTRY	N	MUS	pointblank
+COUNTRY	N	MEX	pointblank
+COUNTRY	N	FSM	pointblank
+COUNTRY	N	MDA	pointblank
+COUNTRY	N	MCO	pointblank
+COUNTRY	N	MNG	pointblank
+COUNTRY	N	MNE	pointblank
+COUNTRY	N	MAR	pointblank
+COUNTRY	N	MOZ	pointblank
+COUNTRY	N	MMR	pointblank
+COUNTRY	N	NAM	pointblank
+COUNTRY	N	NRU	pointblank
+COUNTRY	N	NPL	pointblank
+COUNTRY	N	NLD	pointblank
+COUNTRY	N	NZL	pointblank
+COUNTRY	N	NIC	pointblank
+COUNTRY	N	NER	pointblank
+COUNTRY	N	NGA	pointblank
+COUNTRY	N	MKD	pointblank
+COUNTRY	N	NOR	pointblank
+COUNTRY	N	OMN	pointblank
+COUNTRY	N	PAK	pointblank
+COUNTRY	N	PLW	pointblank
+COUNTRY	N	PAN	pointblank
+COUNTRY	N	PNG	pointblank
+COUNTRY	N	PRY	pointblank
+COUNTRY	N	PER	pointblank
+COUNTRY	N	PHL	pointblank
+COUNTRY	N	POL	pointblank
+COUNTRY	N	PRT	pointblank
+COUNTRY	N	QAT	pointblank
+COUNTRY	N	ROU	pointblank
+COUNTRY	N	RUS	pointblank
+COUNTRY	N	RWA	pointblank
+COUNTRY	N	KNA	pointblank
+COUNTRY	N	LCA	pointblank
+COUNTRY	N	VCT	pointblank
+COUNTRY	N	WSM	pointblank
+COUNTRY	N	SMR	pointblank
+COUNTRY	N	STP	pointblank
+COUNTRY	N	SAU	pointblank
+COUNTRY	N	SEN	pointblank
+COUNTRY	N	SRB	pointblank
+COUNTRY	N	SYC	pointblank
+COUNTRY	N	SLE	pointblank
+COUNTRY	N	SGP	pointblank
+COUNTRY	N	SVK	pointblank
+COUNTRY	N	SVN	pointblank
+COUNTRY	N	SLB	pointblank
+COUNTRY	N	SOM	pointblank
+COUNTRY	N	ZAF	pointblank
+COUNTRY	N	SSD	pointblank
+COUNTRY	N	ESP	pointblank
+COUNTRY	N	LKA	pointblank
+COUNTRY	N	SDN	pointblank
+COUNTRY	N	SUR	pointblank
+COUNTRY	N	SWE	pointblank
+COUNTRY	N	CHE	pointblank
+COUNTRY	N	SYR	pointblank
+COUNTRY	N	TWN	pointblank
+COUNTRY	N	TJK	pointblank
+COUNTRY	N	TZA	pointblank
+COUNTRY	N	THA	pointblank
+COUNTRY	N	TLS	pointblank
+COUNTRY	N	TGO	pointblank
+COUNTRY	N	TON	pointblank
+COUNTRY	N	TTO	pointblank
+COUNTRY	N	TUN	pointblank
+COUNTRY	N	TUR	pointblank
+COUNTRY	N	TKM	pointblank
+COUNTRY	N	TUV	pointblank
+COUNTRY	N	UGA	pointblank
+COUNTRY	N	UKR	pointblank
+COUNTRY	N	ARE	pointblank
+COUNTRY	N	GBR	pointblank
+COUNTRY	N	USA	pointblank
+COUNTRY	N	URY	pointblank
+COUNTRY	N	UZB	pointblank
+COUNTRY	N	VUT	pointblank
+COUNTRY	N	VEN	pointblank
+COUNTRY	N	VNM	pointblank
+COUNTRY	N	YEM	pointblank
+COUNTRY	N	ZMB	pointblank
+COUNTRY	N	ZWE	pointblank
+DOMAIN	N	TA	curated
+DOMAIN	N	TE	curated
+DOMAIN	N	TV	curated
+DOMAIN	N	TI	curated
+DOMAIN	N	TS	curated
+DOMAIN	N	DM	curated
+DOMAIN	N	SE	curated
+DOMAIN	N	SV	curated
+DOMAIN	N	EX	curated
+DOMAIN	N	CM	curated
+DOMAIN	N	AE	curated
+DOMAIN	N	DS	curated
+DOMAIN	N	MH	curated
+DOMAIN	N	LB	curated
+DOMAIN	N	VS	curated
+DOMAIN	N	SUPPAE	curated
+DSCAT	N	DISPOSITION EVENT	curated
+DSCAT	N	PROTOCOL MILESTONE	curated
+DSCAT	N	OTHER EVENT	curated
+DSDECOD	Y	ADVERSE EVENT	curated
+DSDECOD	Y	COMPLETED	curated
+DSDECOD	Y	DEATH	curated
+DSDECOD	Y	LACK OF EFFICACY	curated
+DSDECOD	Y	LOST TO FOLLOW-UP	curated
+DSDECOD	Y	PHYSICIAN DECISION	curated
+DSDECOD	Y	PROGRESSIVE DISEASE	curated
+DSDECOD	Y	PROTOCOL DEVIATION	curated
+DSDECOD	Y	SCREEN FAILURE	curated
+DSDECOD	Y	STUDY TERMINATED BY SPONSOR	curated
+DSDECOD	Y	WITHDRAWAL BY SUBJECT	curated
+DSDECOD	Y	INFORMED CONSENT OBTAINED	curated
+DSDECOD	Y	RANDOMIZED	curated
+EPOCH	Y	BASELINE	pointblank
+EPOCH	Y	DOUBLE-BLIND TREATMENT	pointblank
+EPOCH	Y	FOLLOW-UP	pointblank
+EPOCH	Y	INDUCTION	pointblank
+EPOCH	Y	LEAD-IN	pointblank
+EPOCH	Y	MAINTENANCE	pointblank
+EPOCH	Y	OPEN-LABEL EXTENSION	pointblank
+EPOCH	Y	OPEN-LABEL TREATMENT	pointblank
+EPOCH	Y	POST-DOSE	pointblank
+EPOCH	Y	POST-TREATMENT	pointblank
+EPOCH	Y	PRE-DOSE	pointblank
+EPOCH	Y	RANDOMIZATION	pointblank
+EPOCH	Y	RUN-IN	pointblank
+EPOCH	Y	SCREENING	pointblank
+EPOCH	Y	SINGLE-BLIND TREATMENT	pointblank
+EPOCH	Y	TREATMENT	pointblank
+EPOCH	Y	UNBLINDED TREATMENT	pointblank
+EPOCH	Y	WASHOUT	pointblank
+ETHNIC	Y	HISPANIC OR LATINO	pointblank
+ETHNIC	Y	NOT HISPANIC OR LATINO	pointblank
+ETHNIC	Y	NOT REPORTED	pointblank
+ETHNIC	Y	UNKNOWN	pointblank
+FREQ	Y	BID	pointblank
+FREQ	Y	BID PRN	pointblank
+FREQ	Y	CONT	pointblank
+FREQ	Y	DAILY	pointblank
+FREQ	Y	EVERY 2 HOURS	pointblank
+FREQ	Y	EVERY 2 WEEKS	pointblank
+FREQ	Y	EVERY 24 HOURS	pointblank
+FREQ	Y	EVERY 3 HOURS	pointblank
+FREQ	Y	EVERY 3 WEEKS	pointblank
+FREQ	Y	EVERY 4 HOURS	pointblank
+FREQ	Y	EVERY 4 WEEKS	pointblank
+FREQ	Y	EVERY 48 HOURS	pointblank
+FREQ	Y	EVERY 6 HOURS	pointblank
+FREQ	Y	EVERY 8 HOURS	pointblank
+FREQ	Y	EVERY OTHER DAY	pointblank
+FREQ	Y	MONTHLY	pointblank
+FREQ	Y	ONCE	pointblank
+FREQ	Y	ON DEMAND	pointblank
+FREQ	Y	PRN	pointblank
+FREQ	Y	Q15MIN	pointblank
+FREQ	Y	QD	pointblank
+FREQ	Y	QHS	pointblank
+FREQ	Y	QID	pointblank
+FREQ	Y	QOD	pointblank
+FREQ	Y	QW	pointblank
+FREQ	Y	SEMI-MONTHLY	pointblank
+FREQ	Y	SINGLE	pointblank
+FREQ	Y	TID	pointblank
+FREQ	Y	TWICE A MONTH	pointblank
+FREQ	Y	UNKNOWN	pointblank
+FREQ	Y	WEEKLY	pointblank
+FRM	Y	AEROSOL	pointblank
+FRM	Y	AEROSOL FOAM	pointblank
+FRM	Y	BAR SOAP	pointblank
+FRM	Y	BEAD	pointblank
+FRM	Y	CAPSULE	pointblank
+FRM	Y	CAPSULE DELAYED RELEASE	pointblank
+FRM	Y	CAPSULE EXTENDED RELEASE	pointblank
+FRM	Y	CAPSULE ORAL	pointblank
+FRM	Y	CAPSULE SOLUBLE	pointblank
+FRM	Y	CELL	pointblank
+FRM	Y	CLOTH	pointblank
+FRM	Y	CONCENTRATE	pointblank
+FRM	Y	CREAM	pointblank
+FRM	Y	CRYSTAL	pointblank
+FRM	Y	DISK	pointblank
+FRM	Y	DRESSING	pointblank
+FRM	Y	DROPS	pointblank
+FRM	Y	ELIXIR	pointblank
+FRM	Y	EMULSION	pointblank
+FRM	Y	ENEMA	pointblank
+FRM	Y	FILM	pointblank
+FRM	Y	FILM-COATED TABLET	pointblank
+FRM	Y	FOAM	pointblank
+FRM	Y	GEL	pointblank
+FRM	Y	GRANULES	pointblank
+FRM	Y	GUM	pointblank
+FRM	Y	IMPLANT	pointblank
+FRM	Y	INFUSION	pointblank
+FRM	Y	INHALANT	pointblank
+FRM	Y	INJECTION	pointblank
+FRM	Y	INSERT	pointblank
+FRM	Y	INTRAUTERINE DEVICE	pointblank
+FRM	Y	JELLY	pointblank
+FRM	Y	LINIMENT	pointblank
+FRM	Y	LIQUID	pointblank
+FRM	Y	LOTION	pointblank
+FRM	Y	LOZENGE	pointblank
+FRM	Y	OINTMENT	pointblank
+FRM	Y	PATCH	pointblank
+FRM	Y	PELLET	pointblank
+FRM	Y	PESSARY	pointblank
+FRM	Y	PILL	pointblank
+FRM	Y	PLASTER	pointblank
+FRM	Y	POWDER	pointblank
+FRM	Y	RECTAL OINTMENT	pointblank
+FRM	Y	SHAMPOO	pointblank
+FRM	Y	SOLUTION	pointblank
+FRM	Y	SPRAY	pointblank
+FRM	Y	SUPPOSITORY	pointblank
+FRM	Y	SUSPENSION	pointblank
+FRM	Y	SYRUP	pointblank
+FRM	Y	TABLET	pointblank
+FRM	Y	TABLET BUCCAL	pointblank
+FRM	Y	TABLET CHEWABLE	pointblank
+FRM	Y	TABLET COATED	pointblank
+FRM	Y	TABLET DELAYED RELEASE	pointblank
+FRM	Y	TABLET DISPERSIBLE	pointblank
+FRM	Y	TABLET EFFERVESCENT	pointblank
+FRM	Y	TABLET EXTENDED RELEASE	pointblank
+FRM	Y	TABLET ORODISPERSIBLE	pointblank
+FRM	Y	TABLET SOLUBLE	pointblank
+FRM	Y	TAPE	pointblank
+FRM	Y	TINCTURE	pointblank
+FRM	Y	TROCHE	pointblank
+FRM	Y	UNASSIGNED	pointblank
+FRM	Y	UNKNOWN	pointblank
+FRM	Y	WAFER	pointblank
+IECAT	N	INCLUSION	pointblank
+IECAT	N	EXCLUSION	pointblank
+LBTEST	Y	Alanine Aminotransferase	curated
+LBTEST	Y	Aspartate Aminotransferase	curated
+LBTEST	Y	Alkaline Phosphatase	curated
+LBTEST	Y	Bilirubin	curated
+LBTEST	Y	Creatinine	curated
+LBTEST	Y	Glucose	curated
+LBTEST	Y	Hemoglobin A1C	curated
+LBTEST	Y	Albumin	curated
+LBTEST	Y	Sodium	curated
+LBTEST	Y	Potassium	curated
+LBTEST	Y	Urea Nitrogen	curated
+LBTEST	Y	Cholesterol	curated
+LBTEST	Y	Triglycerides	curated
+LBTEST	Y	Hemoglobin	curated
+LBTEST	Y	Hematocrit	curated
+LBTEST	Y	Leukocytes	curated
+LBTEST	Y	Platelets	curated
+LBTEST	Y	Erythrocytes	curated
+LBTEST	Y	Neutrophils	curated
+LBTEST	Y	Lymphocytes	curated
+LBTESTCD	Y	ALT	curated
+LBTESTCD	Y	AST	curated
+LBTESTCD	Y	ALP	curated
+LBTESTCD	Y	BILI	curated
+LBTESTCD	Y	CREAT	curated
+LBTESTCD	Y	GLUC	curated
+LBTESTCD	Y	HBA1C	curated
+LBTESTCD	Y	ALB	curated
+LBTESTCD	Y	SODIUM	curated
+LBTESTCD	Y	K	curated
+LBTESTCD	Y	UREAN	curated
+LBTESTCD	Y	CHOL	curated
+LBTESTCD	Y	TRIG	curated
+LBTESTCD	Y	HGB	curated
+LBTESTCD	Y	HCT	curated
+LBTESTCD	Y	WBC	curated
+LBTESTCD	Y	PLAT	curated
+LBTESTCD	Y	RBC	curated
+LBTESTCD	Y	NEUT	curated
+LBTESTCD	Y	LYM	curated
+NRIND	N	LOW	pointblank
+NRIND	N	NORMAL	pointblank
+NRIND	N	HIGH	pointblank
+NRIND	N	CRITICALLY LOW	pointblank
+NRIND	N	CRITICALLY HIGH	pointblank
+NRIND	N	CRITICALLY ABNORMAL	pointblank
+NRIND	N	ABNORMAL	pointblank
+NRIND	N	NORMAL LOW	pointblank
+NRIND	N	NORMAL HIGH	pointblank
+NY	N	Y	pointblank
+NY	N	N	pointblank
+OUT	N	FATAL	pointblank
+OUT	N	NOT RECOVERED/NOT RESOLVED	pointblank
+OUT	N	RECOVERED/RESOLVED	pointblank
+OUT	N	RECOVERED/RESOLVED WITH SEQUELAE	pointblank
+OUT	N	RECOVERING/RESOLVING	pointblank
+OUT	N	UNKNOWN	pointblank
+POSITION	N	SITTING	curated
+POSITION	N	STANDING	curated
+POSITION	N	SUPINE	curated
+RACE	Y	AMERICAN INDIAN OR ALASKA NATIVE	pointblank
+RACE	Y	ASIAN	pointblank
+RACE	Y	BLACK OR AFRICAN AMERICAN	pointblank
+RACE	Y	NATIVE HAWAIIAN OR OTHER PACIFIC ISLANDER	pointblank
+RACE	Y	NOT REPORTED	pointblank
+RACE	Y	UNKNOWN	pointblank
+RACE	Y	WHITE	pointblank
+RACE	Y	MULTIPLE	pointblank
+ROUTE	Y	AURICULAR	pointblank
+ROUTE	Y	BUCCAL	pointblank
+ROUTE	Y	CUTANEOUS	pointblank
+ROUTE	Y	DENTAL	pointblank
+ROUTE	Y	ENDOCERVICAL	pointblank
+ROUTE	Y	ENDOSINUSIAL	pointblank
+ROUTE	Y	ENDOTRACHEAL	pointblank
+ROUTE	Y	ENTERAL	pointblank
+ROUTE	Y	EPIDURAL	pointblank
+ROUTE	Y	EXTRA-AMNIOTIC	pointblank
+ROUTE	Y	EXTRACORPOREAL	pointblank
+ROUTE	Y	HEMODIALYSIS	pointblank
+ROUTE	Y	INTRA-ARTICULAR	pointblank
+ROUTE	Y	INTRABRONCHIAL	pointblank
+ROUTE	Y	INTRABURSAL	pointblank
+ROUTE	Y	INTRACARDIAC	pointblank
+ROUTE	Y	INTRACARTILAGINOUS	pointblank
+ROUTE	Y	INTRACAVERNOUS	pointblank
+ROUTE	Y	INTRACEREBRAL	pointblank
+ROUTE	Y	INTRACERVICAL	pointblank
+ROUTE	Y	INTRACISTERNAL	pointblank
+ROUTE	Y	INTRACORNEAL	pointblank
+ROUTE	Y	INTRADUCTAL	pointblank
+ROUTE	Y	INTRADUODENAL	pointblank
+ROUTE	Y	INTRADURAL	pointblank
+ROUTE	Y	INTRAEPIDERMAL	pointblank
+ROUTE	Y	INTRAESOPHAGEAL	pointblank
+ROUTE	Y	INTRAGASTRIC	pointblank
+ROUTE	Y	INTRAGINGIVAL	pointblank
+ROUTE	Y	INTRAILEAL	pointblank
+ROUTE	Y	INTRALESIONAL	pointblank
+ROUTE	Y	INTRALUMINAL	pointblank
+ROUTE	Y	INTRALYMPHATIC	pointblank
+ROUTE	Y	INTRAMEDULLARY	pointblank
+ROUTE	Y	INTRAMUSCULAR	pointblank
+ROUTE	Y	INTRAOCULAR	pointblank
+ROUTE	Y	INTRAOVARIAN	pointblank
+ROUTE	Y	INTRAPERICARDIAL	pointblank
+ROUTE	Y	INTRAPERITONEAL	pointblank
+ROUTE	Y	INTRAPLEURAL	pointblank
+ROUTE	Y	INTRAPROSTATIC	pointblank
+ROUTE	Y	INTRAPULMONARY	pointblank
+ROUTE	Y	INTRASINAL	pointblank
+ROUTE	Y	INTRASPINAL	pointblank
+ROUTE	Y	INTRASYNOVIAL	pointblank
+ROUTE	Y	INTRATENDINOUS	pointblank
+ROUTE	Y	INTRATESTICULAR	pointblank
+ROUTE	Y	INTRATHECAL	pointblank
+ROUTE	Y	INTRATHORACIC	pointblank
+ROUTE	Y	INTRATUBULAR	pointblank
+ROUTE	Y	INTRATUMOR	pointblank
+ROUTE	Y	INTRATYMPANIC	pointblank
+ROUTE	Y	INTRAUTERINE	pointblank
+ROUTE	Y	INTRAVASCULAR	pointblank
+ROUTE	Y	INTRAVENOUS	pointblank
+ROUTE	Y	INTRAVENOUS BOLUS	pointblank
+ROUTE	Y	INTRAVENOUS DRIP	pointblank
+ROUTE	Y	INTRAVESICAL	pointblank
+ROUTE	Y	INTRAVITREAL	pointblank
+ROUTE	Y	IONTOPHORESIS	pointblank
+ROUTE	Y	IRRIGATION	pointblank
+ROUTE	Y	LARYNGEAL	pointblank
+ROUTE	Y	NASAL	pointblank
+ROUTE	Y	NASOGASTRIC	pointblank
+ROUTE	Y	NOT APPLICABLE	pointblank
+ROUTE	Y	OCULAR	pointblank
+ROUTE	Y	OPHTHALMIC	pointblank
+ROUTE	Y	ORAL	pointblank
+ROUTE	Y	OROPHARYNGEAL	pointblank
+ROUTE	Y	OTHER	pointblank
+ROUTE	Y	PARENTERAL	pointblank
+ROUTE	Y	PERIARTICULAR	pointblank
+ROUTE	Y	PERIDURAL	pointblank
+ROUTE	Y	PERINEURAL	pointblank
+ROUTE	Y	PERIODONTAL	pointblank
+ROUTE	Y	RECTAL	pointblank
+ROUTE	Y	RESPIRATORY (INHALATION)	pointblank
+ROUTE	Y	RETROBULBAR	pointblank
+ROUTE	Y	SOFT TISSUE	pointblank
+ROUTE	Y	SUBARACHNOID	pointblank
+ROUTE	Y	SUBCONJUNCTIVAL	pointblank
+ROUTE	Y	SUBCUTANEOUS	pointblank
+ROUTE	Y	SUBGINGIVAL	pointblank
+ROUTE	Y	SUBLINGUAL	pointblank
+ROUTE	Y	SUBMUCOSAL	pointblank
+ROUTE	Y	TOPICAL	pointblank
+ROUTE	Y	TRANSDERMAL	pointblank
+ROUTE	Y	TRANSLINGUAL	pointblank
+ROUTE	Y	TRANSMUCOSAL	pointblank
+ROUTE	Y	TRANSPLACENTAL	pointblank
+ROUTE	Y	TRANSTRACHEAL	pointblank
+ROUTE	Y	TRANSTYMPANIC	pointblank
+ROUTE	Y	UNASSIGNED	pointblank
+ROUTE	Y	UNKNOWN	pointblank
+ROUTE	Y	URETHRAL	pointblank
+ROUTE	Y	VAGINAL	pointblank
+SEX	N	M	pointblank
+SEX	N	F	pointblank
+SEX	N	U	pointblank
+SEX	N	UNDIFFERENTIATED	pointblank
+SPECTYPE	Y	BLOOD	curated
+SPECTYPE	Y	PLASMA	curated
+SPECTYPE	Y	SERUM	curated
+SPECTYPE	Y	URINE	curated
+STENRF	N	AFTER	curated
+STENRF	N	BEFORE	curated
+STENRF	N	COINCIDENT	curated
+STENRF	N	DURING	curated
+STENRF	N	DURING/AFTER	curated
+STENRF	N	ONGOING	curated
+STENRF	N	U	curated
+TSPARM	N	Added on to Existing Treatments	curated
+TSPARM	N	Planned Maximum Age of Subjects	curated
+TSPARM	N	Planned Minimum Age of Subjects	curated
+TSPARM	N	Trial Length	curated
+TSPARM	N	Planned Number of Subjects	curated
+TSPARM	N	Trial is Randomized	curated
+TSPARM	N	Sex of Participants	curated
+TSPARM	N	Study Stop Rules	curated
+TSPARM	N	Trial Blinding Schema	curated
+TSPARM	N	Control Type	curated
+TSPARM	N	Diagnosis Group	curated
+TSPARM	N	Trial Intent Type	curated
+TSPARM	N	Trial Title	curated
+TSPARM	N	Trial Phase Classification	curated
+TSPARM	N	Trial Type	curated
+TSPARM	N	Trial Primary Objective	curated
+TSPARM	N	Clinical Study Sponsor	curated
+TSPARM	N	Actual Number of Subjects	curated
+TSPARM	N	Study Start Date	curated
+TSPARM	N	Study End Date	curated
+TSPARM	N	Planned Number of Arms	curated
+TSPARM	N	Intervention Model	curated
+TSPARM	N	Intervention Type	curated
+TSPARM	N	Study Type	curated
+TSPARM	N	Investigational Therapy or Treatment	curated
+TSPARM	N	Planned Country of Investigational Sites	curated
+TSPARM	N	Adaptive Design	curated
+TSPARM	N	Data Cutoff Date	curated
+TSPARM	N	Data Cutoff Description	curated
+TSPARM	N	Healthy Subject Indicator	curated
+TSPARM	N	SDTM IG Version	curated
+TSPARM	N	SDTM Version	curated
+TSPARM	N	Therapeutic Area	curated
+TSPARMCD	N	ADDON	curated
+TSPARMCD	N	AGEMAX	curated
+TSPARMCD	N	AGEMIN	curated
+TSPARMCD	N	LENGTH	curated
+TSPARMCD	N	PLANSUB	curated
+TSPARMCD	N	RANDOM	curated
+TSPARMCD	N	SEXPOP	curated
+TSPARMCD	N	STOPRULE	curated
+TSPARMCD	N	TBLIND	curated
+TSPARMCD	N	TCNTRL	curated
+TSPARMCD	N	TDIGRP	curated
+TSPARMCD	N	TINDTP	curated
+TSPARMCD	N	TITLE	curated
+TSPARMCD	N	TPHASE	curated
+TSPARMCD	N	TTYPE	curated
+TSPARMCD	N	OBJPRIM	curated
+TSPARMCD	N	SPONSOR	curated
+TSPARMCD	N	ACTSUB	curated
+TSPARMCD	N	SSTDTC	curated
+TSPARMCD	N	SENDTC	curated
+TSPARMCD	N	NARMS	curated
+TSPARMCD	N	INTMODEL	curated
+TSPARMCD	N	INTTYPE	curated
+TSPARMCD	N	STYPE	curated
+TSPARMCD	N	TRT	curated
+TSPARMCD	N	FCNTRY	curated
+TSPARMCD	N	ADAPT	curated
+TSPARMCD	N	DCUTDTC	curated
+TSPARMCD	N	DCUTDESC	curated
+TSPARMCD	N	HLTSUBJI	curated
+TSPARMCD	N	SDTIGVER	curated
+TSPARMCD	N	SDTMVER	curated
+TSPARMCD	N	THERAREA	curated
+UNIT	Y	mmHg	pointblank
+UNIT	Y	kg	pointblank
+UNIT	Y	m	pointblank
+UNIT	Y	cm	pointblank
+UNIT	Y	%	pointblank
+UNIT	Y	beats/min	pointblank
+UNIT	Y	breaths/min	pointblank
+UNIT	Y	/min	pointblank
+UNIT	Y	C	pointblank
+UNIT	Y	F	pointblank
+UNIT	Y	kg/m2	pointblank
+UNIT	Y	bpm	pointblank
+UNIT	Y	g/dL	pointblank
+UNIT	Y	mg/dL	pointblank
+UNIT	Y	mmol/L	pointblank
+UNIT	Y	U/L	pointblank
+UNIT	Y	g/L	pointblank
+UNIT	Y	mg/L	pointblank
+UNIT	Y	10^3/uL	pointblank
+UNIT	Y	10^6/uL	pointblank
+UNIT	Y	GI/L	pointblank
+UNIT	Y	IU/L	pointblank
+UNIT	Y	mIU/mL	pointblank
+UNIT	Y	mU/L	pointblank
+UNIT	Y	pg/mL	pointblank
+UNIT	Y	ng/mL	pointblank
+UNIT	Y	ug/mL	pointblank
+UNIT	Y	mEq/L	pointblank
+UNIT	Y	fL	pointblank
+UNIT	Y	pg	pointblank
+UNIT	Y	pmol/L	pointblank
+UNIT	Y	fmol	pointblank
+UNIT	Y	fmol/L	pointblank
+UNIT	Y	fmol(Fe)	pointblank
+UNIT	Y	seconds	pointblank
+UNIT	Y	ratio	pointblank
+UNIT	Y	1	pointblank
+UNIT	Y	nmol/L	pointblank
+UNIT	Y	umol/L	pointblank
+UNIT	Y	10^9/L	pointblank
+UNIT	Y	10^12/L	pointblank
+UNIT	Y	TI/L	pointblank
+UNIT	Y	mg/g	pointblank
+UNIT	Y	ug/L	pointblank
+UNIT	Y	kU/L	pointblank
+UNIT	Y	mkat/L	pointblank
+UNIT	Y	ukat/L	pointblank
+UNIT	Y	mg	curated
+UNIT	Y	mg/m2	curated
+UNIT	Y	g	curated
+UNIT	Y	mL	curated
+UNIT	Y	ug	curated
+UNIT	Y	TABLET	curated
+UNIT	Y	CAPSULE	curated
+UNIT	Y	PUFF	curated
+UNIT	Y	mmol/mol	curated
+UNIT	Y	mEq	curated
+UNIT	Y	IU	curated
+VSTEST	Y	Systolic Blood Pressure	curated
+VSTEST	Y	Diastolic Blood Pressure	curated
+VSTEST	Y	Pulse Rate	curated
+VSTEST	Y	Respiratory Rate	curated
+VSTEST	Y	Temperature	curated
+VSTEST	Y	Weight	curated
+VSTEST	Y	Height	curated
+VSTEST	Y	Body Mass Index	curated
+VSTESTCD	Y	SYSBP	curated
+VSTESTCD	Y	DIABP	curated
+VSTESTCD	Y	PULSE	curated
+VSTESTCD	Y	RESP	curated
+VSTESTCD	Y	TEMP	curated
+VSTESTCD	Y	WEIGHT	curated
+VSTESTCD	Y	HEIGHT	curated
+VSTESTCD	Y	BMI	curated
