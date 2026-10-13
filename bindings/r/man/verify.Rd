@@ -4,10 +4,12 @@
 \alias{verify}
 \title{Verify a study}
 \usage{
-verify(study)
+verify(study, level = 2)
 }
 \arguments{
 \item{study}{A \code{trialforge_study} from \code{\link[=study]{study()}}.}
+
+\item{level}{Verification level; only \code{2} is available in R.}
 }
 \value{
 A list with \code{passed} (logical) and \code{findings} (a data frame of failed checks).
@@ -16,6 +18,10 @@ A list with \code{passed} (logical) and \code{findings} (a data frame of failed 
 Re-runs trialforge's verification levels 0–2 (structural, referential and derivational
 checks). Generation already guarantees these pass; this is for after the data has been
 modified.
+}
+\details{
+Level 3 (CDISC conformance rules) runs Pointblank's SDTMIG engine, which exists only in the
+Python package, so it is not available from R: use \code{Study.verify(level=3)} in Python.
 }
 \examples{
 verify(study("parallel_continuous", n = 20, seed = 1))$passed
