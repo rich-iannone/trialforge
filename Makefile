@@ -53,7 +53,7 @@ rs-check: ## Rust gate: rustfmt check, clippy (warnings are errors), tests
 
 .PHONY: py-install
 py-install: .venv ## Build the extension and install the Python package (editable) into .venv
-	uv pip install --python "$(PYTHON)" "maturin>=1.8,<2" pytest ruff pyright polars pandas pyarrow pyreadstat pointblank lxml xmlschema odmlib
+	uv pip install --python "$(PYTHON)" "maturin>=1.8,<2" pytest ruff pyright polars pandas pyarrow pyreadstat pointblank greenwood lxml xmlschema odmlib
 	cd $(PY_DIR) && VIRTUAL_ENV=$(CURDIR)/.venv $(CURDIR)/.venv/bin/maturin develop --uv
 
 .PHONY: py-test
@@ -84,6 +84,8 @@ py-check: ## Python gate: ruff, pyright, pytest
 
 .PHONY: r-document
 r-document: ## Compile the Rust library and regenerate R wrappers, NAMESPACE and man pages
+	@# pkgbuild only watches src/, not the core crates: drop the objects so it always relinks.
+	rm -f $(R_DIR)/src/*.so $(R_DIR)/src/*.o
 	$(RSCRIPT) -e 'devtools::document("$(R_DIR)")'
 
 .PHONY: r-test
@@ -101,11 +103,12 @@ r-check: r-build ## R CMD check --as-cran on the staged tarball (offline build f
 
 # admiral equivalence: admiral re-derives our ADaM from our SDTM; every compared value must match.
 # Runs in an isolated `ir` environment (nothing is installed into the user library).
-ADMIRAL_IR := ir run --isolated --r-version 4.6 --exclude-newer 2026-09-25 --with admiral --with haven --with dplyr
+ADMIRAL_IR := ir run --isolated --r-version 4.6 --exclude-newer 2026-09-25 --with admiral --with admiralonco --with haven --with dplyr --with stringr
 ADMIRAL_CASES := parallel_continuous:{} \
 	'parallel_continuous:{"indication":"hypertension","weeks":12,"dropout_rate":0.9}' \
 	'parallel_continuous:{"indication":"obesity","ae_rate_multiplier":4}' \
-	oncology_solid_tumor:{}
+	oncology_solid_tumor:{} \
+	'oncology_solid_tumor:{"orr":[0.6,0.3],"cutoff_months":22,"withdrawal_prob":0.3,"os_pfs_correlation":0.9}'
 
 .PHONY: r-admiral
 r-admiral: ## Compare our ADaM with admiral's derivations from our SDTM (needs `ir`)
