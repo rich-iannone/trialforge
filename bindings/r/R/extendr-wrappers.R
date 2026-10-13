@@ -25,4 +25,47 @@ core_version <- function() .Call(wrap__core_version)
 #' @export
 stream_seed <- function(seed, path) .Call(wrap__stream_seed, seed, path)
 
+#' (name, description) pairs for every archetype, as a two-column list.
+#' @noRd
+archetypes_impl <- function() .Call(wrap__archetypes_impl)
+
+#' Generates a study. `seed` and `studyid` are `NA` when not supplied.
+#' @noRd
+study_impl <- function(archetype, n, seed, studyid) .Call(wrap__study_impl, archetype, n, seed, studyid)
+
+#' A generated study, held in Rust.
+#' @noRd
+#' @section Methods:
+#'\subsection{Method `seed`}{
+#'Seeds are at most 2^53, so a double holds them exactly.
+#'}
+#'
+#'\subsection{Method `table`}{
+#'The dataset called `name` as a data.frame with haven-style `label` attributes.
+#'}
+#'
+RStudy <- new.env(parent = emptyenv())
+
+RStudy$studyid <- function() .Call(wrap__RStudy__studyid, self)
+
+RStudy$archetype <- function() .Call(wrap__RStudy__archetype, self)
+
+RStudy$seed <- function() .Call(wrap__RStudy__seed, self)
+
+RStudy$cutoff_days <- function() .Call(wrap__RStudy__cutoff_days, self)
+
+RStudy$sdtm_names <- function() .Call(wrap__RStudy__sdtm_names, self)
+
+RStudy$adam_names <- function() .Call(wrap__RStudy__adam_names, self)
+
+RStudy$table <- function(name) .Call(wrap__RStudy__table, self, name)
+
+RStudy$write <- function(path, formats) .Call(wrap__RStudy__write, self, path, formats)
+
+#' @export
+`$.RStudy` <- function (self, name) { func <- RStudy[[name]]; environment(func) <- environment(); func }
+
+#' @export
+`[[.RStudy` <- `$.RStudy`
+
 # nolint end
