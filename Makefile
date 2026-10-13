@@ -53,7 +53,7 @@ rs-check: ## Rust gate: rustfmt check, clippy (warnings are errors), tests
 
 .PHONY: py-install
 py-install: .venv ## Build the extension and install the Python package (editable) into .venv
-	uv pip install --python "$(PYTHON)" "maturin>=1.8,<2" pytest ruff pyright polars pandas pyarrow pyreadstat pointblank
+	uv pip install --python "$(PYTHON)" "maturin>=1.8,<2" pytest ruff pyright polars pandas pyarrow pyreadstat pointblank lxml xmlschema odmlib
 	cd $(PY_DIR) && VIRTUAL_ENV=$(CURDIR)/.venv $(CURDIR)/.venv/bin/maturin develop --uv
 
 .PHONY: py-test
@@ -78,8 +78,9 @@ py-check: ## Python gate: ruff, pyright, pytest
 
 # -- R ------------------------------------------------------------------------------------------
 
-# There is no r-check target yet. `R CMD build` copies the package away from the repo, which
-# breaks the path dependency on crates/trialforge. Vendoring the core crates fixes that.
+# `R CMD build` copies the package away from the repo, which breaks the path dependency on
+# crates/trialforge, so r-build first stages a self-contained copy with the engine crates and
+# vendored third-party crates (scripts/stage_r_package.py, into build/r-package/).
 
 .PHONY: r-document
 r-document: ## Compile the Rust library and regenerate R wrappers, NAMESPACE and man pages
@@ -88,6 +89,32 @@ r-document: ## Compile the Rust library and regenerate R wrappers, NAMESPACE and
 .PHONY: r-test
 r-test: ## Run the R test suite
 	$(RSCRIPT) -e 'devtools::test("$(R_DIR)", stop_on_failure = TRUE)'
+
+.PHONY: r-build
+r-build: ## Stage a self-contained R package (engine crates + vendored deps) and build the tarball
+	$(PYTHON) scripts/stage_r_package.py
+	cd build/r-package && rm -f trialforge_*.tar.gz && R CMD build --no-manual trialforge
+
+.PHONY: r-check
+r-check: r-build ## R CMD check --as-cran on the staged tarball (offline build from vendored crates)
+	cd build/r-package && _R_CHECK_FORCE_SUGGESTS_=false R CMD check --as-cran --no-manual trialforge_*.tar.gz
+
+# admiral equivalence: admiral re-derives our ADaM from our SDTM; every compared value must match.
+# Runs in an isolated `ir` environment (nothing is installed into the user library).
+ADMIRAL_IR := ir run --isolated --r-version 4.6 --exclude-newer 2026-09-25 --with admiral --with haven --with dplyr
+ADMIRAL_CASES := parallel_continuous:{} \
+	'parallel_continuous:{"indication":"hypertension","weeks":12,"dropout_rate":0.9}' \
+	'parallel_continuous:{"indication":"obesity","ae_rate_multiplier":4}' \
+	oncology_solid_tumor:{}
+
+.PHONY: r-admiral
+r-admiral: ## Compare our ADaM with admiral's derivations from our SDTM (needs `ir`)
+	@for case in $(ADMIRAL_CASES); do \
+		archetype=$${case%%:*}; controls=$${case#*:}; out=build/admiral/$$archetype; \
+		rm -rf $$out && $(PYTHON) -c "import json, sys, trialforge as tf; tf.study(sys.argv[1], n=300, seed=21, **json.loads(sys.argv[2])).write_submission(sys.argv[3])" "$$archetype" "$$controls" $$out && \
+		echo "== $$archetype $$controls" && \
+		$(ADMIRAL_IR) scripts/admiral_equivalence.R $$out 2>&1 | grep -E "admiral [0-9]|differs|rows" || exit 1; \
+	done
 
 .PHONY: r-install
 r-install: ## Install the R package from the source tree (in place, so the core path resolves)
