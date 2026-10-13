@@ -172,6 +172,66 @@ pub struct Finding {
     pub value: f64,
 }
 
+/// What a lesion is, in RECIST 1.1 terms (`TUSTRESC`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum LesionKind {
+    /// Measured target lesion.
+    Target,
+    /// Followed but not measured.
+    NonTarget,
+    /// New lesion (progression).
+    New,
+}
+
+impl LesionKind {
+    /// The `TUSTRESC` value.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            LesionKind::Target => "TARGET",
+            LesionKind::NonTarget => "NON-TARGET",
+            LesionKind::New => "NEW",
+        }
+    }
+}
+
+/// An identified lesion (one TU record).
+#[derive(Clone, Debug, PartialEq)]
+pub struct Lesion {
+    /// Link ID, e.g. `T01`, `NT02`, `NEW01` (`TULNKID`).
+    pub id: String,
+    /// Kind.
+    pub kind: LesionKind,
+    /// Anatomical location (CT `LOC`).
+    pub location: String,
+    /// Laterality (CT `LAT`) for paired organs.
+    pub laterality: Option<String>,
+    /// Whether it is a lymph node (measured by short axis).
+    pub node: bool,
+    /// Visit it was identified at.
+    pub visitnum: i64,
+    /// Date it was identified.
+    pub date: Date,
+}
+
+/// One tumour assessment (TR records, and RS records unless it is the baseline).
+#[derive(Clone, Debug, PartialEq)]
+pub struct TumorAssessment {
+    /// Visit.
+    pub visitnum: i64,
+    /// Date (scan date).
+    pub date: Date,
+    /// Target lesion measurements in mm: (lesion ID, value; `None` = not evaluable).
+    pub target: Vec<(String, Option<f64>)>,
+    /// Sum of target diameters, if every target lesion was measured.
+    pub sum: Option<f64>,
+    /// Non-target lesion states: (lesion ID, `PRESENT` / `ABSENT` / `UNEQUIVOCAL PROGRESSION`).
+    pub non_target: Vec<(String, String)>,
+    /// New lesions first seen at this assessment.
+    pub new_lesions: Vec<String>,
+    /// RECIST 1.1 responses (target, non-target, overall); `None` at baseline.
+    pub response: Option<(String, Option<String>, String)>,
+}
+
 /// A subject's whole observed course.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Timeline {
@@ -197,6 +257,10 @@ pub struct Timeline {
     pub history: Vec<HistoryItem>,
     /// Lab and vital-sign measurements.
     pub findings: Vec<Finding>,
+    /// Identified lesions (oncology).
+    pub lesions: Vec<Lesion>,
+    /// Tumour assessments in date order, baseline first (oncology).
+    pub tumor: Vec<TumorAssessment>,
 }
 
 impl Timeline {
