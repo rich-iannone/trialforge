@@ -9,7 +9,8 @@ data in both languages.
 
 > **Status: pre-alpha.** Two archetypes generate a complete, verified study: trial design
 > (TA, TE, TV, TI, TS), SDTM (DM, SE, SV, EX, CM, AE + SUPPAE, DS, MH, LB, VS) and ADaM (ADSL,
-> ADAE, ADLB, ADVS), written as XPT v5, CSV or Parquet.
+> ADAE, ADLB, ADVS), written as XPT v5, CSV, Dataset-JSON 1.1 or Parquet, with a Define-XML
+> 2.1 `define.xml` for each standard.
 
 ```python
 import trialforge as tf
@@ -17,7 +18,8 @@ import trialforge as tf
 trial = tf.study("parallel_continuous", n=300, seed=1, indication="hypertension", weeks=12)
 trial.adam["ADVS"]                       # polars by default
 trial.truth["endpoint"]                  # target vs realised treatment effect
-trial.write("out/", formats=["xpt", "parquet"])
+trial.write_submission("out/")           # sdtm/ and adam/: XPT + define.xml
+trial.verify(level=3)                    # + Pointblank's SDTMIG conformance rules
 tf.controls("parallel_continuous")       # every control, with its default
 ```
 
@@ -27,12 +29,19 @@ library(trialforge)
 trial <- study("parallel_continuous", n = 300, seed = 1, indication = "hypertension", weeks = 12)
 trial$adam$ADVS
 trial$truth$endpoint
-write_study(trial, "out/", formats = c("xpt", "csv"))
+write_submission(trial, "out/")
+```
+
+Or describe the study in a spec file and use the command-line tool:
+
+```bash
+trialforge generate examples/hypertension.yaml -o out/
 ```
 
 The same `seed` and controls give byte-identical files from Python and R. Every study passes
 trialforge's structural, referential and derivational checks before it is returned
-(`verify()` re-runs them after you modify the data).
+(`verify()` re-runs them after you modify the data), and its ADaM matches admiral: admiral
+re-derives it from trialforge's SDTM with no differences.
 
 | Archetype | What it simulates |
 |---|---|
