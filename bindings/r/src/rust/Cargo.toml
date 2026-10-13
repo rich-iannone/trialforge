@@ -16,6 +16,7 @@ path = "document.rs"
 
 [dependencies]
 extendr-api = "0.9"
+serde_json = "1.0.154"
 # Path dependency on the shared core. This works for in-place builds (`make r-install`,
 # `devtools::load_all()`), but `R CMD build` copies the package elsewhere and breaks the path.
 # Before a CRAN/r-universe release the core crates must be vendored into the tarball.
