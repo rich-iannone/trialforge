@@ -3,14 +3,20 @@
 #
 # Usage (from the repo root, via ir so nothing touches the user library):
 #   ir run --isolated --r-version 4.6 --exclude-newer 2026-09-25 \
-#     --with admiral --with haven --with dplyr scripts/admiral_equivalence.R <submission-dir>
+#     --with admiral --with admiralonco --with haven --with dplyr --with stringr \
+#     scripts/admiral_equivalence.R <submission-dir>
+#
+# Oncology datasets (ADRS, ADTTE, ADTR) are re-derived with admiralonco's templates
+# (ad_adrs.R, ad_adtte.R, ad_adtr.R), adapted only where noted.
 #
 # <submission-dir> is the output of `write_submission()`: sdtm/*.xpt and adam/*.xpt. Exits
 # non-zero if any compared variable differs.
 
 suppressPackageStartupMessages({
   library(admiral)
+  library(admiralonco)
   library(dplyr)
+  library(stringr)
 })
 
 args <- commandArgs(trailingOnly = TRUE)
@@ -31,10 +37,16 @@ ds <- read("sdtm", "ds")
 ae <- read("sdtm", "ae")
 lb <- read("sdtm", "lb")
 vs <- read("sdtm", "vs")
+tu <- read("sdtm", "tu")
+tr <- read("sdtm", "tr")
+rs <- read("sdtm", "rs")
 adsl_tf <- read("adam", "adsl")
 adae_tf <- read("adam", "adae")
 adlb_tf <- read("adam", "adlb")
 advs_tf <- read("adam", "advs")
+adrs_tf <- read("adam", "adrs")
+adtte_tf <- read("adam", "adtte")
+adtr_tf <- read("adam", "adtr")
 
 results <- list()
 compare <- function(dataset, ours, theirs, keys, vars, tol = 1e-6) {
@@ -174,6 +186,235 @@ bds <- function(name, src, prefix, ours) {
 }
 bds("ADLB", lb, "LB", adlb_tf)
 bds("ADVS", vs, "VS", advs_tf)
+
+# ---- Oncology (admiralonco templates) ---------------------------------------------------------
+# The templates start from ADSL; use trialforge's, whose RANDDT, DTHDT and LSTALVDT are compared
+# with admiral above.
+if (!is.null(rs) && !is.null(adrs_tf)) {
+  adsl_onc <- adsl_tf |> select(STUDYID, USUBJID, RANDDT, DTHDT, LSTALVDT)
+  adsl_vars <- exprs(RANDDT)
+
+  # ad_adrs.R
+  adrs <- rs |>
+    derive_vars_merged(dataset_add = adsl_onc, new_vars = adsl_vars, by_vars = exprs(STUDYID, USUBJID)) |>
+    filter(RSEVAL == "INVESTIGATOR" & RSTESTCD == "OVRLRESP") |>
+    mutate(PARAMCD = "OVR") |>
+    derive_vars_dt(dtc = RSDTC, new_vars_prefix = "A", highest_imputation = "D", date_imputation = "last") |>
+    mutate(AVISIT = VISIT, AVALC = RSSTRESC, AVAL = aval_resp(AVALC))
+  worst_resp <- function(arg) {
+    case_when(arg == "NE" ~ 1, arg == "CR" ~ 2, arg == "PR" ~ 3, arg == "SD" ~ 4,
+              arg == "NON-CR/NON-PD" ~ 5, arg == "PD" ~ 6, TRUE ~ 0)
+  }
+  adrs <- adrs |>
+    restrict_derivation(
+      derivation = derive_var_extreme_flag,
+      args = params(by_vars = exprs(STUDYID, USUBJID, ADT), order = exprs(worst_resp(AVALC), RSSEQ), new_var = ANL01FL, mode = "last"),
+      filter = !is.na(AVAL) & ADT >= RANDDT
+    ) |>
+    derive_var_relative_flag(
+      by_vars = exprs(STUDYID, USUBJID), order = exprs(ADT, RSSEQ), new_var = ANL02FL,
+      condition = AVALC == "PD", mode = "first", selection = "before", inclusive = TRUE
+    )
+  ovr <- filter(adrs, PARAMCD == "OVR" & ANL01FL == "Y" & ANL02FL == "Y")
+  no_data_n <- event(dataset_name = "adsl", condition = TRUE, set_values_to = exprs(AVALC = "N"), keep_source_vars = adsl_vars)
+  no_data_missing <- event(dataset_name = "adsl", condition = TRUE, set_values_to = exprs(AVALC = "MISSING"), keep_source_vars = adsl_vars)
+  sources <- list(ovr = ovr, adsl = adsl_onc)
+  adrs <- adrs |>
+    derive_extreme_records(
+      dataset_ref = adsl_onc, dataset_add = adrs, by_vars = exprs(STUDYID, USUBJID),
+      filter_add = PARAMCD == "OVR" & AVALC == "PD" & ANL01FL == "Y", order = exprs(ADT, RSSEQ),
+      mode = "first", exist_flag = AVALC, false_value = "N",
+      set_values_to = exprs(PARAMCD = "PD", AVAL = yn_to_numeric(AVALC), ANL01FL = "Y")
+    ) |>
+    derive_extreme_event(
+      by_vars = exprs(STUDYID, USUBJID), order = exprs(event_nr, ADT), tmp_event_nr_var = event_nr,
+      mode = "first", events = list(rsp_y, no_data_n), source_datasets = sources,
+      set_values_to = exprs(PARAMCD = "RSP", AVAL = yn_to_numeric(AVALC), ANL01FL = "Y")
+    ) |>
+    derive_extreme_event(
+      by_vars = exprs(STUDYID, USUBJID), order = exprs(desc(AVALC), ADT, event_nr), tmp_event_nr_var = event_nr,
+      mode = "first", events = list(rsp_y, cb_y, no_data_n), source_datasets = sources,
+      set_values_to = exprs(PARAMCD = "CB", AVAL = yn_to_numeric(AVALC), ANL01FL = "Y"), check_type = "none"
+    ) |>
+    derive_extreme_event(
+      by_vars = exprs(STUDYID, USUBJID), order = exprs(event_nr, ADT), tmp_event_nr_var = event_nr,
+      mode = "first", source_datasets = sources,
+      events = list(bor_cr, bor_pr, bor_sd, bor_non_crpd, bor_pd, bor_ne, no_data_missing),
+      set_values_to = exprs(PARAMCD = "BOR", AVAL = aval_resp(AVALC), ANL01FL = "Y")
+    )
+  # BCP and CBCP read BOR and CBOR from `adrs`, so they need the updated dataset: a chained
+  # call would see the previous one (the template chains CBCP, so its CBCP is always "N").
+  adrs <- adrs |>
+    derive_extreme_records(
+      dataset_ref = adsl_onc, dataset_add = adrs, by_vars = exprs(STUDYID, USUBJID),
+      filter_add = PARAMCD == "BOR" & AVALC %in% c("CR", "PR"), exist_flag = AVALC, false_value = "N",
+      set_values_to = exprs(PARAMCD = "BCP", AVAL = yn_to_numeric(AVALC), ANL01FL = "Y")
+    ) |>
+    derive_extreme_event(
+      by_vars = exprs(STUDYID, USUBJID), order = exprs(desc(AVALC), ADT, event_nr), tmp_event_nr_var = event_nr,
+      mode = "first", source_datasets = sources, events = list(crsp_y_cr, crsp_y_pr, no_data_n),
+      set_values_to = exprs(PARAMCD = "CRSP", AVAL = yn_to_numeric(AVALC), ANL01FL = "Y")
+    ) |>
+    derive_extreme_event(
+      by_vars = exprs(STUDYID, USUBJID), order = exprs(desc(AVALC), ADT, event_nr), tmp_event_nr_var = event_nr,
+      mode = "first", events = list(crsp_y_cr, crsp_y_pr, cb_y, no_data_n), source_datasets = sources,
+      set_values_to = exprs(PARAMCD = "CCB", AVAL = yn_to_numeric(AVALC), ANL01FL = "Y")
+    ) |>
+    derive_extreme_event(
+      by_vars = exprs(STUDYID, USUBJID), order = exprs(event_nr, ADT), tmp_event_nr_var = event_nr,
+      mode = "first", source_datasets = sources,
+      events = list(cbor_cr, cbor_pr, bor_sd, bor_non_crpd, bor_pd, bor_ne, no_data_missing),
+      set_values_to = exprs(PARAMCD = "CBOR", AVAL = aval_resp(AVALC), ANL01FL = "Y")
+    )
+  adrs <- adrs |>
+    derive_extreme_records(
+      dataset_ref = adsl_onc, dataset_add = adrs, by_vars = exprs(STUDYID, USUBJID),
+      filter_add = PARAMCD == "CBOR" & AVALC %in% c("CR", "PR"), exist_flag = AVALC, false_value = "N",
+      set_values_to = exprs(PARAMCD = "CBCP", AVAL = yn_to_numeric(AVALC), ANL01FL = "Y")
+    )
+  adsldth <- adsl_onc |> select(STUDYID, USUBJID, DTHDT, RANDDT)
+  adrs <- adrs |>
+    derive_extreme_records(
+      dataset_ref = adsldth, dataset_add = adsldth, by_vars = exprs(STUDYID, USUBJID),
+      filter_add = !is.na(DTHDT), exist_flag = AVALC, false_value = "N",
+      set_values_to = exprs(PARAMCD = "DEATH", ANL01FL = "Y", AVAL = yn_to_numeric(AVALC), ADT = DTHDT)
+    ) |>
+    select(-DTHDT) |>
+    derive_extreme_records(
+      dataset_ref = adsl_onc, dataset_add = adrs, by_vars = exprs(STUDYID, USUBJID),
+      filter_add = PARAMCD == "OVR" & ANL01FL == "Y", order = exprs(ADT, RSSEQ), mode = "last",
+      set_values_to = exprs(PARAMCD = "LSTA", ANL01FL = "Y")
+    ) |>
+    derive_param_exist_flag(
+      dataset_ref = adsl_onc |> select(STUDYID, USUBJID, RANDDT), dataset_add = tu,
+      condition = TUEVAL == "INVESTIGATOR" & TUSTRESC == "TARGET" & VISIT == "SCREENING",
+      false_value = "N", missing_value = "N",
+      set_values_to = exprs(PARAMCD = "MDIS", AVAL = yn_to_numeric(AVALC), ANL01FL = "Y")
+    ) |>
+    derive_var_obs_number(by_vars = exprs(STUDYID, USUBJID), order = exprs(PARAMCD, ADT, VISITNUM, RSSEQ), check_type = "error")
+  compare(
+    "ADRS", adrs_tf, adrs, keys = c("STUDYID", "USUBJID", "ASEQ"),
+    vars = c("PARAMCD", "AVALC", "AVAL", "ADT", "ANL01FL", "ANL02FL")
+  )
+
+  # ad_adtte.R (with admiral's ADRS from above)
+  adsl_tte <- adsl_onc |>
+    derive_vars_merged(
+      dataset_add = adrs, filter_add = PARAMCD == "RSP" & AVALC == "Y" & ANL01FL == "Y",
+      by_vars = exprs(STUDYID, USUBJID), new_vars = exprs(TEMP_RESPDT = ADT)
+    )
+  srcs <- list(adsl = adsl_tte, adrs = adrs)
+  adtte <- derive_param_tte(
+    dataset_adsl = adsl_tte, start_date = RANDDT, event_conditions = list(death_event),
+    censor_conditions = list(lastalive_censor, rand_censor), source_datasets = srcs,
+    set_values_to = exprs(PARAMCD = "OS")
+  ) |>
+    derive_param_tte(
+      dataset_adsl = adsl_tte, start_date = RANDDT, event_conditions = list(pd_event, death_event),
+      censor_conditions = list(lasta_censor, rand_censor), source_datasets = srcs,
+      set_values_to = exprs(PARAMCD = "PFS")
+    ) |>
+    derive_param_tte(
+      dataset_adsl = filter(adsl_tte, !is.na(TEMP_RESPDT)), start_date = TEMP_RESPDT,
+      event_conditions = list(pd_event, death_event), censor_conditions = list(lasta_censor),
+      source_datasets = srcs, set_values_to = exprs(PARAMCD = "RSD")
+    ) |>
+    derive_vars_duration(new_var = AVAL, start_date = STARTDT, end_date = ADT) |>
+    derive_var_obs_number(by_vars = exprs(STUDYID, USUBJID), order = exprs(PARAMCD), check_type = "error")
+  compare(
+    "ADTTE", adtte_tf, adtte, keys = c("STUDYID", "USUBJID", "PARAMCD"),
+    vars = c("ASEQ", "STARTDT", "ADT", "AVAL", "CNSR", "EVNTDESC", "CNSDTDSC", "SRCDOM", "SRCVAR", "SRCSEQ")
+  )
+}
+
+if (!is.null(tr) && !is.null(adtr_tf)) {
+  # ad_adtr.R. Adaptation: nodal target lesions are measured by short axis (TRTESTCD SAXIS,
+  # RECIST 1.1), which takes the template's LPERP role (NLDIAMnn); lesion numbers are the
+  # digits after the "T" of TRLNKID.
+  tu_inv <- filter(tu, TUEVAL == "INVESTIGATOR")
+  trl <- tr |>
+    filter(TREVAL == "INVESTIGATOR" & TRGRPID == "TARGET" & TRTESTCD %in% c("LDIAM", "SAXIS")) |>
+    derive_vars_merged(dataset_add = adsl_onc, new_vars = exprs(RANDDT), by_vars = exprs(STUDYID, USUBJID)) |>
+    derive_vars_merged(dataset_add = tu_inv, new_vars = exprs(TULOC), by_vars = exprs(STUDYID, USUBJID, TRLNKID = TULNKID)) |>
+    mutate(
+      TULOCGR1 = if_else(TULOC == "LYMPH NODE", "NODAL", "NON-NODAL"),
+      LSEXP = TRLNKID, LSASS = if_else(!is.na(TRSTRESN), TRLNKID, NA_character_)
+    ) |>
+    derive_vars_dt(dtc = TRDTC, new_vars_prefix = "A", highest_imputation = "D", date_imputation = "first") |>
+    derive_vars_dy(reference_date = RANDDT, source_vars = exprs(ADT)) |>
+    mutate(
+      AVISIT = if_else(VISIT == "SCREENING", "BASELINE", VISIT),
+      AVISITN = if_else(AVISIT == "BASELINE", 0, VISITNUM),
+      tmp_lesion_nr = str_sub(TRLNKID, 2)
+    )
+  adtr <- bind_rows(
+    trl |> filter(TRTESTCD == "LDIAM") |> mutate(PARAMCD = paste0("LDIAM", tmp_lesion_nr)),
+    trl |> filter(TRTESTCD == "SAXIS") |> mutate(PARAMCD = paste0("NLDIAM", tmp_lesion_nr))
+  ) |>
+    mutate(AVAL = TRSTRESN, ANL01FL = if_else(!is.na(AVAL), "Y", NA_character_)) |>
+    select(-tmp_lesion_nr)
+  in_sum <- quote((str_starts(PARAMCD, "LDIAM") & TULOCGR1 == "NON-NODAL") | (str_starts(PARAMCD, "NLDIAM") & TULOCGR1 == "NODAL"))
+  adtr_sum <- derive_summary_records(
+    dataset_add = adtr, by_vars = exprs(STUDYID, USUBJID, RANDDT, AVISIT, AVISITN),
+    filter_add = !!in_sum,
+    set_values_to = exprs(AVAL = sum(AVAL, na.rm = TRUE), ADY = min(ADY, na.rm = TRUE), ADT = min(ADT, na.rm = TRUE), PARAMCD = "SDIAM")
+  ) |>
+    derive_vars_merged_summary(
+      dataset_add = adtr, by_vars = exprs(STUDYID, USUBJID),
+      filter_add = AVISIT == "BASELINE" & !!in_sum,
+      new_vars = exprs(LSEXP = paste(sort(TRLNKID), collapse = ", "))
+    ) |>
+    derive_vars_merged_summary(
+      dataset_add = adtr, by_vars = exprs(STUDYID, USUBJID, AVISIT),
+      filter_add = !!in_sum & ANL01FL == "Y",
+      new_vars = exprs(LSASS = paste(sort(TRLNKID), collapse = ", "))
+    ) |>
+    mutate(ANL01FL = if_else(LSEXP == LSASS, "Y", NA_character_)) |>
+    restrict_derivation(
+      derivation = derive_var_extreme_flag,
+      args = params(by_vars = exprs(STUDYID, USUBJID), order = exprs(ADY), new_var = ABLFL, mode = "last"),
+      filter = ADY <= 1
+    ) |>
+    derive_var_base(by_vars = exprs(STUDYID, USUBJID))
+  adtr_sum <- adtr_sum |>
+    derive_vars_joined(
+      dataset_add = adtr_sum, by_vars = exprs(STUDYID, USUBJID), order = exprs(AVAL), new_vars = exprs(NADIR = AVAL),
+      join_vars = exprs(ADY), join_type = "all", filter_add = ANL01FL == "Y", filter_join = ADY.join < ADY,
+      mode = "first", check_type = "none"
+    ) |>
+    derive_var_chg() |>
+    derive_var_pchg() |>
+    mutate(CHGNAD = AVAL - NADIR, PCHGNAD = if_else(NADIR == 0, NA_real_, 100 * CHGNAD / NADIR)) |>
+    derive_var_merged_exist_flag(
+      dataset_add = derive_vars_dt(rs, dtc = RSDTC, new_vars_prefix = "A", highest_imputation = "D", flag_imputation = "none"),
+      filter_add = RSTESTCD == "OVRLRESP" & RSEVAL == "INVESTIGATOR", by_vars = exprs(STUDYID, USUBJID, ADT),
+      new_var = PDFL, condition = RSSTRESC == "PD"
+    ) |>
+    derive_var_relative_flag(
+      by_vars = exprs(STUDYID, USUBJID), order = exprs(ADT), new_var = POSTRNDFL, condition = ADT > RANDDT,
+      mode = "first", selection = "after", inclusive = TRUE, flag_no_ref_groups = FALSE
+    ) |>
+    restrict_derivation(
+      derivation = derive_var_extreme_flag,
+      args = params(by_vars = exprs(STUDYID, USUBJID), new_var = ANL02FL, order = exprs(PCHG), mode = "first", check_type = "none"),
+      filter = ANL01FL == "Y" & POSTRNDFL == "Y"
+    ) |>
+    select(-POSTRNDFL) |>
+    restrict_derivation(
+      derivation = derive_var_relative_flag,
+      args = params(by_vars = exprs(STUDYID, USUBJID), new_var = ANL03FL, condition = PDFL == "Y", order = exprs(ADY),
+                    mode = "first", selection = "before", inclusive = FALSE),
+      filter = ANL01FL == "Y" | PDFL == "Y"
+    ) |>
+    mutate(ANL04FL = if_else(ANL01FL == "Y" | PDFL == "Y", "Y", NA_character_))
+  adtr <- bind_rows(adtr, adtr_sum) |>
+    derive_var_obs_number(by_vars = exprs(STUDYID, USUBJID), order = exprs(PARAMCD, AVISITN, TRSEQ), check_type = "error")
+  compare(
+    "ADTR", adtr_tf, adtr, keys = c("STUDYID", "USUBJID", "ASEQ"),
+    vars = c("PARAMCD", "AVISITN", "AVAL", "ADT", "ADY", "LSEXP", "LSASS", "BASE", "CHG", "PCHG", "NADIR", "CHGNAD",
+             "PCHGNAD", "ABLFL", "PDFL", "ANL01FL", "ANL02FL", "ANL03FL", "ANL04FL")
+  )
+}
 
 summary <- do.call(rbind, results)
 cat(sprintf(
