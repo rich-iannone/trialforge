@@ -1,0 +1,56 @@
+{
+  "description": "Golden XPT outputs of study(archetype, n, seed) with default options. Both bindings write the files through the Rust writer and hash the bytes themselves (MD5 as an identity check, not for security). Any change to generation, metadata or the XPT writer changes these; regenerate deliberately.",
+  "cases": [
+    {
+      "archetype": "oncology_solid_tumor",
+      "n": 300,
+      "seed": 20261011,
+      "rows": {
+        "DM": 300,
+        "EX": 3299,
+        "DS": 1051,
+        "ADSL": 300
+      },
+      "xpt_md5": {
+        "dm.xpt": "f8e60a17e4451b9a7d70e2faf51069ed",
+        "ex.xpt": "8ec81de6c383d2120801f9a92d7e068b",
+        "ds.xpt": "980f7f089db5374a3d227e016804b15f",
+        "adsl.xpt": "b08a7a4ebe1b30dc9225d2db23248337"
+      }
+    },
+    {
+      "archetype": "oncology_solid_tumor",
+      "n": 1,
+      "seed": 1,
+      "rows": {
+        "DM": 1,
+        "EX": 3,
+        "DS": 4,
+        "ADSL": 1
+      },
+      "xpt_md5": {
+        "dm.xpt": "86f3313bfe2455ad5ae936327f97cd11",
+        "ex.xpt": "b51e498bcb67888bd78b7fc87589b636",
+        "ds.xpt": "443a542280e099fca76f04641d968ba6",
+        "adsl.xpt": "353a2dd7b1e8805141911670dade10c9"
+      }
+    },
+    {
+      "archetype": "oncology_solid_tumor",
+      "n": 57,
+      "seed": 9007199254740992,
+      "rows": {
+        "DM": 57,
+        "EX": 675,
+        "DS": 204,
+        "ADSL": 57
+      },
+      "xpt_md5": {
+        "dm.xpt": "82c27c9b68270b28cf54c4e5788ced44",
+        "ex.xpt": "e190c9730429b996464316655a4513b0",
+        "ds.xpt": "8e86f4aebe1346d28635e10f82047660",
+        "adsl.xpt": "201d65b4df7d5431473d83330d421b01"
+      }
+    }
+  ]
+}
