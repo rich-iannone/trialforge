@@ -1,0 +1,146 @@
+dataset	variable	label	type	core	codelist
+ADSL	STUDYID	Study Identifier	Char	Req	
+ADSL	USUBJID	Unique Subject Identifier	Char	Req	
+ADSL	SUBJID	Subject Identifier for the Study	Char	Req	
+ADSL	SITEID	Study Site Identifier	Char	Req	
+ADSL	COUNTRY	Country	Char	Perm	COUNTRY
+ADSL	AGE	Age	Num	Req	
+ADSL	AGEU	Age Units	Char	Req	AGEU
+ADSL	AGEGR1	Pooled Age Group 1	Char	Perm	
+ADSL	AGEGR1N	Pooled Age Group 1 (N)	Num	Perm	
+ADSL	SEX	Sex	Char	Req	SEX
+ADSL	RACE	Race	Char	Req	RACE
+ADSL	ETHNIC	Ethnicity	Char	Perm	ETHNIC
+ADSL	HEIGHTBL	Baseline Height (cm)	Num	Perm	
+ADSL	WEIGHTBL	Baseline Weight (kg)	Num	Perm	
+ADSL	BMIBL	Baseline BMI (kg/m^2)	Num	Perm	
+ADSL	ARMCD	Planned Arm Code	Char	Perm	
+ADSL	ARM	Description of Planned Arm	Char	Req	
+ADSL	ACTARMCD	Actual Arm Code	Char	Perm	
+ADSL	ACTARM	Description of Actual Arm	Char	Req	
+ADSL	TRT01P	Planned Treatment for Period 01	Char	Req	
+ADSL	TRT01PN	Planned Treatment for Period 01 (N)	Num	Perm	
+ADSL	TRT01A	Actual Treatment for Period 01	Char	Req	
+ADSL	TRT01AN	Actual Treatment for Period 01 (N)	Num	Perm	
+ADSL	STRAT1R	Stratification Factor 1 (Randomized)	Char	Perm	
+ADSL	ITTFL	Intent-To-Treat Population Flag	Char	Cond	NY
+ADSL	SAFFL	Safety Population Flag	Char	Cond	NY
+ADSL	COMPLFL	Completers Population Flag	Char	Cond	NY
+ADSL	RANDDT	Date of Randomization	Num	Perm	
+ADSL	TRTSDT	Date of First Exposure to Treatment	Num	Cond	
+ADSL	TRTEDT	Date of Last Exposure to Treatment	Num	Cond	
+ADSL	TRTDURD	Total Treatment Duration (Days)	Num	Perm	
+ADSL	EOTSTT	End of Treatment Status	Char	Perm	
+ADSL	DCTREAS	Reason for Discontinuation of Treatment	Char	Perm	
+ADSL	EOSSTT	End of Study Status	Char	Perm	
+ADSL	DCSREAS	Reason for Discontinuation from Study	Char	Perm	
+ADSL	EOSDT	End of Study Date	Num	Perm	
+ADSL	DTHFL	Subject Death Flag	Char	Perm	NY
+ADSL	DTHDT	Date of Death	Num	Perm	
+ADSL	LSTALVDT	Date Last Known Alive	Num	Perm	
+ADSL	DCUTDT	Data Cutoff Date	Num	Perm	
+ADAE	STUDYID	Study Identifier	Char	Req	
+ADAE	USUBJID	Unique Subject Identifier	Char	Req	
+ADAE	SUBJID	Subject Identifier for the Study	Char	Perm	
+ADAE	SITEID	Study Site Identifier	Char	Perm	
+ADAE	AGE	Age	Num	Perm	
+ADAE	SEX	Sex	Char	Perm	SEX
+ADAE	RACE	Race	Char	Perm	RACE
+ADAE	SAFFL	Safety Population Flag	Char	Perm	NY
+ADAE	TRTA	Actual Treatment	Char	Req	
+ADAE	TRTAN	Actual Treatment (N)	Num	Perm	
+ADAE	TRTSDT	Date of First Exposure to Treatment	Num	Perm	
+ADAE	TRTEDT	Date of Last Exposure to Treatment	Num	Perm	
+ADAE	AESEQ	Sequence Number	Num	Req	
+ADAE	AETERM	Reported Term for the Adverse Event	Char	Req	
+ADAE	AEDECOD	Dictionary-Derived Term	Char	Req	
+ADAE	AEBODSYS	Body System or Organ Class	Char	Req	
+ADAE	AESOC	Primary System Organ Class	Char	Perm	
+ADAE	AESEV	Severity/Intensity	Char	Perm	AESEV
+ADAE	AESER	Serious Event	Char	Perm	NY
+ADAE	AEREL	Causality	Char	Perm	AEREL
+ADAE	AEACN	Action Taken with Study Treatment	Char	Perm	ACN
+ADAE	AEOUT	Outcome of Adverse Event	Char	Perm	OUT
+ADAE	ASEV	Analysis Severity/Intensity	Char	Perm	AESEV
+ADAE	ASEVN	Analysis Severity/Intensity (N)	Num	Perm	
+ADAE	AREL	Analysis Causality	Char	Perm	AEREL
+ADAE	ASTDT	Analysis Start Date	Num	Cond	
+ADAE	AENDT	Analysis End Date	Num	Cond	
+ADAE	ASTDY	Analysis Start Relative Day	Num	Perm	
+ADAE	AENDY	Analysis End Relative Day	Num	Perm	
+ADAE	ADURN	Analysis Duration (N)	Num	Perm	
+ADAE	ADURU	Analysis Duration Units	Char	Perm	
+ADAE	TRTEMFL	Treatment Emergent Analysis Flag	Char	Cond	NY
+ADAE	AOCCFL	1st Occurrence within Subject Flag	Char	Perm	NY
+ADAE	AOCCSFL	1st Occurrence of SOC Flag	Char	Perm	NY
+ADAE	AOCCPFL	1st Occurrence of Preferred Term Flag	Char	Perm	NY
+ADLB	STUDYID	Study Identifier	Char	Req	
+ADLB	USUBJID	Unique Subject Identifier	Char	Req	
+ADLB	SUBJID	Subject Identifier for the Study	Char	Perm	
+ADLB	SITEID	Study Site Identifier	Char	Perm	
+ADLB	AGE	Age	Num	Perm	
+ADLB	SEX	Sex	Char	Perm	SEX
+ADLB	RACE	Race	Char	Perm	RACE
+ADLB	SAFFL	Safety Population Flag	Char	Perm	NY
+ADLB	TRTP	Planned Treatment	Char	Req	
+ADLB	TRTPN	Planned Treatment (N)	Num	Perm	
+ADLB	TRTA	Actual Treatment	Char	Cond	
+ADLB	TRTAN	Actual Treatment (N)	Num	Perm	
+ADLB	PARAMCD	Parameter Code	Char	Req	
+ADLB	PARAM	Parameter	Char	Req	
+ADLB	PARAMN	Parameter (N)	Num	Perm	
+ADLB	PARCAT1	Parameter Category 1	Char	Perm	
+ADLB	AVAL	Analysis Value	Num	Cond	
+ADLB	BASE	Baseline Value	Num	Cond	
+ADLB	CHG	Change from Baseline	Num	Cond	
+ADLB	PCHG	Percent Change from Baseline	Num	Cond	
+ADLB	ADT	Analysis Date	Num	Cond	
+ADLB	ADY	Analysis Relative Day	Num	Perm	
+ADLB	AVISIT	Analysis Visit	Char	Cond	
+ADLB	AVISITN	Analysis Visit (N)	Num	Perm	
+ADLB	ABLFL	Baseline Record Flag	Char	Cond	NY
+ADLB	ONTRTFL	On Treatment Record Flag	Char	Perm	NY
+ADLB	ANL01FL	Analysis Flag 01	Char	Cond	NY
+ADLB	ANRLO	Analysis Normal Range Lower Limit	Num	Perm	
+ADLB	ANRHI	Analysis Normal Range Upper Limit	Num	Perm	
+ADLB	ANRIND	Analysis Reference Range Indicator	Char	Perm	NRIND
+ADLB	BNRIND	Baseline Reference Range Indicator	Char	Perm	NRIND
+ADLB	SHIFT1	Shift 1	Char	Perm	
+ADLB	SRCDOM	Source Data	Char	Perm	
+ADLB	SRCVAR	Source Variable	Char	Perm	
+ADLB	SRCSEQ	Source Sequence Number	Num	Perm	
+ADVS	STUDYID	Study Identifier	Char	Req	
+ADVS	USUBJID	Unique Subject Identifier	Char	Req	
+ADVS	SUBJID	Subject Identifier for the Study	Char	Perm	
+ADVS	SITEID	Study Site Identifier	Char	Perm	
+ADVS	AGE	Age	Num	Perm	
+ADVS	SEX	Sex	Char	Perm	SEX
+ADVS	RACE	Race	Char	Perm	RACE
+ADVS	SAFFL	Safety Population Flag	Char	Perm	NY
+ADVS	TRTP	Planned Treatment	Char	Req	
+ADVS	TRTPN	Planned Treatment (N)	Num	Perm	
+ADVS	TRTA	Actual Treatment	Char	Cond	
+ADVS	TRTAN	Actual Treatment (N)	Num	Perm	
+ADVS	PARAMCD	Parameter Code	Char	Req	
+ADVS	PARAM	Parameter	Char	Req	
+ADVS	PARAMN	Parameter (N)	Num	Perm	
+ADVS	PARCAT1	Parameter Category 1	Char	Perm	
+ADVS	AVAL	Analysis Value	Num	Cond	
+ADVS	BASE	Baseline Value	Num	Cond	
+ADVS	CHG	Change from Baseline	Num	Cond	
+ADVS	PCHG	Percent Change from Baseline	Num	Cond	
+ADVS	ADT	Analysis Date	Num	Cond	
+ADVS	ADY	Analysis Relative Day	Num	Perm	
+ADVS	AVISIT	Analysis Visit	Char	Cond	
+ADVS	AVISITN	Analysis Visit (N)	Num	Perm	
+ADVS	ABLFL	Baseline Record Flag	Char	Cond	NY
+ADVS	ONTRTFL	On Treatment Record Flag	Char	Perm	NY
+ADVS	ANL01FL	Analysis Flag 01	Char	Cond	NY
+ADVS	ANRLO	Analysis Normal Range Lower Limit	Num	Perm	
+ADVS	ANRHI	Analysis Normal Range Upper Limit	Num	Perm	
+ADVS	ANRIND	Analysis Reference Range Indicator	Char	Perm	NRIND
+ADVS	BNRIND	Baseline Reference Range Indicator	Char	Perm	NRIND
+ADVS	SHIFT1	Shift 1	Char	Perm	
+ADVS	SRCDOM	Source Data	Char	Perm	
+ADVS	SRCVAR	Source Variable	Char	Perm	
+ADVS	SRCSEQ	Source Sequence Number	Num	Perm	
