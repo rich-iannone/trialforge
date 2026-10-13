@@ -297,14 +297,14 @@ impl Design {
             if !scheduled.windows(2).all(|w| w[0] < w[1]) {
                 return err("scheduled visit days must increase".into());
             }
-            for kind in [
-                VisitKind::Screening,
-                VisitKind::Baseline,
-                VisitKind::EndOfTreatment,
-            ] {
-                if sch.visits.iter().filter(|v| v.kind == kind).count() != 1 {
-                    return err(format!("the schedule needs exactly one {kind:?} visit"));
-                }
+            if sch
+                .visits
+                .iter()
+                .filter(|v| v.kind == VisitKind::Screening)
+                .count()
+                != 1
+            {
+                return err("the schedule needs exactly one screening visit".into());
             }
         }
         if self.studyid.is_empty() || self.studyid.len() > 20 {
