@@ -1,0 +1,25 @@
+[package]
+name = "trialforge"
+description = "Synthetic CDISC clinical-trial data (SDTM, ADaM, define.xml) from declarative study specs"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+trialforge-core.workspace = true
+trialforge-model.workspace = true
+trialforge-processes.workspace = true
+trialforge-cdisc.workspace = true
+trialforge-sdtm.workspace = true
+trialforge-adam.workspace = true
+trialforge-calibrate.workspace = true
+trialforge-designs.workspace = true
+trialforge-check.workspace = true
+trialforge-io.workspace = true
+trialforge-hooks.workspace = true
+
+[lints]
+workspace = true
