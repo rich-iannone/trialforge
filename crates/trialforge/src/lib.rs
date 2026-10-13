@@ -1,8 +1,11 @@
 //! trialforge: synthetic CDISC clinical-trial data from declarative study specs.
 //!
 //! This facade re-exports the workspace crates and runs the pipeline:
-//! design → enrollment → subject courses → SDTM → ADaM. The Python and R bindings and the CLI
-//! depend on this crate alone, so the internal crate layout can change without touching them.
+//! archetype + controls → design → enrollment → subject timelines → SDTM → ADaM → checks →
+//! truth manifest. The Python and R bindings and the CLI depend on this crate alone, so the
+//! internal crate layout can change without touching them.
+
+mod truth;
 
 use std::collections::HashMap;
 use std::path::Path;
@@ -21,12 +24,17 @@ pub use trialforge_sdtm as sdtm;
 
 pub use trialforge_core::{Column, Dataset, Date, Values};
 pub use trialforge_designs::{ARCHETYPES, MAX_SEED, StudyOptions};
+pub use truth::km_median;
 
 /// The version of the trialforge core.
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
-/// Output formats [`Study::write`] understands.
-pub const FORMATS: &[&str] = &["xpt"];
+/// Output formats [`Study::write`] understands in this build.
+#[cfg(feature = "parquet")]
+pub const FORMATS: &[&str] = &["xpt", "csv", "parquet"];
+/// Output formats [`Study::write`] understands in this build.
+#[cfg(not(feature = "parquet"))]
+pub const FORMATS: &[&str] = &["xpt", "csv"];
 
 /// A generated study.
 #[derive(Clone, Debug, PartialEq)]
@@ -37,12 +45,16 @@ pub struct Study {
     pub archetype: String,
     /// The root seed (rerun with it to reproduce the study).
     pub seed: u64,
-    /// The data cutoff date.
+    /// The data cutoff (event-driven studies) or the last contact date (fixed-duration).
     pub cutoff: Date,
+    /// The full control set used, as JSON.
+    pub controls: serde_json::Value,
     /// SDTM datasets, in standard order.
     pub sdtm: Vec<Dataset>,
     /// ADaM datasets, in standard order.
     pub adam: Vec<Dataset>,
+    /// Targets vs realised values, as JSON.
+    pub truth: serde_json::Value,
 }
 
 /// Anything that can go wrong generating or writing a study.
@@ -82,6 +94,12 @@ pub fn random_seed() -> u64 {
     h.finish() % (MAX_SEED + 1)
 }
 
+/// The documented controls of `archetype` (name, description, default) as JSON.
+pub fn controls(archetype: &str) -> Result<serde_json::Value, Error> {
+    let docs = designs::control_docs(archetype).map_err(|e| Error::Invalid(e.to_string()))?;
+    Ok(serde_json::to_value(docs).expect("control docs serialize"))
+}
+
 /// Generates a study from an archetype.
 pub fn study(archetype: &str, opts: &StudyOptions) -> Result<Study, Error> {
     if opts.seed > MAX_SEED {
@@ -92,30 +110,67 @@ pub fn study(archetype: &str, opts: &StudyOptions) -> Result<Study, Error> {
     let resolved = designs::resolve(archetype, opts).map_err(|e| Error::Invalid(e.to_string()))?;
     let design = &resolved.design;
     let subjects = model::enroll(design).map_err(|e| Error::Invalid(e.to_string()))?;
-    let courses = processes::oncology::simulate(design, &resolved.params, &subjects);
-    let sdtm =
-        sdtm::emit(design, &subjects, &courses).map_err(|e| Error::Internal(e.to_string()))?;
+    let internal = |e: &dyn std::fmt::Display| Error::Internal(e.to_string());
 
-    let strata: HashMap<String, String> = subjects
+    let (timelines, strata, cutoff) = match &resolved.course {
+        designs::Course::Fixed(p) => {
+            let t = processes::fixed::simulate(design, p, &subjects)
+                .map_err(|e| Error::Invalid(e.to_string()))?;
+            (t, HashMap::new(), None)
+        }
+        designs::Course::Oncology(p) => {
+            let courses = processes::oncology::simulate(design, p, &subjects);
+            let t = subjects
+                .iter()
+                .zip(&courses)
+                .map(|(s, c)| processes::oncology::to_timeline(design, s, c))
+                .collect();
+            let strata = subjects
+                .iter()
+                .map(|s| {
+                    (
+                        s.usubjid.clone(),
+                        design.population.strata.levels[s.stratum].0.clone(),
+                    )
+                })
+                .collect();
+            (t, strata, Some(design.cutoff))
+        }
+    };
+    let ctx = sdtm::Context::new(design, &subjects, &timelines);
+    let sdtm = sdtm::emit(&ctx).map_err(|e| internal(&e))?;
+    let adam =
+        adam::derive(&sdtm, &adam::AdslInputs { strata, cutoff }).map_err(|e| internal(&e))?;
+    // Verification levels 0–2 are part of generation: a failure is a trialforge bug.
+    let report = check::run(&sdtm, &adam);
+    if !report.passed() {
+        return Err(Error::Internal(format!(
+            "generated data failed verification:\n{}",
+            report.summary()
+        )));
+    }
+    let truth = truth::manifest(&resolved, archetype, &sdtm, &adam);
+    let last_contact = timelines
         .iter()
-        .map(|s| {
-            (
-                s.usubjid.clone(),
-                design.population.strata.levels[s.stratum].0.clone(),
-            )
-        })
-        .collect();
-    let adsl = adam::adsl(&sdtm.dm, &sdtm.ex, &sdtm.ds, &strata, design.cutoff)
-        .map_err(|e| Error::Internal(e.to_string()))?;
+        .map(|t| t.last_contact)
+        .max()
+        .unwrap_or(design.cutoff);
 
     Ok(Study {
         studyid: design.studyid.clone(),
         archetype: archetype.to_string(),
         seed: design.seed,
-        cutoff: design.cutoff,
-        sdtm: vec![sdtm.dm, sdtm.ex, sdtm.ds],
-        adam: vec![adsl],
+        cutoff: cutoff.unwrap_or(last_contact),
+        controls: resolved.controls.clone(),
+        sdtm,
+        adam,
+        truth,
     })
+}
+
+/// Re-runs verification levels 0–2 on a study (for example after user post-processing).
+pub fn verify(study: &Study) -> check::Report {
+    check::run(&study.sdtm, &study.adam)
 }
 
 impl Study {
@@ -146,11 +201,24 @@ impl Study {
                         io::xpt::XptError::Io(e) => Error::Io(e),
                         io::xpt::XptError::Invalid(m) => Error::Internal(m),
                     })?,
+                    "csv" => io::csv::write_file(ds, &path).map_err(Error::Io)?,
+                    #[cfg(feature = "parquet")]
+                    "parquet" => io::parquet::write_file(ds, &path).map_err(|e| match e {
+                        io::parquet::ParquetError::Io(e) => Error::Io(e),
+                        io::parquet::ParquetError::Encode(m) => Error::Internal(m),
+                    })?,
                     _ => unreachable!("formats validated above"),
                 }
                 written.push(path);
             }
         }
+        let truth = dir.join("truth.json");
+        std::fs::write(
+            &truth,
+            serde_json::to_string_pretty(&self.truth).expect("truth serializes") + "\n",
+        )
+        .map_err(Error::Io)?;
+        written.push(truth);
         Ok(written)
     }
 }
