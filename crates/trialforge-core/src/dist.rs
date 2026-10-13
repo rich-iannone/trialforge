@@ -76,6 +76,38 @@ impl Draws {
         mean + sd * r * libm::cos(theta)
     }
 
+    /// Log-normal with the given median and log-scale SD.
+    pub fn lognormal(&mut self, median: f64, sigma: f64) -> f64 {
+        median * libm::exp(sigma * self.normal(0.0, 1.0))
+    }
+
+    /// Gamma with the given shape (> 0) and scale (Marsaglia–Tsang).
+    pub fn gamma(&mut self, shape: f64, scale: f64) -> f64 {
+        assert!(
+            shape > 0.0 && scale > 0.0,
+            "`gamma` needs positive shape and scale"
+        );
+        if shape < 1.0 {
+            // Boost: Gamma(a) = Gamma(a + 1) * U^(1/a).
+            let u = self.uniform_pos();
+            return self.gamma(shape + 1.0, scale) * libm::pow(u, 1.0 / shape);
+        }
+        let d = shape - 1.0 / 3.0;
+        let c = 1.0 / libm::sqrt(9.0 * d);
+        loop {
+            let x = self.normal(0.0, 1.0);
+            let v = 1.0 + c * x;
+            if v <= 0.0 {
+                continue;
+            }
+            let v = v * v * v;
+            let u = self.uniform_pos();
+            if libm::log(u) < 0.5 * x * x + d - d * v + d * libm::log(v) {
+                return d * v * scale;
+            }
+        }
+    }
+
     /// An index into `weights`, chosen with probability proportional to its weight.
     pub fn weighted(&mut self, weights: &[f64]) -> usize {
         let total: f64 = weights.iter().sum();
@@ -140,6 +172,19 @@ mod tests {
         let v = xs.iter().map(|x| (x - m) * (x - m)).sum::<f64>() / n as f64;
         assert!((m - 10.0).abs() < 0.1, "{m}");
         assert!((v.sqrt() - 3.0).abs() < 0.1, "{v}");
+    }
+
+    #[test]
+    fn gamma_moments() {
+        let mut d = draws();
+        let n = 50_000;
+        for (shape, scale) in [(2.0, 0.5), (0.5, 2.0)] {
+            let xs: Vec<f64> = (0..n).map(|_| d.gamma(shape, scale)).collect();
+            let m = xs.iter().sum::<f64>() / n as f64;
+            let v = xs.iter().map(|x| (x - m) * (x - m)).sum::<f64>() / n as f64;
+            assert!((m - shape * scale).abs() < 0.03, "mean {m}");
+            assert!((v - shape * scale * scale).abs() < 0.08, "var {v}");
+        }
     }
 
     #[test]
