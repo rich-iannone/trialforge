@@ -41,6 +41,36 @@ study <- function(archetype, n = 300, seed = NULL, studyid = NULL, ...) {
     if (is.null(studyid)) NA_character_ else studyid,
     payload
   )
+  new_study(core)
+}
+
+#' Generate a study from a study spec
+#'
+#' @param spec A path to a JSON or YAML study spec, the spec text itself, or a list with the
+#'   spec's structure. The spec's `outputs` section is for the command-line tool; write files
+#'   with [write_study()] or [write_submission()].
+#'
+#' @return A `trialforge_study`, as from [study()].
+#' @export
+#' @examples
+#' spec <- list(
+#'   study = list(archetype = "parallel_continuous", seed = 1),
+#'   population = list(n = 30),
+#'   controls = list(indication = "obesity")
+#' )
+#' study_from_spec(spec)
+study_from_spec <- function(spec) {
+  text <- if (is.list(spec)) {
+    as.character(jsonlite::toJSON(spec, auto_unbox = TRUE, null = "null", digits = NA))
+  } else if (length(spec) == 1 && !grepl("\n", spec) && file.exists(spec)) {
+    paste(readLines(spec, warn = FALSE, encoding = "UTF-8"), collapse = "\n")
+  } else {
+    paste(spec, collapse = "\n")
+  }
+  new_study(study_from_spec_impl(text))
+}
+
+new_study <- function(core) {
   tables <- function(names) stats::setNames(lapply(names, core$table), names)
   structure(
     list(
@@ -78,20 +108,67 @@ write_study <- function(study, path, formats = "xpt") {
   invisible(study$.core$write(path.expand(path), as.character(formats)))
 }
 
+#' Write a submission-style package
+#'
+#' Writes `sdtm/` and `adam/` folders to `path`, each with one XPT file per dataset and a
+#' Define-XML 2.1 `define.xml`, plus `truth.json`.
+#'
+#' @param study A `trialforge_study` from [study()].
+#' @param path Output directory.
+#'
+#' @return The paths written, invisibly.
+#' @export
+#' @examples
+#' trial <- study("parallel_continuous", n = 20, seed = 1)
+#' write_submission(trial, tempfile())
+write_submission <- function(study, path) {
+  check_study(study)
+  invisible(study$.core$write_submission(path.expand(path)))
+}
+
+#' Define-XML for a study
+#'
+#' @param study A `trialforge_study` from [study()].
+#' @param standard `"sdtm"` or `"adam"`.
+#'
+#' @return The Define-XML 2.1 document as a single string.
+#' @export
+#' @examples
+#' xml <- define_xml(study("parallel_continuous", n = 20, seed = 1), "adam")
+#' substr(xml, 1, 200)
+define_xml <- function(study, standard = c("sdtm", "adam")) {
+  check_study(study)
+  study$.core$define_xml(match.arg(standard))
+}
+
 #' Verify a study
 #'
 #' Re-runs trialforge's verification levels 0–2 (structural, referential and derivational
 #' checks). Generation already guarantees these pass; this is for after the data has been
 #' modified.
 #'
+#' Level 3 (CDISC conformance rules) runs Pointblank's SDTMIG engine, which exists only in the
+#' Python package, so it is not available from R: use `Study.verify(level=3)` in Python.
+#'
 #' @param study A `trialforge_study` from [study()].
+#' @param level Verification level; only `2` is available in R.
 #'
 #' @return A list with `passed` (logical) and `findings` (a data frame of failed checks).
 #' @export
 #' @examples
 #' verify(study("parallel_continuous", n = 20, seed = 1))$passed
-verify <- function(study) {
+verify <- function(study, level = 2) {
   check_study(study)
+  if (identical(level, 3) || identical(level, 3L)) {
+    stop(
+      "Level 3 runs Pointblank's CDISC conformance engine, which is only in the Python ",
+      "package. Use `Study.verify(level=3)` from Python.",
+      call. = FALSE
+    )
+  }
+  if (!(identical(level, 2) || identical(level, 2L))) {
+    stop("`level` must be 2 (or 3, from Python)", call. = FALSE)
+  }
   study$.core$verify()
 }
 
