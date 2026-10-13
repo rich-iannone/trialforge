@@ -1,4 +1,5 @@
-//! Derivation layer: SDTM to ADaM (ADSL, ADAE, ADLB, ADVS), following admiral conventions.
+//! Derivation layer: SDTM to ADaM (ADSL, ADAE, ADLB, ADVS, ADRS, ADTTE, ADTR), following
+//! admiral and admiralonco conventions.
 //!
 //! Derivations read SDTM *datasets* by variable name, never the simulation's internal state,
 //! so what ADaM says is exactly what the SDTM supports. Inputs a real study also takes from
@@ -7,6 +8,7 @@
 mod adae;
 mod adsl;
 mod bds;
+mod onco;
 
 use std::collections::HashMap;
 
@@ -16,6 +18,7 @@ use trialforge_core::{Dataset, Date};
 pub use adae::adae;
 pub use adsl::{AdslInputs, adsl};
 pub use bds::{adlb, advs};
+pub use onco::{adrs, adtr, adtte};
 
 /// Errors from deriving ADaM.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -138,7 +141,7 @@ pub(crate) fn index(usubjid: &[Option<String>]) -> HashMap<&str, usize> {
         .collect()
 }
 
-/// Derives ADSL, and ADAE, ADLB and ADVS where their SDTM sources exist.
+/// Derives ADSL, and ADAE, ADLB, ADVS, ADRS, ADTTE and ADTR where their SDTM sources exist.
 pub fn derive(sdtm: &[Dataset], inputs: &AdslInputs) -> Result<Vec<Dataset>, DeriveError> {
     let adsl = adsl(sdtm, inputs)?;
     let tv = find(sdtm, "TV");
@@ -151,6 +154,14 @@ pub fn derive(sdtm: &[Dataset], inputs: &AdslInputs) -> Result<Vec<Dataset>, Der
     }
     if let Some(vs) = find(sdtm, "VS") {
         out.push(advs(vs, &adsl, tv)?);
+    }
+    if let Some(rs) = find(sdtm, "RS") {
+        let adrs = adrs(rs, find(sdtm, "TU"), &adsl)?;
+        out.push(adtte(&adrs, &adsl)?);
+        out.insert(out.len() - 1, adrs);
+    }
+    if let (Some(tr), Some(tu), Some(rs)) = (find(sdtm, "TR"), find(sdtm, "TU"), find(sdtm, "RS")) {
+        out.push(adtr(tr, tu, rs, &adsl)?);
     }
     out.insert(0, adsl);
     Ok(out)
