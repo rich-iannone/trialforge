@@ -1,0 +1,8 @@
+testcd	test	unit	dp	mean_f	mean_m	sd_between	sd_within	position	group
+SYSBP	Systolic Blood Pressure	mmHg	0	127	131	12	7	SITTING	bp
+DIABP	Diastolic Blood Pressure	mmHg	0	78	81	8	5	SITTING	bp
+PULSE	Pulse Rate	beats/min	0	73	70	9	6	SITTING	
+RESP	Respiratory Rate	breaths/min	0	16	16	2	1.5		
+TEMP	Temperature	C	1	36.7	36.6	0.25	0.2		
+WEIGHT	Weight	kg	1	0	0	0	0.8		
+HEIGHT	Height	cm	0	163	177	7	0		

@@ -1,0 +1,57 @@
+indication	kind	p_treat	ingredients	weights
+Hypertension	chronic	0.85	LISINOPRIL;AMLODIPINE;LOSARTAN;HYDROCHLOROTHIAZIDE;METOPROLOL	3;3;2;1;1
+Hypercholesterolaemia	chronic	0.80	ATORVASTATIN;ROSUVASTATIN	3;2
+Hyperlipidaemia	chronic	0.70	ATORVASTATIN;ROSUVASTATIN	3;2
+Type 2 diabetes mellitus	chronic	0.80	METFORMIN	1
+Osteoarthritis	chronic	0.50	ACETAMINOPHEN;IBUPROFEN;NAPROXEN	3;2;1
+Gastrooesophageal reflux disease	chronic	0.70	OMEPRAZOLE;FAMOTIDINE	3;1
+Depression	chronic	0.70	SERTRALINE;ESCITALOPRAM	1;1
+Anxiety	chronic	0.40	ALPRAZOLAM;ESCITALOPRAM	1;1
+Asthma	chronic	0.80	ALBUTEROL;MONTELUKAST	3;1
+Hypothyroidism	chronic	0.95	LEVOTHYROXINE	1
+Seasonal allergy	chronic	0.50	CETIRIZINE;LORATADINE;FLUTICASONE	2;2;1
+Insomnia	chronic	0.40	ZOLPIDEM;MELATONIN	1;2
+Migraine	chronic	0.50	SUMATRIPTAN	1
+Benign prostatic hyperplasia	chronic	0.60	TAMSULOSIN	1
+Coronary artery disease	chronic	0.80	ASPIRIN;ATORVASTATIN;METOPROLOL	3;2;2
+Atrial fibrillation	chronic	0.90	APIXABAN;METOPROLOL	2;1
+Chronic obstructive pulmonary disease	chronic	0.80	TIOTROPIUM;ALBUTEROL	1;1
+Gout	chronic	0.60	ALLOPURINOL	1
+Osteoporosis	chronic	0.50	ALENDRONATE;CHOLECALCIFEROL	1;1
+Vitamin D deficiency	chronic	0.80	CHOLECALCIFEROL	1
+Glaucoma	chronic	0.90	LATANOPROST	1
+Back pain	chronic	0.40	IBUPROFEN;CYCLOBENZAPRINE;ACETAMINOPHEN	2;1;2
+Headache	acute	0.50	ACETAMINOPHEN;IBUPROFEN	1;1
+Nausea	acute	0.30	ONDANSETRON	1
+Vomiting	acute	0.40	ONDANSETRON	1
+Diarrhoea	acute	0.30	LOPERAMIDE;BISMUTH SUBSALICYLATE	2;1
+Constipation	acute	0.40	POLYETHYLENE GLYCOL 3350	1
+Dyspepsia	acute	0.40	CALCIUM CARBONATE;FAMOTIDINE	1;1
+Back pain	acute	0.50	IBUPROFEN;ACETAMINOPHEN;CYCLOBENZAPRINE	2;2;1
+Arthralgia	acute	0.40	ACETAMINOPHEN;IBUPROFEN;NAPROXEN	2;2;1
+Myalgia	acute	0.30	ACETAMINOPHEN;IBUPROFEN	1;1
+Pain in extremity	acute	0.30	ACETAMINOPHEN;IBUPROFEN	1;1
+Nasopharyngitis	acute	0.30	ACETAMINOPHEN;PSEUDOEPHEDRINE;DEXTROMETHORPHAN	2;1;1
+Upper respiratory tract infection	acute	0.40	ACETAMINOPHEN;DEXTROMETHORPHAN;AMOXICILLIN	2;1;1
+Cough	acute	0.40	DEXTROMETHORPHAN	1
+Oropharyngeal pain	acute	0.30	ACETAMINOPHEN	1
+Urinary tract infection	acute	0.90	NITROFURANTOIN;CEPHALEXIN	2;1
+Bronchitis	acute	0.60	AZITHROMYCIN;AMOXICILLIN;ALBUTEROL	2;1;1
+Sinusitis	acute	0.60	AMOXICILLIN;FLUTICASONE	2;1
+Influenza	acute	0.50	OSELTAMIVIR;ACETAMINOPHEN	1;1
+Pneumonia	acute	0.95	AZITHROMYCIN;AMOXICILLIN	1;1
+Cellulitis	acute	0.95	CEPHALEXIN	1
+Insomnia	acute	0.40	ZOLPIDEM;MELATONIN	1;2
+Anxiety	acute	0.30	ALPRAZOLAM	1
+Rash	acute	0.40	HYDROCORTISONE;DIPHENHYDRAMINE	2;1
+Pruritus	acute	0.40	HYDROCORTISONE;CETIRIZINE	1;1
+Muscle spasms	acute	0.40	CYCLOBENZAPRINE	1
+Pyrexia	acute	0.60	ACETAMINOPHEN	1
+Toothache	acute	0.50	IBUPROFEN;ACETAMINOPHEN	1;1
+Dizziness	acute	0.10	MECLIZINE	1
+Vertigo	acute	0.50	MECLIZINE	1
+Gastroenteritis	acute	0.30	LOPERAMIDE;ONDANSETRON	1;1
+Abdominal pain	acute	0.20	SIMETHICONE;ACETAMINOPHEN	1;1
+Contusion	acute	0.20	ACETAMINOPHEN	1
+Hypertension	acute	0.60	AMLODIPINE;LISINOPRIL	1;1
+Atrial fibrillation	acute	0.90	APIXABAN;METOPROLOL	1;1

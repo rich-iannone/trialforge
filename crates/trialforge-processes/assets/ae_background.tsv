@@ -1,0 +1,48 @@
+pt	rate_per_year	median_days	p_serious	p_mild	p_moderate	p_severe
+Nasopharyngitis	0.12	7	0	0.75	0.24	0.01
+Headache	0.10	2	0	0.70	0.27	0.03
+Upper respiratory tract infection	0.06	8	0	0.70	0.28	0.02
+Back pain	0.05	10	0	0.60	0.35	0.05
+Arthralgia	0.05	14	0	0.65	0.32	0.03
+Diarrhoea	0.05	3	0	0.70	0.27	0.03
+Nausea	0.05	3	0	0.70	0.27	0.03
+Fatigue	0.04	10	0	0.65	0.31	0.04
+Dizziness	0.04	3	0	0.75	0.23	0.02
+Cough	0.04	10	0	0.75	0.24	0.01
+Urinary tract infection	0.035	7	0.02	0.55	0.40	0.05
+Hypertension	0.03	60	0	0.50	0.45	0.05
+Influenza	0.025	7	0.01	0.45	0.48	0.07
+Constipation	0.025	5	0	0.75	0.23	0.02
+Oropharyngeal pain	0.025	5	0	0.80	0.19	0.01
+Insomnia	0.02	20	0	0.65	0.33	0.02
+Pain in extremity	0.02	10	0	0.65	0.32	0.03
+Rash	0.02	10	0	0.70	0.27	0.03
+Bronchitis	0.02	10	0.02	0.50	0.45	0.05
+Vomiting	0.02	2	0	0.65	0.30	0.05
+Abdominal pain	0.02	3	0.01	0.60	0.34	0.06
+Dyspepsia	0.02	7	0	0.75	0.24	0.01
+Sinusitis	0.02	10	0	0.60	0.38	0.02
+Myalgia	0.015	7	0	0.70	0.28	0.02
+Anxiety	0.015	30	0	0.60	0.36	0.04
+Pruritus	0.015	10	0	0.75	0.24	0.01
+Muscle spasms	0.015	5	0	0.75	0.24	0.01
+Oedema peripheral	0.015	30	0	0.65	0.32	0.03
+Fall	0.012	1	0.05	0.70	0.25	0.05
+Contusion	0.01	7	0	0.85	0.14	0.01
+Gastroenteritis	0.01	4	0.05	0.50	0.42	0.08
+Pyrexia	0.01	3	0	0.60	0.36	0.04
+Toothache	0.01	5	0	0.60	0.37	0.03
+Depression	0.01	60	0.02	0.40	0.52	0.08
+Vertigo	0.01	7	0	0.65	0.32	0.03
+Decreased appetite	0.01	14	0	0.70	0.28	0.02
+Hyperglycaemia	0.01	14	0.01	0.55	0.40	0.05
+Hypoglycaemia	0.005	1	0.05	0.60	0.30	0.10
+Dry mouth	0.008	14	0	0.85	0.15	0.00
+Anaemia	0.008	40	0.05	0.50	0.42	0.08
+Weight decreased	0.005	60	0	0.80	0.19	0.01
+Syncope	0.005	1	0.25	0.40	0.40	0.20
+Pneumonia	0.006	14	0.30	0.20	0.50	0.30
+Cellulitis	0.006	10	0.15	0.35	0.50	0.15
+Atrial fibrillation	0.004	30	0.30	0.30	0.50	0.20
+Acute kidney injury	0.002	10	0.50	0.20	0.45	0.35
+Myocardial infarction	0.002	20	1.00	0.00	0.30	0.70

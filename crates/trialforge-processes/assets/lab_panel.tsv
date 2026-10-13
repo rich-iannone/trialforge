@@ -1,0 +1,21 @@
+testcd	test	category	spec	si_unit	conv_unit	factor	offset	si_dp	conv_dp	scale	mean_f	mean_m	sd_between	sd_within	lo_f	hi_f	lo_m	hi_m	group
+ALT	Alanine Aminotransferase	CHEMISTRY	SERUM	U/L	U/L	1	0	0	0	log	18	24	0.35	0.20	7	33	10	40	liver
+AST	Aspartate Aminotransferase	CHEMISTRY	SERUM	U/L	U/L	1	0	0	0	log	20	23	0.25	0.15	10	35	10	40	liver
+ALP	Alkaline Phosphatase	CHEMISTRY	SERUM	U/L	U/L	1	0	0	0	log	70	75	0.25	0.08	35	104	40	129	
+BILI	Bilirubin	CHEMISTRY	SERUM	umol/L	mg/dL	17.1	0	0	1	log	9	11	0.35	0.20	3	21	3	21	liver
+CREAT	Creatinine	CHEMISTRY	SERUM	umol/L	mg/dL	88.4	0	0	2	log	70	88	0.18	0.06	45	90	60	110	
+UREAN	Urea Nitrogen	CHEMISTRY	SERUM	mmol/L	mg/dL	0.357	0	1	0	log	5.5	5.5	0.25	0.12	2.5	7.1	2.5	7.1	
+GLUC	Glucose	CHEMISTRY	SERUM	mmol/L	mg/dL	0.0555	0	1	0	log	5.2	5.3	0.12	0.08	3.9	5.6	3.9	5.6	
+HBA1C	Hemoglobin A1C	CHEMISTRY	BLOOD	%	%	1	0	1	1	lin	5.4	5.4	0.40	0.15	4.0	5.6	4.0	5.6	
+ALB	Albumin	CHEMISTRY	SERUM	g/L	g/dL	10	0	0	1	lin	42	43	3.0	1.5	35	50	35	50	
+SODIUM	Sodium	CHEMISTRY	SERUM	mmol/L	mEq/L	1	0	0	0	lin	140	140	2.0	1.5	135	145	135	145	
+K	Potassium	CHEMISTRY	SERUM	mmol/L	mEq/L	1	0	1	1	lin	4.2	4.2	0.30	0.25	3.5	5.1	3.5	5.1	
+CHOL	Cholesterol	CHEMISTRY	SERUM	mmol/L	mg/dL	0.02586	0	2	0	lin	5.1	4.9	0.90	0.30	3.0	5.2	3.0	5.2	
+TRIG	Triglycerides	CHEMISTRY	SERUM	mmol/L	mg/dL	0.01129	0	2	0	log	1.4	1.7	0.45	0.20	0.4	1.7	0.4	1.7	
+HGB	Hemoglobin	HEMATOLOGY	BLOOD	g/L	g/dL	10	0	0	1	lin	135	150	9	4	120	155	135	175	red
+HCT	Hematocrit	HEMATOLOGY	BLOOD	%	%	1	0	1	1	lin	40	44	2.5	1.2	36	46	41	53	red
+RBC	Erythrocytes	HEMATOLOGY	BLOOD	10^12/L	10^6/uL	1	0	2	2	lin	4.5	5.0	0.30	0.15	3.9	5.2	4.5	5.9	red
+WBC	Leukocytes	HEMATOLOGY	BLOOD	10^9/L	10^3/uL	1	0	1	1	log	6.5	6.5	0.25	0.15	4.0	11.0	4.0	11.0	
+NEUT	Neutrophils	HEMATOLOGY	BLOOD	10^9/L	10^3/uL	1	0	1	1	log	3.8	3.8	0.30	0.20	1.8	7.7	1.8	7.7	
+LYM	Lymphocytes	HEMATOLOGY	BLOOD	10^9/L	10^3/uL	1	0	1	1	log	2.0	2.0	0.30	0.20	1.0	4.8	1.0	4.8	
+PLAT	Platelets	HEMATOLOGY	BLOOD	10^9/L	10^3/uL	1	0	0	0	log	260	240	0.22	0.10	150	400	150	400	
