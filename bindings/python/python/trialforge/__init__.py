@@ -19,6 +19,7 @@ from trialforge._study import (
     controls,
     formats,
     study,
+    study_from_spec,
 )
 
 try:
@@ -40,4 +41,5 @@ __all__ = [
     "formats",
     "stream_seed",
     "study",
+    "study_from_spec",
 ]
