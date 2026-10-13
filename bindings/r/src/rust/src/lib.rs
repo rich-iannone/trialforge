@@ -57,10 +57,147 @@ fn as_u64(x: f64, what: &str) -> Result<u64> {
     }
 }
 
+/// (name, description) pairs for every archetype, as a two-column list.
+/// @noRd
+#[extendr]
+fn archetypes_impl() -> List {
+    let names: Vec<&str> = trialforge::ARCHETYPES.iter().map(|(n, _)| *n).collect();
+    let descriptions: Vec<&str> = trialforge::ARCHETYPES.iter().map(|(_, d)| *d).collect();
+    list!(name = names, description = descriptions)
+}
+
+/// Generates a study. `seed` and `studyid` are `NA` when not supplied.
+/// @noRd
+#[extendr]
+fn study_impl(
+    archetype: &str,
+    n: f64,
+    seed: Option<f64>,
+    studyid: Option<String>,
+) -> Result<RStudy> {
+    let n = as_u64(n, "`n`")? as usize;
+    let seed = match seed {
+        Some(s) => as_u64(s, "`seed`")?,
+        None => trialforge::random_seed(),
+    };
+    let opts = trialforge::StudyOptions { n, seed, studyid };
+    trialforge::study(archetype, &opts)
+        .map(|inner| RStudy { inner })
+        .map_err(|e| Error::Other(e.to_string()))
+}
+
+/// A generated study, held in Rust.
+#[extendr]
+struct RStudy {
+    inner: trialforge::Study,
+}
+
+/// @noRd
+#[extendr]
+impl RStudy {
+    fn studyid(&self) -> String {
+        self.inner.studyid.clone()
+    }
+
+    fn archetype(&self) -> String {
+        self.inner.archetype.clone()
+    }
+
+    /// Seeds are at most 2^53, so a double holds them exactly.
+    fn seed(&self) -> f64 {
+        self.inner.seed as f64
+    }
+
+    fn cutoff_days(&self) -> i32 {
+        self.inner.cutoff.days()
+    }
+
+    fn sdtm_names(&self) -> Vec<String> {
+        self.inner.sdtm.iter().map(|d| d.name.clone()).collect()
+    }
+
+    fn adam_names(&self) -> Vec<String> {
+        self.inner.adam.iter().map(|d| d.name.clone()).collect()
+    }
+
+    /// The dataset called `name` as a data.frame with haven-style `label` attributes.
+    fn table(&self, name: &str) -> Result<Robj> {
+        let ds = self
+            .inner
+            .dataset(name)
+            .ok_or_else(|| Error::Other(format!("no dataset named {name:?}")))?;
+        data_frame(ds)
+    }
+
+    fn write(&self, path: &str, formats: Vec<String>) -> Result<Vec<String>> {
+        let formats: Vec<&str> = formats.iter().map(String::as_str).collect();
+        self.inner
+            .write(std::path::Path::new(path), &formats)
+            .map(|paths| {
+                paths
+                    .iter()
+                    .map(|p| p.to_string_lossy().into_owned())
+                    .collect()
+            })
+            .map_err(|e| Error::Other(e.to_string()))
+    }
+}
+
+/// A dataset as a data.frame. Character missing is `NA`; dates are `Date`; whole numbers are
+/// integer; every column and the frame carry a `label` attribute.
+fn data_frame(ds: &trialforge::Dataset) -> Result<Robj> {
+    let mut names = Vec::with_capacity(ds.columns().len());
+    let mut values = Vec::with_capacity(ds.columns().len());
+    for c in ds.columns() {
+        let mut col: Robj = match &c.values {
+            trialforge::Values::Char(v) => Strings::from_values(
+                v.iter()
+                    .map(|x| x.as_deref().map_or_else(Rstr::na, Rstr::from)),
+            )
+            .into(),
+            trialforge::Values::Num(v) => {
+                Doubles::from_values(v.iter().map(|x| x.map_or_else(Rfloat::na, Rfloat::from)))
+                    .into()
+            }
+            trialforge::Values::Int(v) => Integers::from_values(v.iter().map(|x| match x {
+                Some(n) => i32::try_from(*n).map_or_else(|_| Rint::na(), Rint::from),
+                None => Rint::na(),
+            }))
+            .into(),
+            trialforge::Values::Date(v) => {
+                let mut d: Robj = Doubles::from_values(
+                    v.iter()
+                        .map(|x| x.map_or_else(Rfloat::na, |d| Rfloat::from(f64::from(d.days())))),
+                )
+                .into();
+                d.set_class(["Date"])?;
+                d
+            }
+        };
+        col.set_attrib("label", c.label.as_str())?;
+        names.push(c.name.as_str());
+        values.push(col);
+    }
+    let mut df: Robj = List::from_names_and_values(names, values)?.into();
+    df.set_class(["data.frame"])?;
+    let n = i32::try_from(ds.n_rows()).map_err(|_| Error::Other("too many rows for R".into()))?;
+    df.set_attrib(
+        row_names_symbol(),
+        [Rint::na(), Rint::from(-n)]
+            .into_iter()
+            .collect::<Integers>(),
+    )?;
+    df.set_attrib("label", ds.label.as_str())?;
+    Ok(df)
+}
+
 // Macro to generate exports. This ensures exported functions are registered with R.
 // See corresponding C code in `entrypoint.c`.
 extendr_module! {
     mod trialforge;
     fn core_version;
     fn stream_seed;
+    fn archetypes_impl;
+    fn study_impl;
+    impl RStudy;
 }
