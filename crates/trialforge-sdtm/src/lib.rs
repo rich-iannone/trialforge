@@ -1,313 +1,99 @@
-//! Observation layer: turns subject timelines into SDTM records, including SUPP--, RELREC and
-//! the trial design model datasets.
+//! Observation layer: turns subject [`Timeline`]s into SDTM datasets.
 //!
-//! The spike emits DM, EX and DS from the oncology course. Records are sorted by the SDTM
-//! natural keys (`USUBJID`, then `--SEQ`), and `--DY` is relative to `RFSTDTC` (first dose).
+//! - Trial design: TA, TE, TV, TI, TS ([`tdm`]).
+//! - Subject level: DM, SE, SV, EX, CM, AE (+SUPPAE), DS, MH, LB, VS ([`subject`]).
+//!
+//! Conventions shared by every domain:
+//! - Records are sorted by `USUBJID` and the domain's natural key, then `--SEQ` is assigned.
+//! - `--DY` is relative to `RFSTDTC` (first dose), with no day 0.
+//! - `EPOCH` comes from the subject's elements ([`Timeline::epoch_of`]).
+//! - Datasets with no records are not emitted (DM always is).
 
-use trialforge_cdisc::{DM, DS, EX, MetadataError};
+pub mod subject;
+pub mod tdm;
+
+use trialforge_cdisc::MetadataError;
 use trialforge_core::{Dataset, Date, Values, study_day};
 use trialforge_model::{Design, Subject};
-use trialforge_processes::oncology::{Course, TreatmentStop};
+use trialforge_processes::timeline::Timeline;
 
-/// The SDTM datasets of the oncology spike.
-#[derive(Clone, Debug, PartialEq)]
-pub struct Sdtm {
-    /// Demographics.
-    pub dm: Dataset,
-    /// Exposure.
-    pub ex: Dataset,
-    /// Disposition.
-    pub ds: Dataset,
+/// Everything the emitters read.
+pub struct Context<'a> {
+    /// The design.
+    pub design: &'a Design,
+    /// Subjects, in enrollment order.
+    pub subjects: &'a [Subject],
+    /// One timeline per subject.
+    pub timelines: &'a [Timeline],
+    /// Subject indices sorted by `USUBJID`.
+    pub order: Vec<usize>,
 }
 
-/// Emits DM, EX and DS. `subjects` and `courses` are parallel.
-pub fn emit(
-    design: &Design,
-    subjects: &[Subject],
-    courses: &[Course],
-) -> Result<Sdtm, MetadataError> {
-    assert_eq!(subjects.len(), courses.len(), "one course per subject");
-    let mut order: Vec<usize> = (0..subjects.len()).collect();
-    order.sort_by(|&a, &b| subjects[a].usubjid.cmp(&subjects[b].usubjid));
-    Ok(Sdtm {
-        dm: dm(design, subjects, courses, &order)?,
-        ex: ex(design, subjects, courses, &order)?,
-        ds: ds(design, subjects, courses, &order)?,
-    })
-}
-
-fn chars<I: IntoIterator<Item = S>, S: Into<String>>(it: I) -> Values {
-    Values::Char(it.into_iter().map(|s| Some(s.into())).collect())
-}
-
-fn opt_chars<I: IntoIterator<Item = Option<String>>>(it: I) -> Values {
-    Values::Char(it.into_iter().collect())
-}
-
-fn iso(d: Date) -> String {
-    d.to_string()
-}
-
-fn dm(
-    design: &Design,
-    subjects: &[Subject],
-    courses: &[Course],
-    order: &[usize],
-) -> Result<Dataset, MetadataError> {
-    let pop = &design.population;
-    let rows: Vec<(&Subject, &Course)> =
-        order.iter().map(|&i| (&subjects[i], &courses[i])).collect();
-    let n = rows.len();
-    let arm = |s: &Subject| &design.arms[s.arm];
-    DM.build(vec![
-        (
-            "STUDYID",
-            chars(std::iter::repeat_n(design.studyid.as_str(), n)),
-        ),
-        ("DOMAIN", chars(std::iter::repeat_n("DM", n))),
-        (
-            "USUBJID",
-            chars(rows.iter().map(|(s, _)| s.usubjid.as_str())),
-        ),
-        ("SUBJID", chars(rows.iter().map(|(s, _)| s.subjid.as_str()))),
-        (
-            "RFSTDTC",
-            chars(rows.iter().map(|(s, _)| iso(s.treatment_start))),
-        ),
-        (
-            "RFENDTC",
-            chars(rows.iter().map(|(_, c)| iso(c.last_contact))),
-        ),
-        (
-            "RFXSTDTC",
-            chars(rows.iter().map(|(s, _)| iso(s.treatment_start))),
-        ),
-        (
-            "RFXENDTC",
-            chars(
-                rows.iter()
-                    .map(|(_, c)| iso(*c.doses.last().expect("at least one dose"))),
-            ),
-        ),
-        ("RFICDTC", chars(rows.iter().map(|(s, _)| iso(s.consent)))),
-        (
-            "RFPENDTC",
-            chars(rows.iter().map(|(_, c)| iso(c.last_contact))),
-        ),
-        (
-            "DTHDTC",
-            opt_chars(rows.iter().map(|(_, c)| c.death.map(iso))),
-        ),
-        (
-            "DTHFL",
-            opt_chars(rows.iter().map(|(_, c)| c.death.map(|_| "Y".to_string()))),
-        ),
-        (
-            "SITEID",
-            chars(
-                rows.iter()
-                    .map(|(s, _)| design.sites[s.site].siteid.as_str()),
-            ),
-        ),
-        (
-            "AGE",
-            Values::Int(rows.iter().map(|(s, _)| Some(s.age)).collect()),
-        ),
-        ("AGEU", chars(std::iter::repeat_n("YEARS", n))),
-        (
-            "SEX",
-            chars(rows.iter().map(|(s, _)| pop.sex.levels[s.sex].0.as_str())),
-        ),
-        (
-            "RACE",
-            chars(rows.iter().map(|(s, _)| pop.race.levels[s.race].0.as_str())),
-        ),
-        (
-            "ETHNIC",
-            chars(
-                rows.iter()
-                    .map(|(s, _)| pop.ethnic.levels[s.ethnic].0.as_str()),
-            ),
-        ),
-        (
-            "ARMCD",
-            chars(rows.iter().map(|(s, _)| arm(s).armcd.as_str())),
-        ),
-        ("ARM", chars(rows.iter().map(|(s, _)| arm(s).arm.as_str()))),
-        (
-            "ACTARMCD",
-            chars(rows.iter().map(|(s, _)| arm(s).armcd.as_str())),
-        ),
-        (
-            "ACTARM",
-            chars(rows.iter().map(|(s, _)| arm(s).arm.as_str())),
-        ),
-        (
-            "COUNTRY",
-            chars(
-                rows.iter()
-                    .map(|(s, _)| design.sites[s.site].country.as_str()),
-            ),
-        ),
-        ("DMDTC", chars(rows.iter().map(|(s, _)| iso(s.consent)))),
-        (
-            "DMDY",
-            Values::Int(
-                rows.iter()
-                    .map(|(s, _)| Some(i64::from(study_day(s.consent, s.treatment_start))))
-                    .collect(),
-            ),
-        ),
-    ])
-}
-
-fn ex(
-    design: &Design,
-    subjects: &[Subject],
-    courses: &[Course],
-    order: &[usize],
-) -> Result<Dataset, MetadataError> {
-    let (mut usubjid, mut seq, mut extrt, mut dose, mut unit, mut form, mut freq, mut route) = (
-        Vec::new(),
-        Vec::new(),
-        Vec::new(),
-        Vec::new(),
-        Vec::new(),
-        Vec::new(),
-        Vec::new(),
-        Vec::new(),
-    );
-    let (mut dtc, mut dy) = (Vec::new(), Vec::new());
-    for &i in order {
-        let (s, c) = (&subjects[i], &courses[i]);
-        let t = &design.arms[s.arm].treatment;
-        for (k, &d) in c.doses.iter().enumerate() {
-            usubjid.push(Some(s.usubjid.clone()));
-            seq.push(Some(k as i64 + 1));
-            extrt.push(Some(t.name.clone()));
-            dose.push(Some(t.dose));
-            unit.push(Some(t.unit.clone()));
-            form.push(Some(t.form.clone()));
-            freq.push(Some(t.frequency.clone()));
-            route.push(Some(t.route.clone()));
-            dtc.push(Some(iso(d)));
-            dy.push(Some(i64::from(study_day(d, s.treatment_start))));
+impl<'a> Context<'a> {
+    /// A context over parallel `subjects` and `timelines`.
+    pub fn new(design: &'a Design, subjects: &'a [Subject], timelines: &'a [Timeline]) -> Self {
+        assert_eq!(subjects.len(), timelines.len(), "one timeline per subject");
+        let mut order: Vec<usize> = (0..subjects.len()).collect();
+        order.sort_by(|&a, &b| subjects[a].usubjid.cmp(&subjects[b].usubjid));
+        Self {
+            design,
+            subjects,
+            timelines,
+            order,
         }
     }
-    let n = usubjid.len();
-    EX.build(vec![
-        (
-            "STUDYID",
-            chars(std::iter::repeat_n(design.studyid.as_str(), n)),
-        ),
-        ("DOMAIN", chars(std::iter::repeat_n("EX", n))),
-        ("USUBJID", Values::Char(usubjid)),
-        ("EXSEQ", Values::Int(seq)),
-        ("EXTRT", Values::Char(extrt)),
-        ("EXDOSE", Values::Num(dose)),
-        ("EXDOSU", Values::Char(unit)),
-        ("EXDOSFRM", Values::Char(form)),
-        ("EXDOSFRQ", Values::Char(freq)),
-        ("EXROUTE", Values::Char(route)),
-        ("EPOCH", chars(std::iter::repeat_n("TREATMENT", n))),
-        ("EXSTDTC", Values::Char(dtc.clone())),
-        ("EXENDTC", Values::Char(dtc)),
-        ("EXSTDY", Values::Int(dy.clone())),
-        ("EXENDY", Values::Int(dy)),
-    ])
+
+    /// (subject, timeline) pairs in `USUBJID` order.
+    pub fn sorted(&self) -> impl Iterator<Item = (&'a Subject, &'a Timeline)> + '_ {
+        self.order
+            .iter()
+            .map(|&i| (&self.subjects[i], &self.timelines[i]))
+    }
 }
 
-/// One DS record before sequencing.
-struct DsRecord {
-    term: String,
-    category: &'static str,
-    epoch: &'static str,
-    date: Date,
+/// Emits every SDTM dataset that has records, in standard order.
+pub fn emit(ctx: &Context<'_>) -> Result<Vec<Dataset>, MetadataError> {
+    let mut out = tdm::emit(ctx)?;
+    out.extend(subject::emit(ctx)?);
+    Ok(out
+        .into_iter()
+        .filter(|d| d.n_rows() > 0 || d.name == "DM")
+        .collect())
 }
 
-fn ds_records(s: &Subject, c: &Course) -> Vec<DsRecord> {
-    let milestone = |term: &str, date| DsRecord {
-        term: term.into(),
-        category: "PROTOCOL MILESTONE",
-        epoch: "SCREENING",
-        date,
-    };
-    let mut recs = vec![
-        milestone("INFORMED CONSENT OBTAINED", s.consent),
-        milestone("RANDOMIZED", s.randomization),
-    ];
-    let treatment_term = match &c.treatment_stop_reason {
-        TreatmentStop::Ongoing => None,
-        TreatmentStop::Progression => Some("PROGRESSIVE DISEASE".to_string()),
-        TreatmentStop::Death => Some("DEATH".to_string()),
-        TreatmentStop::Withdrawal(reason) => Some(reason.clone()),
-        TreatmentStop::AdverseEvent => Some("ADVERSE EVENT".to_string()),
-    };
-    if let Some(term) = treatment_term {
-        recs.push(DsRecord {
-            term,
-            category: "DISPOSITION EVENT",
-            epoch: "TREATMENT",
-            date: c.treatment_stop,
-        });
-    }
-    let study_end = match (c.death, c.withdrawal) {
-        (Some(d), _) => Some(("DEATH".to_string(), d)),
-        (None, Some(w)) => c.withdrawal_reason.clone().map(|r| (r, w)),
-        (None, None) => None,
-    };
-    if let Some((term, date)) = study_end {
-        recs.push(DsRecord {
-            term,
-            category: "DISPOSITION EVENT",
-            epoch: "FOLLOW-UP",
-            date,
-        });
-    }
-    recs
+// Column helpers: build a column from rows with an accessor.
+
+pub(crate) fn chars<T>(rows: &[T], f: impl Fn(&T) -> Option<String>) -> Values {
+    Values::Char(rows.iter().map(f).collect())
 }
 
-fn ds(
-    design: &Design,
-    subjects: &[Subject],
-    courses: &[Course],
-    order: &[usize],
-) -> Result<Dataset, MetadataError> {
-    let (mut usubjid, mut seq, mut term, mut cat, mut epoch, mut dtc, mut dy) = (
-        Vec::new(),
-        Vec::new(),
-        Vec::new(),
-        Vec::new(),
-        Vec::new(),
-        Vec::new(),
-        Vec::new(),
-    );
-    for &i in order {
-        let s = &subjects[i];
-        for (k, r) in ds_records(s, &courses[i]).into_iter().enumerate() {
-            usubjid.push(Some(s.usubjid.clone()));
-            seq.push(Some(k as i64 + 1));
-            term.push(Some(r.term));
-            cat.push(Some(r.category.to_string()));
-            epoch.push(Some(r.epoch.to_string()));
-            dtc.push(Some(iso(r.date)));
-            dy.push(Some(i64::from(study_day(r.date, s.treatment_start))));
-        }
+pub(crate) fn ints<T>(rows: &[T], f: impl Fn(&T) -> Option<i64>) -> Values {
+    Values::Int(rows.iter().map(f).collect())
+}
+
+pub(crate) fn nums<T>(rows: &[T], f: impl Fn(&T) -> Option<f64>) -> Values {
+    Values::Num(rows.iter().map(f).collect())
+}
+
+pub(crate) fn constant<T>(rows: &[T], v: &str) -> Values {
+    Values::Char(vec![Some(v.to_string()); rows.len()])
+}
+
+pub(crate) fn dy(d: Date, reference: Date) -> Option<i64> {
+    Some(i64::from(study_day(d, reference)))
+}
+
+pub(crate) fn yn(b: bool) -> Option<String> {
+    Some(if b { "Y" } else { "N" }.to_string())
+}
+
+/// `x` rounded to `dp` decimals and formatted, without a negative zero.
+pub(crate) fn fmt_dp(x: f64, dp: u32) -> String {
+    let r = trialforge_core::math::round_dp(x, dp);
+    let s = format!("{:.*}", dp as usize, r);
+    if s.starts_with('-') && s[1..].chars().all(|c| c == '0' || c == '.') {
+        s[1..].to_string()
+    } else {
+        s
     }
-    let n = usubjid.len();
-    DS.build(vec![
-        (
-            "STUDYID",
-            chars(std::iter::repeat_n(design.studyid.as_str(), n)),
-        ),
-        ("DOMAIN", chars(std::iter::repeat_n("DS", n))),
-        ("USUBJID", Values::Char(usubjid)),
-        ("DSSEQ", Values::Int(seq)),
-        ("DSTERM", Values::Char(term.clone())),
-        ("DSDECOD", Values::Char(term)),
-        ("DSCAT", Values::Char(cat)),
-        ("EPOCH", Values::Char(epoch)),
-        ("DSSTDTC", Values::Char(dtc)),
-        ("DSSTDY", Values::Int(dy)),
-    ])
 }
