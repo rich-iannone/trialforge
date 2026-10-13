@@ -1,0 +1,17 @@
+# A 12-week hypertension study. Generate it with:
+#   cargo run --release -p trialforge-cli -- generate examples/hypertension.yaml -o out/
+spec_version: 0
+study:
+  archetype: parallel_continuous
+  studyid: HTN001
+  seed: 20261013
+  standards: { sdtmig: "3.4", adamig: "1.3", define: "2.1" }
+population:
+  n: 240
+controls:
+  indication: hypertension
+  weeks: 12
+  change: [-4, -11]
+  dropout_rate: 0.12
+outputs:
+  layout: submission
