@@ -23,8 +23,12 @@ def test_rng_streams(case: dict[str, Any]) -> None:
 
 @pytest.mark.parametrize("case", _cases("study_xpt.json"))
 def test_study_xpt(case: dict[str, Any], tmp_path: Path) -> None:
-    study = trialforge.study(case["archetype"], n=case["n"], seed=case["seed"])
+    study = trialforge.study(case["archetype"], n=case["n"], seed=case["seed"], **case["controls"])
     rows = {name: frame.height for name, frame in {**study.sdtm, **study.adam}.items()}
     assert rows == case["rows"]
-    written = {p.name: hashlib.md5(p.read_bytes()).hexdigest() for p in study.write(tmp_path)}
+    written = {
+        p.name: hashlib.md5(p.read_bytes()).hexdigest()
+        for p in study.write(tmp_path)
+        if p.suffix == ".xpt"
+    }
     assert written == case["xpt_md5"]
