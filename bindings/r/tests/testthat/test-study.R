@@ -29,6 +29,17 @@ test_that("an oncology study keeps its strata and cutoff", {
   expect_identical(onc$cutoff, as.Date("2025-08-30"))
   expect_true("STRAT1R" %in% names(onc$adam$ADSL))
   expect_true("overall_survival" %in% names(onc$truth))
+  expect_true(all(c("TU", "TR", "RS") %in% names(onc$sdtm)))
+  expect_named(onc$adam, c("ADSL", "ADRS", "ADTTE", "ADTR"))
+  expect_true(all(c("OS", "PFS") %in% onc$adam$ADTTE$PARAMCD))
+  expect_identical(onc$truth$targets$os_hr, 0.75)
+  expect_true("stratified_cox_hr" %in% names(onc$truth$overall_survival))
+})
+
+test_that("oncology controls are applied and validated", {
+  s <- study("oncology_solid_tumor", n = 30, seed = 2, orr = c(0.5, 0.1), os_median_months = 20)
+  expect_identical(s$controls$orr, c(0.5, 0.1))
+  expect_error(study("oncology_solid_tumor", n = 5, seed = 1, pfs_median_months = 30), "pfs_median_months")
 })
 
 test_that("controls are applied and validated", {
