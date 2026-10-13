@@ -5,6 +5,7 @@
 //! truth manifest. The Python and R bindings and the CLI depend on this crate alone, so the
 //! internal crate layout can change without touching them.
 
+pub mod spec;
 mod truth;
 
 use std::collections::HashMap;
@@ -22,6 +23,7 @@ pub use trialforge_model as model;
 pub use trialforge_processes as processes;
 pub use trialforge_sdtm as sdtm;
 
+pub use spec::{Spec, study_from_spec};
 pub use trialforge_core::{Column, Dataset, Date, Values};
 pub use trialforge_designs::{ARCHETYPES, MAX_SEED, StudyOptions};
 pub use truth::km_median;
@@ -31,10 +33,10 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 /// Output formats [`Study::write`] understands in this build.
 #[cfg(feature = "parquet")]
-pub const FORMATS: &[&str] = &["xpt", "csv", "parquet"];
+pub const FORMATS: &[&str] = &["xpt", "csv", "dataset-json", "parquet"];
 /// Output formats [`Study::write`] understands in this build.
 #[cfg(not(feature = "parquet"))]
-pub const FORMATS: &[&str] = &["xpt", "csv"];
+pub const FORMATS: &[&str] = &["xpt", "csv", "dataset-json"];
 
 /// A generated study.
 #[derive(Clone, Debug, PartialEq)]
@@ -47,6 +49,8 @@ pub struct Study {
     pub seed: u64,
     /// The data cutoff (event-driven studies) or the last contact date (fixed-duration).
     pub cutoff: Date,
+    /// The trial title (TS `TITLE`).
+    pub title: String,
     /// The full control set used, as JSON.
     pub controls: serde_json::Value,
     /// SDTM datasets, in standard order.
@@ -161,6 +165,7 @@ pub fn study(archetype: &str, opts: &StudyOptions) -> Result<Study, Error> {
         archetype: archetype.to_string(),
         seed: design.seed,
         cutoff: cutoff.unwrap_or(last_contact),
+        title: design.info.title.clone(),
         controls: resolved.controls.clone(),
         sdtm,
         adam,
@@ -174,6 +179,53 @@ pub fn verify(study: &Study) -> check::Report {
 }
 
 impl Study {
+    /// The define.xml for the SDTM or ADaM datasets.
+    pub fn define_xml(&self, standard: io::define::Standard) -> Result<String, Error> {
+        let datasets = match standard {
+            io::define::Standard::Sdtm => &self.sdtm,
+            io::define::Standard::Adam => &self.adam,
+        };
+        let info = io::define::DefineInfo {
+            studyid: &self.studyid,
+            description: &self.title,
+            created: self.cutoff,
+            standard,
+        };
+        io::define::to_string(datasets, &info).map_err(|e| Error::Internal(e.to_string()))
+    }
+
+    /// Writes a submission-style package: `dir/sdtm/` and `dir/adam/`, each with one XPT file
+    /// per dataset and a `define.xml`, plus `dir/truth.json`. Returns the paths written.
+    pub fn write_submission(&self, dir: &Path) -> Result<Vec<std::path::PathBuf>, Error> {
+        let mut written = Vec::new();
+        for (sub, sets, standard) in [
+            ("sdtm", &self.sdtm, io::define::Standard::Sdtm),
+            ("adam", &self.adam, io::define::Standard::Adam),
+        ] {
+            let folder = dir.join(sub);
+            std::fs::create_dir_all(&folder).map_err(Error::Io)?;
+            for ds in sets {
+                let path = folder.join(format!("{}.xpt", ds.name.to_ascii_lowercase()));
+                io::xpt::write_file(ds, &path, self.cutoff).map_err(|e| match e {
+                    io::xpt::XptError::Io(e) => Error::Io(e),
+                    io::xpt::XptError::Invalid(m) => Error::Internal(m),
+                })?;
+                written.push(path);
+            }
+            let define = folder.join("define.xml");
+            std::fs::write(&define, self.define_xml(standard)?).map_err(Error::Io)?;
+            written.push(define);
+        }
+        let truth = dir.join("truth.json");
+        std::fs::write(
+            &truth,
+            serde_json::to_string_pretty(&self.truth).expect("truth serializes") + "\n",
+        )
+        .map_err(Error::Io)?;
+        written.push(truth);
+        Ok(written)
+    }
+
     /// The dataset called `name` (case-insensitive), from SDTM or ADaM.
     pub fn dataset(&self, name: &str) -> Option<&Dataset> {
         self.sdtm
@@ -193,15 +245,35 @@ impl Study {
         }
         std::fs::create_dir_all(dir).map_err(Error::Io)?;
         let mut written = Vec::new();
+        let is_adam = |ds: &Dataset| self.adam.iter().any(|a| a.name == ds.name);
         for ds in self.sdtm.iter().chain(&self.adam) {
             for &format in formats {
-                let path = dir.join(format!("{}.{format}", ds.name.to_ascii_lowercase()));
+                let ext = if format == "dataset-json" {
+                    "json"
+                } else {
+                    format
+                };
+                let path = dir.join(format!("{}.{ext}", ds.name.to_ascii_lowercase()));
                 match format {
                     "xpt" => io::xpt::write_file(ds, &path, self.cutoff).map_err(|e| match e {
                         io::xpt::XptError::Io(e) => Error::Io(e),
                         io::xpt::XptError::Invalid(m) => Error::Internal(m),
                     })?,
                     "csv" => io::csv::write_file(ds, &path).map_err(Error::Io)?,
+                    "dataset-json" => {
+                        let info = io::define::DefineInfo {
+                            studyid: &self.studyid,
+                            description: &self.title,
+                            created: self.cutoff,
+                            standard: if is_adam(ds) {
+                                io::define::Standard::Adam
+                            } else {
+                                io::define::Standard::Sdtm
+                            },
+                        };
+                        std::fs::write(&path, io::dataset_json::to_string(ds, &info, VERSION))
+                            .map_err(Error::Io)?;
+                    }
                     #[cfg(feature = "parquet")]
                     "parquet" => io::parquet::write_file(ds, &path).map_err(|e| match e {
                         io::parquet::ParquetError::Io(e) => Error::Io(e),
