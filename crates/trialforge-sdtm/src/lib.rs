@@ -2,6 +2,7 @@
 //!
 //! - Trial design: TA, TE, TV, TI, TS ([`tdm`]).
 //! - Subject level: DM, SE, SV, EX, CM, AE (+SUPPAE), DS, MH, LB, VS ([`subject`]).
+//! - Oncology: TU, TR, RS ([`tumor`]).
 //!
 //! Conventions shared by every domain:
 //! - Records are sorted by `USUBJID` and the domain's natural key, then `--SEQ` is assigned.
@@ -11,6 +12,7 @@
 
 pub mod subject;
 pub mod tdm;
+pub mod tumor;
 
 use trialforge_cdisc::MetadataError;
 use trialforge_core::{Dataset, Date, Values, study_day};
@@ -55,6 +57,7 @@ impl<'a> Context<'a> {
 pub fn emit(ctx: &Context<'_>) -> Result<Vec<Dataset>, MetadataError> {
     let mut out = tdm::emit(ctx)?;
     out.extend(subject::emit(ctx)?);
+    out.extend(tumor::emit(ctx)?);
     Ok(out
         .into_iter()
         .filter(|d| d.n_rows() > 0 || d.name == "DM")
