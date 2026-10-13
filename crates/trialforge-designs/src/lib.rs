@@ -1,26 +1,35 @@
-//! Study-type archetypes: default specs, type-specific controls and calibration recipes.
+//! Study-type archetypes: default designs, typed **controls** with defaults, and the course
+//! parameters they resolve to.
 //!
-//! The spike has one archetype, `oncology_solid_tumor`, with SIMONC01's design: 1:1 Drug A vs
-//! Control, permuted blocks of 4 stratified by ECOG (0/1), 18 months of enrollment from
-//! 2023-03-01, data cutoff 30 months after the first randomisation, Q3W dosing and tumour
-//! assessments every 8 weeks. Calibration to clinical targets comes in Phase 3, so the latent
-//! medians here are set directly.
+//! Controls arrive as a JSON object (from Python keyword arguments, an R list, or a study-spec
+//! file) and are merged over the archetype's defaults; unknown names are an error.
 
-use trialforge_core::Date;
-use trialforge_model::{Arm, Categorical, Design, Population, Site, Treatment};
+pub mod oncology;
+pub mod parallel;
+
+use serde::Serialize;
+use serde_json::Value;
+use trialforge_model::Design;
+use trialforge_processes::fixed::CourseParams;
 use trialforge_processes::oncology::OncologyParams;
 
 /// The archetypes this build knows, with one-line descriptions.
-pub const ARCHETYPES: &[(&str, &str)] = &[(
-    "oncology_solid_tumor",
-    "Randomised solid-tumour study (SIMONC01-like): DM, EX, DS and ADSL in this preview",
-)];
+pub const ARCHETYPES: &[(&str, &str)] = &[
+    (
+        "parallel_continuous",
+        "Randomised, double-blind, placebo-controlled parallel study with a continuous endpoint (HbA1c, SBP or weight)",
+    ),
+    (
+        "oncology_solid_tumor",
+        "Randomised solid-tumour study (SIMONC01-like): progression, death and disposition; no tumour data yet",
+    ),
+];
 
 /// The largest seed accepted: 2^53, the largest integer every binding represents exactly.
 pub const MAX_SEED: u64 = 1 << 53;
 
 /// User-facing options shared by all archetypes.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct StudyOptions {
     /// Number of randomised subjects.
     pub n: usize,
@@ -28,130 +37,198 @@ pub struct StudyOptions {
     pub seed: u64,
     /// `STUDYID`; each archetype has a default.
     pub studyid: Option<String>,
+    /// Archetype controls as a JSON object (`Value::Null` or `{}` for the defaults).
+    pub controls: Value,
 }
 
-/// A resolved oncology study: its design and course parameters.
+impl StudyOptions {
+    /// Options with default controls.
+    pub fn new(n: usize, seed: u64) -> Self {
+        Self {
+            n,
+            seed,
+            studyid: None,
+            controls: Value::Null,
+        }
+    }
+}
+
+/// One documented control.
+#[derive(Clone, Debug, PartialEq, Serialize)]
+pub struct ControlDoc {
+    /// Control name.
+    pub name: &'static str,
+    /// What it does.
+    pub description: &'static str,
+    /// Default value.
+    pub default: Value,
+}
+
+impl ControlDoc {
+    pub(crate) fn new(name: &'static str, description: &'static str) -> Self {
+        Self {
+            name,
+            description,
+            default: Value::Null,
+        }
+    }
+}
+
+/// What an archetype resolves to.
 #[derive(Clone, Debug, PartialEq)]
-pub struct OncologyStudy {
+pub enum Course {
+    /// A fixed-duration study with a visit schedule.
+    Fixed(CourseParams),
+    /// An event-driven oncology course.
+    Oncology(OncologyParams),
+}
+
+/// A resolved study: design, course parameters and the controls actually used.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Resolved {
     /// The design.
     pub design: Design,
     /// The course parameters.
-    pub params: OncologyParams,
+    pub course: Course,
+    /// The full control set used (defaults merged with the user's), as JSON.
+    pub controls: Value,
 }
 
-/// An archetype name this build does not know.
+/// Bad archetype name or controls.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct UnknownArchetype(pub String);
+pub struct ResolveError(pub String);
 
-impl core::fmt::Display for UnknownArchetype {
+impl core::fmt::Display for ResolveError {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        let known: Vec<&str> = ARCHETYPES.iter().map(|(n, _)| *n).collect();
-        write!(
-            f,
-            "unknown archetype {:?}; available: {}",
-            self.0,
-            known.join(", ")
-        )
+        f.write_str(&self.0)
     }
 }
 
-impl std::error::Error for UnknownArchetype {}
+impl std::error::Error for ResolveError {}
+
+fn unknown(archetype: &str) -> ResolveError {
+    let known: Vec<&str> = ARCHETYPES.iter().map(|(n, _)| *n).collect();
+    ResolveError(format!(
+        "unknown archetype {archetype:?}; available: {}",
+        known.join(", ")
+    ))
+}
+
+/// Merges `user` over the default controls `T` and parses the result.
+fn controls<T>(user: &Value) -> Result<(T, Value), ResolveError>
+where
+    T: Default + Serialize + serde::de::DeserializeOwned,
+{
+    let mut merged = serde_json::to_value(T::default()).expect("controls serialize");
+    match user {
+        Value::Null => {}
+        Value::Object(map) => {
+            let target = merged.as_object_mut().expect("controls are an object");
+            for (k, v) in map {
+                if !target.contains_key(k) {
+                    let names: Vec<&str> = target.keys().map(String::as_str).collect();
+                    return Err(ResolveError(format!(
+                        "unknown control {k:?}; available: {}",
+                        names.join(", ")
+                    )));
+                }
+                target.insert(k.clone(), v.clone());
+            }
+        }
+        _ => return Err(ResolveError("controls must be a JSON object".into())),
+    }
+    let parsed: T = serde_json::from_value(merged.clone())
+        .map_err(|e| ResolveError(format!("invalid controls: {e}")))?;
+    Ok((parsed, merged))
+}
+
+/// The documented controls of `archetype`, with their defaults.
+pub fn control_docs(archetype: &str) -> Result<Vec<ControlDoc>, ResolveError> {
+    let (mut docs, defaults) = match archetype {
+        "parallel_continuous" => (
+            parallel::docs(),
+            serde_json::to_value(parallel::Controls::default()),
+        ),
+        "oncology_solid_tumor" => (
+            oncology::docs(),
+            serde_json::to_value(oncology::Controls::default()),
+        ),
+        other => return Err(unknown(other)),
+    };
+    let defaults = defaults.expect("controls serialize");
+    for d in &mut docs {
+        d.default = defaults.get(d.name).cloned().unwrap_or(Value::Null);
+    }
+    Ok(docs)
+}
 
 /// Resolves an archetype name and options to a concrete study.
-pub fn resolve(archetype: &str, opts: &StudyOptions) -> Result<OncologyStudy, UnknownArchetype> {
+pub fn resolve(archetype: &str, opts: &StudyOptions) -> Result<Resolved, ResolveError> {
     match archetype {
-        "oncology_solid_tumor" => Ok(oncology_solid_tumor(opts)),
-        other => Err(UnknownArchetype(other.to_string())),
+        "parallel_continuous" => {
+            let (c, json) = controls::<parallel::Controls>(&opts.controls)?;
+            parallel::validate(&c).map_err(ResolveError)?;
+            let (design, params) = parallel::resolve(opts, &c);
+            Ok(Resolved {
+                design,
+                course: Course::Fixed(params),
+                controls: json,
+            })
+        }
+        "oncology_solid_tumor" => {
+            let (c, json) = controls::<oncology::Controls>(&opts.controls)?;
+            oncology::validate(&c).map_err(ResolveError)?;
+            let (design, params) = oncology::resolve(opts, &c);
+            Ok(Resolved {
+                design,
+                course: Course::Oncology(params),
+                controls: json,
+            })
+        }
+        other => Err(unknown(other)),
     }
 }
 
-fn oncology_solid_tumor(opts: &StudyOptions) -> OncologyStudy {
-    let first = Date::from_ymd(2023, 3, 1).expect("valid date");
-    let treatment = |name: &str, dose: f64, unit: &str| Treatment {
-        name: name.into(),
-        dose,
-        unit: unit.into(),
-        form: "SOLUTION".into(),
-        route: "INTRAVENOUS".into(),
-        frequency: "Q3W".into(),
-        cycle_days: 21,
-    };
-    let countries = [
-        ("USA", 9),
-        ("CAN", 3),
-        ("GBR", 5),
-        ("DEU", 5),
-        ("FRA", 4),
-        ("ESP", 4),
-    ];
-    let sites = countries
-        .iter()
-        .flat_map(|&(c, k)| std::iter::repeat_n(c, k))
-        .enumerate()
-        .map(|(i, c)| Site {
-            siteid: (101 + i).to_string(),
-            country: c.into(),
-        })
-        .collect();
-    let design = Design {
-        studyid: opts.studyid.clone().unwrap_or_else(|| "SIMONC02".into()),
-        seed: opts.seed,
-        n: opts.n,
-        arms: vec![
-            Arm {
-                armcd: "A".into(),
-                arm: "Drug A".into(),
-                ratio: 1,
-                treatment: treatment("DRUG A", 200.0, "mg"),
-            },
-            Arm {
-                armcd: "C".into(),
-                arm: "Control".into(),
-                ratio: 1,
-                treatment: treatment("CONTROL", 75.0, "mg/m2"),
-            },
-        ],
-        sites,
-        first_randomization: first,
-        enrollment_days: 548,
-        cutoff: first.add_days(912),
-        block_size: 4,
-        population: Population {
-            age_mean: 62.0,
-            age_sd: 10.0,
-            age_min: 28,
-            age_max: 85,
-            sex: Categorical::new([("M", 0.52), ("F", 0.48)]),
-            race: Categorical::new([
-                ("WHITE", 0.74),
-                ("BLACK OR AFRICAN AMERICAN", 0.10),
-                ("ASIAN", 0.12),
-                ("AMERICAN INDIAN OR ALASKA NATIVE", 0.02),
-                ("MULTIPLE", 0.02),
-            ]),
-            ethnic: Categorical::new([
-                ("NOT HISPANIC OR LATINO", 0.88),
-                ("HISPANIC OR LATINO", 0.12),
-            ]),
-            strata: Categorical::new([("ECOG 0", 0.45), ("ECOG 1", 0.55)]),
-        },
-    };
-    let params = OncologyParams {
-        median_pd_months: vec![7.0, 4.5],
-        median_pps_months: vec![13.0, 13.0],
-        stratum_hr: vec![0.8, 1.25],
-        death_before_pd_rate: 0.008,
-        withdrawal_prob: 0.08,
-        withdrawal_window: (15.0, 400.0),
-        withdrawal_reasons: vec![
-            ("WITHDRAWAL BY SUBJECT".into(), 0.7),
-            ("LOST TO FOLLOW-UP".into(), 0.3),
-        ],
-        ae_stop_prob: 0.10,
-        ae_stop_window: (20.0, 300.0),
-        assessment_interval_days: 56,
-        max_cycles: 61,
-        last_contact_lag_days: 28,
-    };
-    OncologyStudy { design, params }
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn every_archetype_resolves_with_defaults() {
+        for (name, _) in ARCHETYPES {
+            let r = resolve(name, &StudyOptions::new(10, 1)).unwrap();
+            r.design.validate().unwrap();
+            assert!(!control_docs(name).unwrap().is_empty());
+        }
+    }
+
+    #[test]
+    fn controls_merge_and_reject_unknowns() {
+        let mut o = StudyOptions::new(10, 1);
+        o.controls = serde_json::json!({"weeks": 12, "indication": "hypertension"});
+        let r = resolve("parallel_continuous", &o).unwrap();
+        assert_eq!(r.controls["weeks"], 12);
+        assert_eq!(r.design.schedule.as_ref().unwrap().treatment_days, 84);
+        o.controls = serde_json::json!({"wekks": 12});
+        assert!(
+            resolve("parallel_continuous", &o)
+                .unwrap_err()
+                .0
+                .contains("unknown control")
+        );
+        o.controls = serde_json::json!({"weeks": "twelve"});
+        assert!(
+            resolve("parallel_continuous", &o)
+                .unwrap_err()
+                .0
+                .contains("invalid controls")
+        );
+        o.controls = serde_json::json!({"indication": "gout"});
+        assert!(
+            resolve("parallel_continuous", &o)
+                .unwrap_err()
+                .0
+                .contains("unknown indication")
+        );
+    }
 }
