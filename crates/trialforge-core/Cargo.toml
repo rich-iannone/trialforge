@@ -9,6 +9,7 @@ repository.workspace = true
 authors.workspace = true
 
 [dependencies]
+libm = "0.2.16"
 rand_chacha = "0.10.0"
 rand_core = "0.10.1"
 
