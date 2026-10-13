@@ -91,6 +91,122 @@ pub struct Population {
     pub strata: Categorical,
 }
 
+/// A trial epoch (CT `EPOCH`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub enum Epoch {
+    /// Screening.
+    Screening,
+    /// Treatment.
+    Treatment,
+    /// Follow-up.
+    FollowUp,
+}
+
+impl Epoch {
+    /// The CT submission value.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Epoch::Screening => "SCREENING",
+            Epoch::Treatment => "TREATMENT",
+            Epoch::FollowUp => "FOLLOW-UP",
+        }
+    }
+}
+
+/// What a planned visit is for.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum VisitKind {
+    /// Screening (at consent).
+    Screening,
+    /// Baseline (Day 1, first dose).
+    Baseline,
+    /// A scheduled on-treatment visit.
+    Treatment,
+    /// The last scheduled on-treatment visit.
+    EndOfTreatment,
+    /// Post-treatment follow-up.
+    FollowUp,
+    /// Early termination (unscheduled; happens when a subject leaves early).
+    EarlyTermination,
+}
+
+/// A planned visit (one TV record).
+#[derive(Clone, Debug, PartialEq)]
+pub struct PlannedVisit {
+    /// `VISITNUM`.
+    pub visitnum: i64,
+    /// `VISIT`.
+    pub name: String,
+    /// Planned study day (`VISITDY`); `None` for early termination.
+    pub day: Option<i32>,
+    /// Allowed deviation from the planned day: (days early, days late).
+    pub window: (i32, i32),
+    /// The epoch the visit falls in.
+    pub epoch: Epoch,
+    /// What the visit is for.
+    pub kind: VisitKind,
+    /// Whether the safety lab panel is drawn.
+    pub labs: bool,
+    /// Whether vital signs are taken.
+    pub vitals: bool,
+    /// Whether the efficacy endpoint is measured.
+    pub endpoint: bool,
+}
+
+/// The visit schedule of a fixed-duration study.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Schedule {
+    /// Planned visits in `VISITNUM` order, including early termination.
+    pub visits: Vec<PlannedVisit>,
+    /// Planned treatment duration in days (Day 1 to the end-of-treatment visit).
+    pub treatment_days: i32,
+    /// Planned follow-up duration in days after the last dose.
+    pub followup_days: i32,
+}
+
+impl Schedule {
+    /// The visit with the given `VISITNUM`.
+    pub fn visit(&self, visitnum: i64) -> Option<&PlannedVisit> {
+        self.visits.iter().find(|v| v.visitnum == visitnum)
+    }
+}
+
+/// Trial-level descriptors (feed TS and TI).
+#[derive(Clone, Debug, PartialEq)]
+pub struct TrialInfo {
+    /// `TITLE`.
+    pub title: String,
+    /// `TPHASE` (CT value, e.g. `PHASE III TRIAL`).
+    pub phase: String,
+    /// `SPONSOR`.
+    pub sponsor: String,
+    /// `TDIGRP`: the condition studied.
+    pub indication: String,
+    /// `THERAREA`.
+    pub therapeutic_area: String,
+    /// `OBJPRIM`.
+    pub primary_objective: String,
+    /// `TBLIND` (e.g. `DOUBLE BLIND`, `OPEN LABEL`).
+    pub blinding: String,
+    /// `TCNTRL` (e.g. `PLACEBO`, `ACTIVE`).
+    pub control: String,
+    /// `ADDON`: added on to existing treatment.
+    pub add_on: bool,
+    /// Inclusion and exclusion criteria: (`IETESTCD`, `IECAT`, `IETEST`).
+    pub criteria: Vec<(String, String, String)>,
+}
+
+/// Day offsets around randomisation, each drawn uniformly from an inclusive range.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Timing {
+    /// Days from the screening assessments to randomisation.
+    pub screening_lead: (i64, i64),
+    /// Extra days from informed consent to screening.
+    pub consent_lead: (i64, i64),
+    /// Days from randomisation to first dose.
+    pub dose_lag: (i64, i64),
+}
+
 /// Study-level design.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Design {
@@ -114,6 +230,12 @@ pub struct Design {
     pub block_size: u32,
     /// Baseline distributions.
     pub population: Population,
+    /// Screening, consent and dosing offsets.
+    pub timing: Timing,
+    /// Visit schedule; `None` for event-driven designs without fixed visits.
+    pub schedule: Option<Schedule>,
+    /// Trial-level descriptors.
+    pub info: TrialInfo,
 }
 
 impl Design {
@@ -151,6 +273,39 @@ impl Design {
         }
         if self.cutoff <= self.first_randomization.add_days(self.enrollment_days) {
             return err("the data cutoff must fall after the end of enrollment".into());
+        }
+        let t = &self.timing;
+        for (name, (lo, hi)) in [
+            ("screening_lead", t.screening_lead),
+            ("consent_lead", t.consent_lead),
+            ("dose_lag", t.dose_lag),
+        ] {
+            if lo < 0 || lo > hi {
+                return err(format!(
+                    "timing `{name}` must be a non-negative range lo..=hi"
+                ));
+            }
+        }
+        if t.screening_lead.0 < 1 {
+            return err("screening must happen at least one day before randomisation".into());
+        }
+        if let Some(sch) = &self.schedule {
+            if !sch.visits.windows(2).all(|w| w[0].visitnum < w[1].visitnum) {
+                return err("schedule visits must be in increasing VISITNUM order".into());
+            }
+            let scheduled: Vec<i32> = sch.visits.iter().filter_map(|v| v.day).collect();
+            if !scheduled.windows(2).all(|w| w[0] < w[1]) {
+                return err("scheduled visit days must increase".into());
+            }
+            for kind in [
+                VisitKind::Screening,
+                VisitKind::Baseline,
+                VisitKind::EndOfTreatment,
+            ] {
+                if sch.visits.iter().filter(|v| v.kind == kind).count() != 1 {
+                    return err(format!("the schedule needs exactly one {kind:?} visit"));
+                }
+            }
         }
         if self.studyid.is_empty() || self.studyid.len() > 20 {
             return err("`studyid` must be 1–20 characters".into());
@@ -196,6 +351,8 @@ pub struct Subject {
     pub arm: usize,
     /// Informed consent date.
     pub consent: Date,
+    /// Screening assessment date (the screening visit).
+    pub screening: Date,
     /// Randomisation date.
     pub randomization: Date,
     /// First dose date.
@@ -218,9 +375,10 @@ pub fn enroll(design: &Design) -> Result<Vec<Subject>, DesignError> {
             let ethnic = pop.ethnic.draw(&mut d);
             let stratum = pop.strata.draw(&mut d);
             let rand_offset = d.below(design.enrollment_days as u64) as i32;
-            let scan_lead = d.int_range(1, 14) as i32;
-            let consent_lead = d.int_range(0, 14) as i32;
-            let dose_lag = d.int_range(0, 3) as i32;
+            let t = &design.timing;
+            let scan_lead = d.int_range(t.screening_lead.0, t.screening_lead.1) as i32;
+            let consent_lead = d.int_range(t.consent_lead.0, t.consent_lead.1) as i32;
+            let dose_lag = d.int_range(t.dose_lag.0, t.dose_lag.1) as i32;
             let randomization = design.first_randomization.add_days(rand_offset);
             Subject {
                 index: i,
@@ -234,6 +392,7 @@ pub fn enroll(design: &Design) -> Result<Vec<Subject>, DesignError> {
                 stratum,
                 arm: usize::MAX,
                 consent: randomization.add_days(-(scan_lead + consent_lead)),
+                screening: randomization.add_days(-scan_lead),
                 randomization,
                 treatment_start: randomization.add_days(dose_lag),
             }
@@ -336,6 +495,24 @@ mod tests {
                 race: Categorical::new([("WHITE", 1.0)]),
                 ethnic: Categorical::new([("NOT HISPANIC OR LATINO", 1.0)]),
                 strata: Categorical::new([("LOW", 1.0), ("HIGH", 1.0)]),
+            },
+            timing: Timing {
+                screening_lead: (1, 14),
+                consent_lead: (0, 14),
+                dose_lag: (0, 3),
+            },
+            schedule: None,
+            info: TrialInfo {
+                title: "Test".into(),
+                phase: "PHASE III TRIAL".into(),
+                sponsor: "Test".into(),
+                indication: "Test".into(),
+                therapeutic_area: "Test".into(),
+                primary_objective: "Test".into(),
+                blinding: "DOUBLE BLIND".into(),
+                control: "PLACEBO".into(),
+                add_on: false,
+                criteria: vec![],
             },
         }
     }
