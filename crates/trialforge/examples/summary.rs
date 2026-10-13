@@ -26,6 +26,13 @@ fn main() {
     println!("generated in {elapsed:?}");
     let report = trialforge::check::run(&study.sdtm, &study.adam);
     println!("{}", report.summary());
+    if let Ok(dir) = std::env::var("TF_WRITE") {
+        let n = study
+            .write_submission(std::path::Path::new(&dir))
+            .unwrap()
+            .len();
+        println!("wrote {n} files to {dir}");
+    }
     if std::env::var("TF_TRUTH").is_err() {
         return;
     }
