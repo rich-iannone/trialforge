@@ -1,0 +1,7 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc 881b2b7d08dba17cfa28c8f6bdfd0bf25b7162eb85c8da8bf952ce69e985b43b # shrinks to c = Object {"ae_rate_multiplier": Number(0.00013309728962091155), "change": Null, "dose": Number(0.5), "dropout_rate": Number(0.0), "indication": String("type_2_diabetes"), "missed_visit": Number(0.0), "ratio": Array [Number(1), Number(1)], "weeks": Number(4)}, n = 1, seed = 423072877376619
