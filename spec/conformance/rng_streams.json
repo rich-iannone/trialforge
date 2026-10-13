@@ -1,0 +1,62 @@
+{
+  "description": "Golden RNG stream seeds (crates/trialforge-core/src/rng.rs). Replayed by the Python and R test suites. `expected` is a decimal string because R cannot hold an unsigned 64-bit integer. Changing these values changes every generated dataset; only regenerate them deliberately.",
+  "cases": [
+    {
+      "seed": 20261011,
+      "path": [
+        "subject",
+        0,
+        "ae"
+      ],
+      "expected": "12342615029409701309"
+    },
+    {
+      "seed": 1,
+      "path": [],
+      "expected": "10451216379200822465"
+    },
+    {
+      "seed": 1,
+      "path": [
+        "subject",
+        17,
+        "ae"
+      ],
+      "expected": "11952556374152885286"
+    },
+    {
+      "seed": 1,
+      "path": [
+        "subject",
+        17,
+        "lb"
+      ],
+      "expected": "3895074468689693504"
+    },
+    {
+      "seed": 1,
+      "path": [
+        "subject",
+        18,
+        "ae"
+      ],
+      "expected": "10801780502063412224"
+    },
+    {
+      "seed": 0,
+      "path": [
+        0
+      ],
+      "expected": "13675306481318222771"
+    },
+    {
+      "seed": 9007199254740992,
+      "path": [
+        "hook",
+        "covariate",
+        "age"
+      ],
+      "expected": "4120912640166919652"
+    }
+  ]
+}
