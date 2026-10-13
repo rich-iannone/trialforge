@@ -13,7 +13,9 @@ name = "trialforge"
 path = "src/main.rs"
 
 [dependencies]
-trialforge.workspace = true
+clap = { version = "4.6.7", features = ["derive"] }
+serde_json = "1.0.154"
+trialforge = { workspace = true, features = ["parquet"] }
 
 [lints]
 workspace = true
