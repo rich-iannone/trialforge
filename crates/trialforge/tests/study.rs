@@ -129,9 +129,76 @@ fn baseline_inclusion_criterion_holds() {
 fn oncology_truth_reports_overall_survival() {
     let s = study("oncology_solid_tumor", &opts(1000, 4, json!(null))).unwrap();
     let os = &s.truth["overall_survival"];
-    let a = os["Drug A"]["km_median_os_months"].as_f64().unwrap();
-    let c = os["Control"]["km_median_os_months"].as_f64().unwrap();
+    let a = os["by_arm"]["Drug A"]["km_median_months"].as_f64().unwrap();
+    let c = os["by_arm"]["Control"]["km_median_months"]
+        .as_f64()
+        .unwrap();
     assert!(a > c, "Drug A should live longer: {a} vs {c}");
+    let ci = os["stratified_cox_hr"]["ci95"].as_array().unwrap();
+    let (lo, hi) = (ci[0].as_f64().unwrap(), ci[1].as_f64().unwrap());
+    assert!(
+        lo < 0.75 && 0.75 < hi,
+        "OS HR CI [{lo}, {hi}] should cover the target 0.75"
+    );
+    let orr = &s.truth["confirmed_orr"];
+    assert!(
+        orr["Drug A"]["proportion"].as_f64().unwrap()
+            > orr["Control"]["proportion"].as_f64().unwrap()
+    );
+}
+
+/// Rewrites column `var` of `dataset` with `f`.
+fn edit(sets: &mut [Dataset], dataset: &str, var: &str, f: impl FnOnce(&mut Values)) {
+    let d = sets.iter_mut().find(|d| d.name == dataset).unwrap();
+    let mut columns = d.columns().to_vec();
+    let c = columns.iter_mut().find(|c| c.name == var).unwrap();
+    f(&mut c.values);
+    *d = Dataset::new(d.name.clone(), d.label.clone(), columns).unwrap();
+}
+
+/// Replaces the first `from` in character column `var` with `to`.
+fn corrupt(sets: &mut [Dataset], dataset: &str, var: &str, from: &str, to: &str) {
+    edit(sets, dataset, var, |v| {
+        let Values::Char(v) = v else {
+            panic!("{var} is character")
+        };
+        let x = v.iter_mut().find(|x| x.as_deref() == Some(from)).unwrap();
+        *x = Some(to.to_string());
+    });
+}
+
+#[test]
+fn oncology_checks_catch_inconsistent_responses() {
+    let base = study("oncology_solid_tumor", &opts(60, 2, json!(null))).unwrap();
+    assert!(trialforge::verify(&base).passed());
+    let rules = |s: &trialforge::Study| {
+        trialforge::verify(s)
+            .counts
+            .keys()
+            .copied()
+            .collect::<Vec<_>>()
+    };
+
+    // An RS response that RECIST 1.1 does not give.
+    let mut s = base.clone();
+    corrupt(&mut s.sdtm, "RS", "RSSTRESC", "SD", "PR");
+    assert!(rules(&s).contains(&"L1.RECIST"), "{:?}", rules(&s));
+
+    // A best overall response that the responses do not support.
+    let mut s = base.clone();
+    corrupt(&mut s.adam, "ADRS", "AVALC", "MISSING", "SD");
+    assert!(rules(&s).contains(&"L2.ADRS"), "{:?}", rules(&s));
+
+    // A survival record flipped from event to censored.
+    let mut s = base.clone();
+    edit(&mut s.adam, "ADTTE", "CNSR", |v| {
+        let Values::Int(v) = v else {
+            panic!("CNSR is integer")
+        };
+        let x = v.iter_mut().find(|x| **x == Some(0)).unwrap();
+        *x = Some(1);
+    });
+    assert!(rules(&s).contains(&"L2.ADTTE"), "{:?}", rules(&s));
 }
 
 #[test]
@@ -202,15 +269,21 @@ prop_compose! {
 
 prop_compose! {
     fn oncology_controls()(
-        pd in (0.5f64..30.0, 0.5f64..30.0),
-        pps in (0.5f64..40.0, 0.5f64..40.0),
+        os_median in 3.0f64..40.0,
+        pfs_fraction in 0.1f64..0.9,
+        hr in (0.3f64..1.5, 0.3f64..1.5),
+        orr in (0.0f64..0.9, 0.0f64..0.9),
+        shape in (0.5f64..3.0, 0.5f64..3.0),
+        correlation in 0.0f64..0.95,
         withdrawal in 0.0f64..1.0,
         ae in 0.0f64..1.0,
         enrollment in 1.0f64..36.0,
         extra in 1.0f64..36.0,
     ) -> serde_json::Value {
         json!({
-            "median_pd_months": [pd.0, pd.1], "median_pps_months": [pps.0, pps.1],
+            "os_median_months": os_median, "pfs_median_months": os_median * pfs_fraction,
+            "os_hr": hr.0, "pfs_hr": hr.1, "orr": [orr.0, orr.1],
+            "os_shape": shape.0, "pfs_shape": shape.1, "os_pfs_correlation": correlation,
             "withdrawal_prob": withdrawal, "ae_stop_prob": ae,
             "enrollment_months": enrollment, "cutoff_months": enrollment + extra,
         })
