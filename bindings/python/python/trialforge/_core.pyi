@@ -1,0 +1,6 @@
+"""Type stubs for the Rust extension module (bindings/python/src/lib.rs)."""
+
+from collections.abc import Sequence
+
+def core_version() -> str: ...
+def stream_seed(seed: int, path: Sequence[int | str]) -> int: ...

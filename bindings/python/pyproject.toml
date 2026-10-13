@@ -1,0 +1,64 @@
+[build-system]
+requires = ["maturin>=1.8,<2"]
+build-backend = "maturin"
+
+[project]
+name = "trialforge"
+description = "Synthetic CDISC clinical-trial data (SDTM, ADaM, define.xml) from declarative study specs."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Richard Iannone", email = "riannone@me.com" }]
+maintainers = [{ name = "Richard Iannone", email = "riannone@me.com" }]
+dynamic = ["version"]
+requires-python = ">=3.10"
+keywords = ["cdisc", "sdtm", "adam", "clinical trials", "synthetic data", "simulation", "pharma"]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Healthcare Industry",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Rust",
+    "Topic :: Scientific/Engineering :: Medical Science Apps.",
+    "Typing :: Typed",
+]
+dependencies = []
+
+[project.optional-dependencies]
+pl = ["polars>=1.0"]
+pd = ["pandas>=2.0", "pyarrow>=14"]
+pa = ["pyarrow>=14"]
+# Verification levels 3–4 and the TLF pack.
+verify = ["pointblank", "greenwood"]
+tables = ["great-tables"]
+dev = ["maturin>=1.8,<2", "pytest>=8", "ruff>=0.6", "pyright>=1.1.380"]
+
+[project.urls]
+Repository = "https://github.com/rich-iannone/trialforge"
+
+[tool.maturin]
+# The Python package lives in python/; the extension module is trialforge._core.
+python-source = "python"
+module-name = "trialforge._core"
+features = ["pyo3/extension-module"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["trialforge"]
+
+[tool.pyright]
+include = ["python/trialforge", "tests"]
+typeCheckingMode = "strict"
+pythonVersion = "3.10"
+# The dev venv lives at the repository root (see the Makefile).
+venvPath = "../.."
+venv = ".venv"
