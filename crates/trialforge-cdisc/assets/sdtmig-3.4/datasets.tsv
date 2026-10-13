@@ -1,0 +1,17 @@
+dataset	label	class	structure	keys
+TA	Trial Arms	TRIAL DESIGN	One record per planned Element per Arm	STUDYID,ARMCD,TAETORD
+TE	Trial Elements	TRIAL DESIGN	One record per planned Element	STUDYID,ETCD
+TV	Trial Visits	TRIAL DESIGN	One record per planned Visit per Arm	STUDYID,ARMCD,VISITNUM
+TI	Trial Inclusion/Exclusion Criteria	TRIAL DESIGN	One record per I/E criterion	STUDYID,IETESTCD
+TS	Trial Summary	TRIAL DESIGN	One record per trial summary parameter value	STUDYID,TSPARMCD,TSSEQ
+DM	Demographics	SPECIAL PURPOSE	One record per subject	STUDYID,USUBJID
+SE	Subject Elements	SPECIAL PURPOSE	One record per actual Element per subject	STUDYID,USUBJID,ETCD,SESTDTC
+SV	Subject Visits	SPECIAL PURPOSE	One record per subject per actual visit	STUDYID,USUBJID,VISITNUM
+EX	Exposure	INTERVENTIONS	One record per constant-dosing interval per subject	STUDYID,USUBJID,EXTRT,EXSTDTC
+CM	Concomitant/Concurrent Medications	INTERVENTIONS	One record per recorded intervention occurrence per subject	STUDYID,USUBJID,CMTRT,CMSTDTC
+AE	Adverse Events	EVENTS	One record per adverse event per subject	STUDYID,USUBJID,AEDECOD,AESTDTC
+DS	Disposition	EVENTS	One record per disposition status or protocol milestone per subject	STUDYID,USUBJID,DSSCAT,DSSTDTC,DSDECOD
+MH	Medical History	EVENTS	One record per medical history event per subject	STUDYID,USUBJID,MHDECOD
+LB	Laboratory Test Results	FINDINGS	One record per lab test per time point per visit per subject	STUDYID,USUBJID,LBTESTCD,VISITNUM
+VS	Vital Signs	FINDINGS	One record per vital sign measurement per time point per visit per subject	STUDYID,USUBJID,VSTESTCD,VISITNUM
+SUPPAE	Supplemental Qualifiers for AE	RELATIONSHIP	One record per IDVAR, IDVARVAL, and QNAM value per subject	STUDYID,RDOMAIN,USUBJID,IDVAR,IDVARVAL,QNAM
