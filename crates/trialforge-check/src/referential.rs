@@ -99,6 +99,7 @@ pub(crate) fn run(sdtm: &[Dataset], adam: &[Dataset], r: &mut Report) {
     baseline_flags(sdtm, &refs, r);
     disposition(sdtm, r);
     seriousness(sdtm, r);
+    crate::onco::l1(sdtm, r);
 }
 
 /// Pairs of (study day, date) variables in a dataset.
@@ -294,13 +295,13 @@ fn visits(sdtm: &[Dataset], r: &mut Report) {
     }
     for ds in sdtm
         .iter()
-        .filter(|d| matches!(d.name.as_str(), "SV" | "LB" | "VS"))
+        .filter(|d| matches!(d.name.as_str(), "SV" | "LB" | "VS" | "TU" | "TR" | "RS"))
     {
         let t = T::new(ds);
         let (Some(u), Some(n), Some(v)) = (t.c("USUBJID"), t.i("VISITNUM"), t.c("VISIT")) else {
             continue;
         };
-        let vdy = t.i("VISITDY").unwrap_or_else(|| vec![None; t.n()]);
+        let vdy = t.i("VISITDY");
         let date_var = if t.name() == "SV" {
             "SVSTDTC".to_string()
         } else {
@@ -319,7 +320,7 @@ fn visits(sdtm: &[Dataset], r: &mut Report) {
                     format!("VISITNUM {vn} is not in TV"),
                 ),
                 Some((pname, pday)) => {
-                    if v[i].as_deref() != *pname || vdy[i] != *pday {
+                    if v[i].as_deref() != *pname || vdy.as_ref().is_some_and(|d| d[i] != *pday) {
                         r.add(
                             L,
                             "L1.VISIT",
