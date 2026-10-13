@@ -8,7 +8,7 @@ here, the Python and R packages must agree on it exactly.
   - `rng_streams.json`: RNG stream seeds (`crates/trialforge-core/src/rng.rs`). Seeds are
     decimal strings because R has no unsigned 64-bit integer.
   - `study_xpt.json`: for reference `study(archetype, n, seed, **controls)` calls, the row count of each
-    dataset and the MD5 of each XPT file written. Both bindings write through the Rust writer
+    dataset, the MD5 of each XPT file written and of each define.xml. Both bindings write through the Rust writer
     and hash the bytes themselves, which proves Python and R produce identical files.
 - `designs/`: per-archetype semantics, i.e. controls, defaults, derived truths and expected
   conformance warnings. Empty so far.
@@ -34,6 +34,21 @@ for case in doc["cases"]:
     case["xpt_md5"] = {
         p.name: hashlib.md5(p.read_bytes()).hexdigest() for p in s.write(out) if p.suffix == ".xpt"
     }
+    case["define_md5"] = {
+        std: hashlib.md5(s.define_xml(std).encode()).hexdigest() for std in ("sdtm", "adam")
+    }
 path.write_text(json.dumps(doc, indent=2) + "\n")
 PY
 ```
+
+## Language adaptations
+
+Package-level names match across Python and R. Where they cannot, the difference is recorded
+here.
+
+| Python | R | Why |
+|---|---|---|
+| `Study.write()` | `write_study()` | `write()` would mask `base::write()` |
+| `Study.verify(level=3)` | not available (`verify(trial, level = 3)` errors) | Level 3 runs Pointblank's CDISC conformance engine, which only exists in the Python package; the R `pointblank` package has no SDTMIG rules |
+| `Study.write(formats=["parquet"])` | not available | The Parquet writer is compiled only into the Python build, to keep the R package's vendored crates small |
+
