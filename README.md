@@ -7,7 +7,26 @@ types and output that is verified to be workable.
 trialforge has a Rust core with Python and R bindings. The same spec and seed produce identical
 data in both languages.
 
-> **Status: pre-alpha.** Nothing generates a study yet.
+> **Status: pre-alpha.** One archetype, `oncology_solid_tumor`, generates SDTM DM, EX and DS
+> and ADaM ADSL, written as SAS transport (XPT v5) files.
+
+```python
+import trialforge as tf
+
+trial = tf.study("oncology_solid_tumor", n=300, seed=1)   # polars by default
+trial.adam["ADSL"]
+trial.write("out/")                                       # dm.xpt, ex.xpt, ds.xpt, adsl.xpt
+```
+
+```r
+library(trialforge)
+
+trial <- study("oncology_solid_tumor", n = 300, seed = 1)
+trial$adam$ADSL
+write_study(trial, "out/")
+```
+
+The same `seed` gives byte-identical files from Python and R.
 
 ## Layout
 
