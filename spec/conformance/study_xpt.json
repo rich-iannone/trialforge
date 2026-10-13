@@ -1,5 +1,5 @@
 {
-  "description": "Golden XPT outputs of study(archetype, n, seed, **controls). Both bindings write the files through the Rust writer and hash the bytes themselves (MD5 as an identity check, not for security). Any change to generation, metadata or the XPT writer changes these; regenerate deliberately.",
+  "description": "Golden XPT and define.xml outputs of study(archetype, n, seed, **controls). Both bindings write the files through the Rust writer and hash the bytes themselves (MD5 as an identity check, not for security). Any change to generation, metadata or the XPT writer changes these; regenerate deliberately.",
   "cases": [
     {
       "archetype": "parallel_continuous",
@@ -47,8 +47,12 @@
         "suppae.xpt": "d4fb2ab26959bd972b21d97229f25010",
         "adsl.xpt": "582e98d788ab9a2d6e1dd58a8d46763c",
         "adae.xpt": "f556639a4d6c1e0085ff3e19df497563",
-        "adlb.xpt": "233bc32fd64d8a723d0d1af27d636527",
-        "advs.xpt": "d58613c7871245781cdca3aea77acf30"
+        "adlb.xpt": "158f1534b91cbe2b83d4410e84b190d8",
+        "advs.xpt": "c03c77f7f0e351ca98d7a1f558f12808"
+      },
+      "define_md5": {
+        "sdtm": "aed12c28a935a825d5d87d0d1c829bbb",
+        "adam": "871a550a14e835108456cc400c87ed79"
       }
     },
     {
@@ -100,8 +104,12 @@
         "suppae.xpt": "b237557e29c9c021d2a96fa65f5f73df",
         "adsl.xpt": "eb8f7206750cd77b23a7584d25d15f5e",
         "adae.xpt": "d6308a0fb40748f4a31c6d9d3a0609b6",
-        "adlb.xpt": "abc0d57bfa552af35e49888e2131fd6d",
-        "advs.xpt": "01e38a54af5615ef814affa8cc0cbc07"
+        "adlb.xpt": "76187c45aaf31b56c862536c9ad5f9c8",
+        "advs.xpt": "f7b2c2dea047f307888abf319eeb31c0"
+      },
+      "define_md5": {
+        "sdtm": "500a260034e8a3ceabcfaf22f44fce94",
+        "adam": "c11b905e9c13f50c0e4ad3b5f6c9a16e"
       }
     },
     {
@@ -146,8 +154,12 @@
         "lb.xpt": "958ebe531af9b64b3306538aa2d7e0e9",
         "vs.xpt": "315d82b82024d99314665424cde5b003",
         "adsl.xpt": "81e6fc3e68c489915bf6810847d7bd5c",
-        "adlb.xpt": "f76cc6139d1726a066c256454b7e4767",
-        "advs.xpt": "487141c029eb9d00adfaa6fbf3f405e0"
+        "adlb.xpt": "b13d796ad59940a0ed0977261149515d",
+        "advs.xpt": "03377c10120693dd31b4dc06076c4a05"
+      },
+      "define_md5": {
+        "sdtm": "abe896d102ffbc3a7f47014cbbf2249f",
+        "adam": "7fc3a42fd392c6c0e717cd53905394a9"
       }
     },
     {
@@ -176,6 +188,10 @@
         "ex.xpt": "badddf83695413ff64484f082c696000",
         "ds.xpt": "20df05897b14d434a04bfa755deb42bb",
         "adsl.xpt": "c7d7ab1fa19a400f3bec4f3683d0bf93"
+      },
+      "define_md5": {
+        "sdtm": "f3c5ee53ebbc1e784e5be485f44621c9",
+        "adam": "0d1b731a61520a6c1f21c6a1905e4900"
       }
     },
     {
@@ -204,6 +220,10 @@
         "ex.xpt": "79d10d600d7bbcb8870877c23f71380f",
         "ds.xpt": "d176c1477275b30dad89955ab2ce62a9",
         "adsl.xpt": "f0e9165e0c3106cf7aca472b103ae4ea"
+      },
+      "define_md5": {
+        "sdtm": "40842c4e182295f994bd5c54e74fd8f1",
+        "adam": "f5e7f98490c56a32fcb1a1d48f1f0608"
       }
     }
   ]
