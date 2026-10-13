@@ -19,16 +19,12 @@ from pointblank.metadata._sdtm_templates import get_sdtm_domain, list_sdtm_domai
 
 ASSETS = Path(__file__).resolve().parents[1] / "crates" / "trialforge-cdisc" / "assets"
 
-# (dataset, variable): why trialforge differs on purpose.
+# (dataset, variable): why trialforge differs on purpose. All are Pointblank label errors
+# tracked as pointblank BUGS.md #31; remove entries as they are fixed.
 KNOWN: dict[tuple[str, str], str] = {
-    ("ADSL", "DCTREAS"): "Pointblank's label is 41 characters (over the XPT limit); we use admiral's wording",
+    ("ADSL", "DCTREAS"): "41-character label (over the XPT limit); admiral's wording",
     ("LB", "LBORNRLO"): "SDTMIG 3.4 wording ('... in Orig Unit')",
     ("LB", "LBORNRHI"): "SDTMIG 3.4 wording ('... in Orig Unit')",
-    ("VS", "VSTESTCD"): "SDTMIG 3.4 label",
-    ("VS", "VSTEST"): "SDTMIG 3.4 label",
-    ("VS", "VSPOS"): "SDTMIG 3.4 label",
-    ("VS", "VSDTC"): "SDTMIG 3.4 label",
-    ("VS", "VSDY"): "SDTMIG 3.4 label",
     ("DS", "DSSTDY"): "SDTMIG 3.4 label",
     ("MH", "MHSTDTC"): "SDTMIG 3.4 label",
     ("MH", "MHENDTC"): "SDTMIG 3.4 label",
