@@ -49,7 +49,20 @@ def test_oncology_study_shape(onc: tf.Study) -> None:
     assert onc.cutoff == datetime.date(2025, 8, 30)  # 30 months of 30.4375 days
     assert "DM" in onc.sdtm and "ADSL" in onc.adam
     assert "STRAT1R" in onc.adam["ADSL"].columns
-    assert "overall_survival" in onc.truth
+    assert {"TU", "TR", "RS"} <= set(onc.sdtm)
+    assert list(onc.adam) == ["ADSL", "ADRS", "ADTTE", "ADTR"]
+    assert set(onc.adam["ADTTE"]["PARAMCD"].unique()) >= {"OS", "PFS"}
+    assert onc.truth["targets"]["os_hr"] == 0.75
+    assert "stratified_cox_hr" in onc.truth["overall_survival"]
+    assert "confirmed_orr" in onc.truth
+
+
+def test_oncology_controls() -> None:
+    s = tf.study("oncology_solid_tumor", n=30, seed=2, orr=[0.5, 0.1], os_median_months=20)
+    assert s.controls["orr"] == [0.5, 0.1]
+    assert s.truth["targets"]["confirmed_orr"] == {"Drug A": 0.5, "Control": 0.1}
+    with pytest.raises(ValueError, match="pfs_median_months"):
+        tf.study("oncology_solid_tumor", n=5, seed=1, pfs_median_months=30)
 
 
 def test_controls_are_applied() -> None:
