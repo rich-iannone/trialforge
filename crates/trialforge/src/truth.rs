@@ -6,8 +6,10 @@
 use std::collections::BTreeMap;
 
 use serde_json::{Value, json};
-use trialforge_core::{Dataset, Date, Values};
+use trialforge_core::stats::{Survival, km_median};
+use trialforge_core::{Dataset, Values};
 use trialforge_designs::{Course, Resolved};
+use trialforge_processes::oncology::DAYS_PER_MONTH;
 
 fn chars<'a>(ds: &'a Dataset, name: &str) -> Option<&'a [Option<String>]> {
     ds.column(name)?.as_char()
@@ -21,44 +23,12 @@ fn nums(ds: &Dataset, name: &str) -> Option<Vec<Option<f64>>> {
     }
 }
 
-fn dates(ds: &Dataset, name: &str) -> Option<Vec<Option<Date>>> {
-    match &ds.column(name)?.values {
-        Values::Date(v) => Some(v.clone()),
-        _ => None,
-    }
-}
-
 fn round4(x: f64) -> f64 {
     trialforge_core::math::round_dp(x, 4)
 }
 
 fn mean(xs: &[f64]) -> Option<f64> {
     (!xs.is_empty()).then(|| xs.iter().sum::<f64>() / xs.len() as f64)
-}
-
-/// Kaplan–Meier median from (time, event) pairs.
-pub fn km_median(mut data: Vec<(f64, bool)>) -> Option<f64> {
-    data.sort_by(|a, b| a.0.total_cmp(&b.0).then(b.1.cmp(&a.1)));
-    let mut at_risk = data.len() as f64;
-    let mut surv = 1.0;
-    let mut i = 0;
-    while i < data.len() {
-        let t = data[i].0;
-        let (mut events, mut total) = (0.0, 0.0);
-        while i < data.len() && data[i].0 == t {
-            events += f64::from(u8::from(data[i].1));
-            total += 1.0;
-            i += 1;
-        }
-        if events > 0.0 {
-            surv *= 1.0 - events / at_risk;
-            if surv <= 0.5 {
-                return Some(t);
-            }
-        }
-        at_risk -= total;
-    }
-    None
 }
 
 /// Builds the manifest.
@@ -203,60 +173,119 @@ pub(crate) fn manifest(r: &Resolved, archetype: &str, sdtm: &[Dataset], adam: &[
                 out["teae_incidence"] = json!(inc);
             }
         }
-        Course::Oncology(p) => {
-            out["latent_median_pd_months"] = json!(
-                arms.iter()
-                    .zip(&p.median_pd_months)
-                    .map(|(a, m)| (a.clone(), *m))
-                    .collect::<BTreeMap<_, _>>()
-            );
-            if let Some(sl) = adsl {
-                let (trt, rand, dth, lst) = (
-                    chars(sl, "TRT01P"),
-                    dates(sl, "RANDDT"),
-                    dates(sl, "DTHDT"),
-                    dates(sl, "LSTALVDT"),
-                );
-                if let (Some(trt), Some(rand), Some(dth), Some(lst)) = (trt, rand, dth, lst) {
-                    let mut per: BTreeMap<String, Vec<(f64, bool)>> = BTreeMap::new();
-                    for i in 0..sl.n_rows() {
-                        let (Some(a), Some(r0)) = (&trt[i], rand[i]) else {
-                            continue;
-                        };
-                        let end = dth[i].or(lst[i]);
-                        let Some(end) = end else { continue };
-                        let months = f64::from(end.days_since(r0) + 1)
-                            / trialforge_processes::oncology::DAYS_PER_MONTH;
-                        per.entry(a.clone())
-                            .or_default()
-                            .push((months, dth[i].is_some()));
+        Course::Oncology(_, cal) => {
+            let c = &r.controls;
+            out["targets"] = json!({
+                "os_median_months_control": c["os_median_months"],
+                "os_hr": c["os_hr"],
+                "pfs_median_months_control": c["pfs_median_months"],
+                "pfs_hr": c["pfs_hr"],
+                "confirmed_orr": arms.iter().zip(c["orr"].as_array().into_iter().flatten()).map(|(a, v)| (a.clone(), v.clone())).collect::<BTreeMap<_, _>>(),
+            });
+            out["calibration"] = json!({
+                "confirmed_orr_on_calibration_cohort": arms.iter().zip(&cal.achieved_orr).map(|(a, v)| (a.clone(), round4(*v))).collect::<BTreeMap<_, _>>(),
+                "orr_targets_reachable": cal.orr_reachable,
+            });
+            if let Some(tte) = find("ADTTE") {
+                for (param, key) in [
+                    ("OS", "overall_survival"),
+                    ("PFS", "progression_free_survival"),
+                ] {
+                    if let Some(v) = tte_summary(tte, param, &arms) {
+                        out[key] = v;
                     }
-                    let os: BTreeMap<String, Value> = per
-                        .into_iter()
-                        .map(|(a, d)| {
-                            let deaths = d.iter().filter(|x| x.1).count();
-                            (a, json!({"n": d.len(), "deaths": deaths, "km_median_os_months": km_median(d).map(round4)}))
-                        })
-                        .collect();
-                    out["overall_survival"] = json!(os);
                 }
+            }
+            if let Some(rs) = find("ADRS") {
+                out["confirmed_orr"] = orr_summary(rs, &arms);
             }
         }
     }
     out
 }
 
-#[cfg(test)]
-mod tests {
-    use super::km_median;
-
-    #[test]
-    fn km_median_simple() {
-        // Survival steps to 0.75, 0.5 at t = 2 → median 2.
-        assert_eq!(
-            km_median(vec![(1.0, true), (2.0, true), (3.0, false), (4.0, true)]),
-            Some(2.0)
+/// KM medians by arm and the stratified Cox HR (first arm vs the last) for one ADTTE parameter.
+fn tte_summary(tte: &Dataset, param: &str, arms: &[String]) -> Option<Value> {
+    let (pc, trt, strat) = (
+        chars(tte, "PARAMCD")?,
+        chars(tte, "TRT01P")?,
+        chars(tte, "STRAT1R"),
+    );
+    let (aval, cnsr) = (nums(tte, "AVAL")?, nums(tte, "CNSR")?);
+    let rows: Vec<usize> = (0..tte.n_rows())
+        .filter(|&i| pc[i].as_deref() == Some(param))
+        .collect();
+    let obs = |i: usize| Survival {
+        time: aval[i].unwrap_or(0.0) / DAYS_PER_MONTH,
+        event: cnsr[i] == Some(0.0),
+    };
+    let mut per_arm = BTreeMap::new();
+    for arm in arms {
+        let d: Vec<Survival> = rows
+            .iter()
+            .copied()
+            .filter(|&i| trt[i].as_deref() == Some(arm))
+            .map(obs)
+            .collect();
+        let events = d.iter().filter(|x| x.event).count();
+        per_arm.insert(
+            arm.clone(),
+            json!({"n": d.len(), "events": events, "km_median_months": km_median(&d).map(round4)}),
         );
-        assert_eq!(km_median(vec![(1.0, false), (2.0, false)]), None);
     }
+    let mut v = json!({"by_arm": per_arm});
+    if arms.len() == 2 {
+        let levels: Vec<String> = strat.map_or(vec![], |s| {
+            let mut l: Vec<String> = rows.iter().filter_map(|&i| s[i].clone()).collect();
+            l.sort();
+            l.dedup();
+            l
+        });
+        let data: Vec<Survival> = rows.iter().map(|&i| obs(i)).collect();
+        let x: Vec<f64> = rows
+            .iter()
+            .map(|&i| f64::from(u8::from(trt[i].as_deref() == Some(&arms[0]))))
+            .collect();
+        let st: Vec<usize> = rows
+            .iter()
+            .map(|&i| {
+                strat
+                    .and_then(|s| s[i].as_ref())
+                    .and_then(|v| levels.iter().position(|l| l == v))
+                    .unwrap_or(0)
+            })
+            .collect();
+        if let Some(fit) = trialforge_core::stats::cox_binary(&data, &x, &st) {
+            let (lo, hi) = fit.hr_ci(0.95);
+            v["stratified_cox_hr"] = json!({
+                "comparison": format!("{} vs {}", arms[0], arms[1]),
+                "hr": round4(fit.hr()),
+                "ci95": [round4(lo), round4(hi)],
+            });
+        }
+    }
+    Some(v)
+}
+
+/// Confirmed ORR by arm from ADRS (`CBOR` in CR/PR), over the ITT population.
+fn orr_summary(rs: &Dataset, arms: &[String]) -> Value {
+    let (Some(pc), Some(trt), Some(av)) = (
+        chars(rs, "PARAMCD"),
+        chars(rs, "TRT01P"),
+        chars(rs, "AVALC"),
+    ) else {
+        return Value::Null;
+    };
+    let mut out = BTreeMap::new();
+    for arm in arms {
+        let rows: Vec<usize> = (0..rs.n_rows())
+            .filter(|&i| pc[i].as_deref() == Some("CBOR") && trt[i].as_deref() == Some(arm))
+            .collect();
+        let resp = rows
+            .iter()
+            .filter(|&&i| matches!(av[i].as_deref(), Some("CR" | "PR")))
+            .count();
+        out.insert(arm.clone(), json!({"n": rows.len(), "responders": resp, "proportion": round4(resp as f64 / rows.len().max(1) as f64)}));
+    }
+    json!(out)
 }
