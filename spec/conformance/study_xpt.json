@@ -1,55 +1,209 @@
 {
-  "description": "Golden XPT outputs of study(archetype, n, seed) with default options. Both bindings write the files through the Rust writer and hash the bytes themselves (MD5 as an identity check, not for security). Any change to generation, metadata or the XPT writer changes these; regenerate deliberately.",
+  "description": "Golden XPT outputs of study(archetype, n, seed, **controls). Both bindings write the files through the Rust writer and hash the bytes themselves (MD5 as an identity check, not for security). Any change to generation, metadata or the XPT writer changes these; regenerate deliberately.",
   "cases": [
+    {
+      "archetype": "parallel_continuous",
+      "n": 120,
+      "seed": 20261011,
+      "controls": {},
+      "rows": {
+        "TA": 6,
+        "TE": 4,
+        "TV": 22,
+        "TI": 5,
+        "TS": 35,
+        "DM": 120,
+        "SE": 350,
+        "SV": 1129,
+        "EX": 783,
+        "CM": 313,
+        "AE": 102,
+        "DS": 480,
+        "MH": 456,
+        "LB": 14258,
+        "VS": 6894,
+        "SUPPAE": 102,
+        "ADSL": 120,
+        "ADAE": 102,
+        "ADLB": 14258,
+        "ADVS": 6894
+      },
+      "xpt_md5": {
+        "ta.xpt": "2eb698d9da257728c3a03201f3f5c8af",
+        "te.xpt": "4504d95e6333f8524f9b151d01cd3e27",
+        "tv.xpt": "92dba729185caa32667451ee55a17640",
+        "ti.xpt": "a8c2a4699e137c07e9bd40b2fc7b85e5",
+        "ts.xpt": "2f8e9a90c995aa387ccdf1c96ed903ad",
+        "dm.xpt": "54e125107a8f9d1b6939599993be70d9",
+        "se.xpt": "9577efa0f4e49f8cbce89c4bb846067c",
+        "sv.xpt": "acfa26a2a1757a967099b482886996d0",
+        "ex.xpt": "4f901864d1ca2e0c0b8a83940f66cd2a",
+        "cm.xpt": "afac4d33cf4d6302d81a8618830dbb6f",
+        "ae.xpt": "e1df4cffefc12a897a6831535bcbd2a8",
+        "ds.xpt": "de69d9a32ce323f91c45c639970deaf2",
+        "mh.xpt": "462c02b752dada56b63c038ecc26e512",
+        "lb.xpt": "a6cb1e100a581a6db9391b0eaab397c7",
+        "vs.xpt": "e27e9645aedb57ab1110ea0d892542f4",
+        "suppae.xpt": "d4fb2ab26959bd972b21d97229f25010",
+        "adsl.xpt": "582e98d788ab9a2d6e1dd58a8d46763c",
+        "adae.xpt": "f556639a4d6c1e0085ff3e19df497563",
+        "adlb.xpt": "233bc32fd64d8a723d0d1af27d636527",
+        "advs.xpt": "d58613c7871245781cdca3aea77acf30"
+      }
+    },
+    {
+      "archetype": "parallel_continuous",
+      "n": 40,
+      "seed": 7,
+      "controls": {
+        "indication": "hypertension",
+        "weeks": 12
+      },
+      "rows": {
+        "TA": 6,
+        "TE": 4,
+        "TV": 16,
+        "TI": 4,
+        "TS": 35,
+        "DM": 40,
+        "SE": 117,
+        "SV": 268,
+        "EX": 152,
+        "CM": 55,
+        "AE": 20,
+        "DS": 160,
+        "MH": 137,
+        "LB": 3860,
+        "VS": 1648,
+        "SUPPAE": 20,
+        "ADSL": 40,
+        "ADAE": 20,
+        "ADLB": 3860,
+        "ADVS": 1648
+      },
+      "xpt_md5": {
+        "ta.xpt": "b50d88a43a90ab98dbfdcd19873f6641",
+        "te.xpt": "95b6d16f309700edc019669964a520af",
+        "tv.xpt": "65fa21eacb41c8b5a182a5c200a9f8c5",
+        "ti.xpt": "a21fe3bd3923f8640e1dc713924658bb",
+        "ts.xpt": "2b78343ec250653e49e2a8d8539866f4",
+        "dm.xpt": "c773c7799aa0f489f19ac9994fec0b9c",
+        "se.xpt": "1a348dac3b10291c4ebda3ebddfcf12f",
+        "sv.xpt": "33d41129a8a16324804c60b2b1e4fe7f",
+        "ex.xpt": "2ee7c8498f43f0e344301956ac1e8a78",
+        "cm.xpt": "1725c7264b576bc3fc2ba77a87cc5b86",
+        "ae.xpt": "9d7ff1e77f443242f3175a1beb632d57",
+        "ds.xpt": "a75c94a75f7b7f57bf4c43965c19990f",
+        "mh.xpt": "ce21356cc185f88da8da250ecc7aa04d",
+        "lb.xpt": "9c4472f133ad9f9973ebf9f58e03bdff",
+        "vs.xpt": "cb026f3144bcab95c5181ba55096be62",
+        "suppae.xpt": "b237557e29c9c021d2a96fa65f5f73df",
+        "adsl.xpt": "eb8f7206750cd77b23a7584d25d15f5e",
+        "adae.xpt": "d6308a0fb40748f4a31c6d9d3a0609b6",
+        "adlb.xpt": "abc0d57bfa552af35e49888e2131fd6d",
+        "advs.xpt": "01e38a54af5615ef814affa8cc0cbc07"
+      }
+    },
+    {
+      "archetype": "parallel_continuous",
+      "n": 1,
+      "seed": 9007199254740992,
+      "controls": {
+        "indication": "obesity"
+      },
+      "rows": {
+        "TA": 6,
+        "TE": 4,
+        "TV": 22,
+        "TI": 2,
+        "TS": 35,
+        "DM": 1,
+        "SE": 3,
+        "SV": 10,
+        "EX": 7,
+        "CM": 1,
+        "DS": 4,
+        "MH": 2,
+        "LB": 120,
+        "VS": 61,
+        "ADSL": 1,
+        "ADLB": 120,
+        "ADVS": 61
+      },
+      "xpt_md5": {
+        "ta.xpt": "cc87c8333e6dc5367e7bcb3454777815",
+        "te.xpt": "b9105b4c506cdb44c8c32dee14390780",
+        "tv.xpt": "4cdc51c66a33c16eb7460bfac7fe3360",
+        "ti.xpt": "8c4591e8be3921df5d82ae47fb0a75ca",
+        "ts.xpt": "783439fba54042b7d1afc46725124ced",
+        "dm.xpt": "b268c40173b829703423d6513feb8fb6",
+        "se.xpt": "b6e71fda56a895b03cfef91e3a7ba1a1",
+        "sv.xpt": "30efe4844370749ca4ad5345b5530031",
+        "ex.xpt": "12c27724aa75640d72d07cb9229e1a3e",
+        "cm.xpt": "49339726e177611199066735efebd413",
+        "ds.xpt": "d245c6cde67004c0ff6b3ad2c661e276",
+        "mh.xpt": "225114f69112fdd7969bfe0e759f68cd",
+        "lb.xpt": "958ebe531af9b64b3306538aa2d7e0e9",
+        "vs.xpt": "315d82b82024d99314665424cde5b003",
+        "adsl.xpt": "81e6fc3e68c489915bf6810847d7bd5c",
+        "adlb.xpt": "f76cc6139d1726a066c256454b7e4767",
+        "advs.xpt": "487141c029eb9d00adfaa6fbf3f405e0"
+      }
+    },
     {
       "archetype": "oncology_solid_tumor",
       "n": 300,
       "seed": 20261011,
+      "controls": {},
       "rows": {
+        "TA": 6,
+        "TE": 4,
+        "TI": 4,
+        "TS": 34,
         "DM": 300,
-        "EX": 3299,
+        "SE": 846,
+        "EX": 3300,
         "DS": 1051,
         "ADSL": 300
       },
       "xpt_md5": {
-        "dm.xpt": "f8e60a17e4451b9a7d70e2faf51069ed",
-        "ex.xpt": "8ec81de6c383d2120801f9a92d7e068b",
-        "ds.xpt": "980f7f089db5374a3d227e016804b15f",
-        "adsl.xpt": "b08a7a4ebe1b30dc9225d2db23248337"
+        "ta.xpt": "4c949573dd4463d598b99f66ea31bed5",
+        "te.xpt": "b3753d38bdc698fe8b5778217eb46e81",
+        "ti.xpt": "ff809cdcd5fca7f1c6501e02b75934c4",
+        "ts.xpt": "fcb7af252ab9851ac75f3de1b3f1f602",
+        "dm.xpt": "6727d6bd46ba981663481f4817e4e0f5",
+        "se.xpt": "252809e8895dec4dacf03e96b914d91c",
+        "ex.xpt": "badddf83695413ff64484f082c696000",
+        "ds.xpt": "20df05897b14d434a04bfa755deb42bb",
+        "adsl.xpt": "c7d7ab1fa19a400f3bec4f3683d0bf93"
       }
     },
     {
       "archetype": "oncology_solid_tumor",
       "n": 1,
       "seed": 1,
+      "controls": {},
       "rows": {
+        "TA": 6,
+        "TE": 4,
+        "TI": 4,
+        "TS": 34,
         "DM": 1,
+        "SE": 3,
         "EX": 3,
         "DS": 4,
         "ADSL": 1
       },
       "xpt_md5": {
-        "dm.xpt": "86f3313bfe2455ad5ae936327f97cd11",
-        "ex.xpt": "b51e498bcb67888bd78b7fc87589b636",
-        "ds.xpt": "443a542280e099fca76f04641d968ba6",
-        "adsl.xpt": "353a2dd7b1e8805141911670dade10c9"
-      }
-    },
-    {
-      "archetype": "oncology_solid_tumor",
-      "n": 57,
-      "seed": 9007199254740992,
-      "rows": {
-        "DM": 57,
-        "EX": 675,
-        "DS": 204,
-        "ADSL": 57
-      },
-      "xpt_md5": {
-        "dm.xpt": "82c27c9b68270b28cf54c4e5788ced44",
-        "ex.xpt": "e190c9730429b996464316655a4513b0",
-        "ds.xpt": "8e86f4aebe1346d28635e10f82047660",
-        "adsl.xpt": "201d65b4df7d5431473d83330d421b01"
+        "ta.xpt": "4c949573dd4463d598b99f66ea31bed5",
+        "te.xpt": "b3753d38bdc698fe8b5778217eb46e81",
+        "ti.xpt": "ff809cdcd5fca7f1c6501e02b75934c4",
+        "ts.xpt": "4afc198e0ea398310b0b962a6e155ba7",
+        "dm.xpt": "03fa510459a8bf745e3c9c0bbac8caee",
+        "se.xpt": "6205af7fbff79701ca8fa5b7837ccc73",
+        "ex.xpt": "79d10d600d7bbcb8870877c23f71380f",
+        "ds.xpt": "d176c1477275b30dad89955ab2ce62a9",
+        "adsl.xpt": "f0e9165e0c3106cf7aca472b103ae4ea"
       }
     }
   ]
