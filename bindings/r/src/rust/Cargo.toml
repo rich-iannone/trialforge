@@ -1,0 +1,26 @@
+[package]
+name = "trialforge_r"
+description = "R bindings for trialforge"
+publish = false
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+
+[lib]
+crate-type = ["rlib", "staticlib"]
+name = "trialforge_r"
+
+[[bin]]
+name = "document"
+path = "document.rs"
+
+[dependencies]
+extendr-api = "0.9"
+# Path dependency on the shared core. This works for in-place builds (`make r-install`,
+# `devtools::load_all()`), but `R CMD build` copies the package elsewhere and breaks the path.
+# Before a CRAN/r-universe release the core crates must be vendored into the tarball.
+trialforge = { path = "../../../../crates/trialforge" }
+
+[profile.release]
+lto = true
+codegen-units = 1
