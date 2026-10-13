@@ -84,3 +84,32 @@ for (trial in list(par, onc)) {
     expect_true(file.exists(file.path(dirname(path), "truth.json")))
   })
 }
+
+test_that("write_submission() writes SDTM and ADaM folders with define.xml", {
+  dir <- tempfile()
+  paths <- write_submission(par, dir)
+  expect_true(file.exists(file.path(dir, "sdtm", "define.xml")))
+  expect_true(file.exists(file.path(dir, "adam", "define.xml")))
+  expect_setequal(toupper(tools::file_path_sans_ext(list.files(file.path(dir, "sdtm"), "\\.xpt$"))), names(par$sdtm))
+  expect_setequal(toupper(tools::file_path_sans_ext(list.files(file.path(dir, "adam"), "\\.xpt$"))), names(par$adam))
+  expect_match(define_xml(par, "adam"), "^<\\?xml version=\"1.0\" encoding=\"UTF-8\"\\?>")
+  expect_error(define_xml(par, "send"), "should be one of")
+})
+
+test_that("study_from_spec() matches study() for the same settings", {
+  path <- test_path("..", "..", "..", "..", "examples", "hypertension.yaml")
+  skip_if_not(file.exists(path), "examples/ is not available")
+  from_file <- study_from_spec(path)
+  direct <- study("parallel_continuous", n = 240, seed = 20261013, studyid = "HTN001",
+                  indication = "hypertension", weeks = 12, change = c(-4, -11), dropout_rate = 0.12)
+  expect_identical(from_file$sdtm$LB, direct$sdtm$LB)
+  from_list <- study_from_spec(list(study = list(archetype = "parallel_continuous", seed = 1), population = list(n = 10)))
+  expect_identical(nrow(from_list$sdtm$DM), 10L)
+  expect_error(study_from_spec(list(study = list(archetype = "parallel_continuous", seed = 1), dropout = list(a = 1))), "not supported yet")
+})
+
+test_that("verify() levels", {
+  expect_true(verify(par, level = 2)$passed)
+  expect_error(verify(par, level = 3), "only in the Python")
+  expect_error(verify(par, level = 1), "must be 2")
+})
