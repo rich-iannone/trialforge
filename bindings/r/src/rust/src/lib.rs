@@ -66,7 +66,24 @@ fn archetypes_impl() -> List {
     list!(name = names, description = descriptions)
 }
 
-/// Generates a study. `seed` and `studyid` are `NA` when not supplied.
+/// The documented controls of an archetype, as a JSON string.
+/// @noRd
+#[extendr]
+fn controls_impl(archetype: &str) -> Result<String> {
+    trialforge::controls(archetype)
+        .map(|v| v.to_string())
+        .map_err(|e| Error::Other(e.to_string()))
+}
+
+/// Output formats `write_study()` supports.
+/// @noRd
+#[extendr]
+fn formats_impl() -> Vec<String> {
+    trialforge::FORMATS.iter().map(|s| s.to_string()).collect()
+}
+
+/// Generates a study. `seed`, `studyid` and `controls` are `NA` when not supplied; `controls`
+/// is a JSON object string.
 /// @noRd
 #[extendr]
 fn study_impl(
@@ -74,13 +91,24 @@ fn study_impl(
     n: f64,
     seed: Option<f64>,
     studyid: Option<String>,
+    controls: Option<String>,
 ) -> Result<RStudy> {
     let n = as_u64(n, "`n`")? as usize;
     let seed = match seed {
         Some(s) => as_u64(s, "`seed`")?,
         None => trialforge::random_seed(),
     };
-    let opts = trialforge::StudyOptions { n, seed, studyid };
+    let controls = match controls {
+        Some(c) => serde_json::from_str(&c)
+            .map_err(|e| Error::Other(format!("controls are not valid JSON: {e}")))?,
+        None => serde_json::Value::Null,
+    };
+    let opts = trialforge::StudyOptions {
+        n,
+        seed,
+        studyid,
+        controls,
+    };
     trialforge::study(archetype, &opts)
         .map(|inner| RStudy { inner })
         .map_err(|e| Error::Other(e.to_string()))
@@ -110,6 +138,50 @@ impl RStudy {
 
     fn cutoff_days(&self) -> i32 {
         self.inner.cutoff.days()
+    }
+
+    fn controls_json(&self) -> String {
+        self.inner.controls.to_string()
+    }
+
+    fn truth_json(&self) -> String {
+        self.inner.truth.to_string()
+    }
+
+    /// Verification levels 0–2: a list with `passed` and a `findings` data frame.
+    fn verify(&self) -> Result<Robj> {
+        let r = trialforge::verify(&self.inner);
+        let f = &r.findings;
+        let col = |g: &dyn Fn(&trialforge::check::Finding) -> Option<String>| {
+            Strings::from_values(
+                f.iter()
+                    .map(|x| g(x).map_or_else(Rstr::na, |s| Rstr::from(s.as_str()))),
+            )
+        };
+        let row = Integers::from_values(
+            f.iter()
+                .map(|x| x.row.map_or_else(Rint::na, |r| Rint::from(r as i32 + 1))),
+        );
+        let mut findings: Robj = List::from_names_and_values(
+            ["level", "rule", "dataset", "variable", "row", "message"],
+            [
+                col(&|x| Some(format!("{:?}", x.level))).into(),
+                col(&|x| Some(x.rule.to_string())).into(),
+                col(&|x| Some(x.dataset.clone())).into(),
+                col(&|x| x.variable.clone()).into(),
+                Robj::from(row),
+                col(&|x| Some(x.message.clone())).into(),
+            ],
+        )?
+        .into();
+        findings.set_class(["data.frame"])?;
+        findings.set_attrib(
+            row_names_symbol(),
+            [Rint::na(), Rint::from(-(f.len() as i32))]
+                .into_iter()
+                .collect::<Integers>(),
+        )?;
+        Ok(list!(passed = r.passed(), findings = findings).into())
     }
 
     fn sdtm_names(&self) -> Vec<String> {
@@ -198,6 +270,8 @@ extendr_module! {
     fn core_version;
     fn stream_seed;
     fn archetypes_impl;
+    fn controls_impl;
+    fn formats_impl;
     fn study_impl;
     impl RStudy;
 }
