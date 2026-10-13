@@ -1,19 +1,14 @@
 //! Python bindings for trialforge (`trialforge._core`). Keep this layer thin: conversion and
 //! error mapping only. Generation logic belongs in the Rust crates so R gets it too.
 
-use std::collections::HashMap;
 use std::path::PathBuf;
-use std::sync::Arc;
 
 use arrow_array::ffi_stream::FFI_ArrowArrayStream;
-use arrow_array::{
-    ArrayRef, Date32Array, Float64Array, Int64Array, RecordBatch, RecordBatchIterator, StringArray,
-};
-use arrow_schema::{DataType, Field, Schema};
+use arrow_array::{RecordBatch, RecordBatchIterator};
 use pyo3::exceptions::{PyOSError, PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::PyCapsule;
-use trialforge::{Dataset, StudyOptions, Values};
+use trialforge::StudyOptions;
 
 /// The Rust core's version string.
 #[pyfunction]
@@ -48,20 +43,42 @@ fn archetypes() -> Vec<(&'static str, &'static str)> {
     trialforge::ARCHETYPES.to_vec()
 }
 
-/// Generates a study. `seed=None` draws a fresh seed (recorded on the result).
+/// The documented controls of an archetype, as a JSON string.
 #[pyfunction]
-#[pyo3(signature = (archetype, n, seed=None, studyid=None))]
+fn controls(archetype: &str) -> PyResult<String> {
+    trialforge::controls(archetype)
+        .map(|v| v.to_string())
+        .map_err(to_py_err)
+}
+
+/// Output formats `Study.write` understands.
+#[pyfunction]
+fn formats() -> Vec<&'static str> {
+    trialforge::FORMATS.to_vec()
+}
+
+/// Generates a study. `seed=None` draws a fresh seed (recorded on the result); `controls` is a
+/// JSON object string of archetype controls.
+#[pyfunction]
+#[pyo3(signature = (archetype, n, seed=None, studyid=None, controls=None))]
 fn study(
     py: Python<'_>,
     archetype: &str,
     n: usize,
     seed: Option<u64>,
     studyid: Option<String>,
+    controls: Option<&str>,
 ) -> PyResult<Study> {
+    let controls = match controls {
+        Some(c) => serde_json::from_str(c)
+            .map_err(|e| PyValueError::new_err(format!("controls are not valid JSON: {e}")))?,
+        None => serde_json::Value::Null,
+    };
     let opts = StudyOptions {
         n,
         seed: seed.unwrap_or_else(trialforge::random_seed),
         studyid,
+        controls,
     };
     let inner = py
         .detach(|| trialforge::study(archetype, &opts))
@@ -100,10 +117,22 @@ impl Study {
         self.inner.seed
     }
 
-    /// The data cutoff date as days since 1970-01-01.
+    /// The data cutoff (or last contact) date as days since 1970-01-01.
     #[getter]
     fn cutoff_days(&self) -> i32 {
         self.inner.cutoff.days()
+    }
+
+    /// The controls used, as a JSON string.
+    #[getter]
+    fn controls_json(&self) -> String {
+        self.inner.controls.to_string()
+    }
+
+    /// The truth manifest, as a JSON string.
+    #[getter]
+    fn truth_json(&self) -> String {
+        self.inner.truth.to_string()
     }
 
     #[getter]
@@ -122,14 +151,50 @@ impl Study {
             .inner
             .dataset(name)
             .ok_or_else(|| PyValueError::new_err(format!("no dataset named {name:?}")))?;
-        to_arrow(ds)
+        let batch = trialforge::io::arrow::to_record_batch(ds)
+            .map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
+        Ok(ArrowTable { batch })
     }
 
-    /// Writes every dataset to `path` in each of `formats`; returns the paths written.
+    /// Writes every dataset to `path` in each of `formats`, plus `truth.json`; returns the
+    /// paths written.
     fn write(&self, py: Python<'_>, path: PathBuf, formats: Vec<String>) -> PyResult<Vec<PathBuf>> {
         let formats: Vec<&str> = formats.iter().map(String::as_str).collect();
         py.detach(|| self.inner.write(&path, &formats))
             .map_err(to_py_err)
+    }
+
+    /// Re-runs verification levels 0–2: (passed, [(level, rule, dataset, variable, row, message)]).
+    #[allow(clippy::type_complexity)]
+    fn verify(
+        &self,
+    ) -> (
+        bool,
+        Vec<(
+            String,
+            String,
+            String,
+            Option<String>,
+            Option<usize>,
+            String,
+        )>,
+    ) {
+        let r = trialforge::verify(&self.inner);
+        let findings = r
+            .findings
+            .iter()
+            .map(|f| {
+                (
+                    format!("{:?}", f.level),
+                    f.rule.to_string(),
+                    f.dataset.clone(),
+                    f.variable.clone(),
+                    f.row,
+                    f.message.clone(),
+                )
+            })
+            .collect();
+        (r.passed(), findings)
     }
 }
 
@@ -164,48 +229,14 @@ impl ArrowTable {
     }
 }
 
-/// A dataset as an Arrow table. Labels travel as `label` metadata on each field and on the
-/// schema; dates are `Date32`.
-fn to_arrow(ds: &Dataset) -> PyResult<ArrowTable> {
-    let mut fields = Vec::with_capacity(ds.columns().len());
-    let mut arrays: Vec<ArrayRef> = Vec::with_capacity(ds.columns().len());
-    for c in ds.columns() {
-        let (dtype, array): (DataType, ArrayRef) = match &c.values {
-            Values::Char(v) => (
-                DataType::Utf8,
-                Arc::new(StringArray::from_iter(v.iter().map(Option::as_deref))),
-            ),
-            Values::Num(v) => (DataType::Float64, Arc::new(Float64Array::from(v.clone()))),
-            Values::Int(v) => (DataType::Int64, Arc::new(Int64Array::from(v.clone()))),
-            Values::Date(v) => (
-                DataType::Date32,
-                Arc::new(Date32Array::from(
-                    v.iter().map(|d| d.map(|d| d.days())).collect::<Vec<_>>(),
-                )),
-            ),
-        };
-        let metadata = HashMap::from([("label".to_string(), c.label.clone())]);
-        fields.push(Field::new(&c.name, dtype, true).with_metadata(metadata));
-        arrays.push(array);
-    }
-    let schema = Arc::new(Schema::new_with_metadata(
-        fields,
-        HashMap::from([
-            ("name".to_string(), ds.name.clone()),
-            ("label".to_string(), ds.label.clone()),
-        ]),
-    ));
-    let batch =
-        RecordBatch::try_new(schema, arrays).map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
-    Ok(ArrowTable { batch })
-}
-
 #[pymodule]
 fn _core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(core_version, m)?)?;
     m.add_function(wrap_pyfunction!(stream_seed, m)?)?;
     m.add_function(wrap_pyfunction!(archetypes, m)?)?;
     m.add_function(wrap_pyfunction!(study, m)?)?;
+    m.add_function(wrap_pyfunction!(controls, m)?)?;
+    m.add_function(wrap_pyfunction!(formats, m)?)?;
     m.add_class::<Study>()?;
     m.add_class::<ArrowTable>()?;
     m.add("MAX_SEED", trialforge::MAX_SEED)?;
