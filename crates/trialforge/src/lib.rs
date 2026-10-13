@@ -24,9 +24,9 @@ pub use trialforge_processes as processes;
 pub use trialforge_sdtm as sdtm;
 
 pub use spec::{Spec, study_from_spec};
+pub use trialforge_core::stats::km_median;
 pub use trialforge_core::{Column, Dataset, Date, Values};
 pub use trialforge_designs::{ARCHETYPES, MAX_SEED, StudyOptions};
-pub use truth::km_median;
 
 /// The version of the trialforge core.
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -122,13 +122,8 @@ pub fn study(archetype: &str, opts: &StudyOptions) -> Result<Study, Error> {
                 .map_err(|e| Error::Invalid(e.to_string()))?;
             (t, HashMap::new(), None)
         }
-        designs::Course::Oncology(p) => {
-            let courses = processes::oncology::simulate(design, p, &subjects);
-            let t = subjects
-                .iter()
-                .zip(&courses)
-                .map(|(s, c)| processes::oncology::to_timeline(design, s, c))
-                .collect();
+        designs::Course::Oncology(p, _) => {
+            let t = processes::oncology::simulate(design, p, &subjects);
             let strata = subjects
                 .iter()
                 .map(|s| {
