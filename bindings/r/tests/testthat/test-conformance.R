@@ -12,3 +12,16 @@ test_that("RNG stream seeds match the shared golden cases", {
     expect_identical(stream_seed(case$seed, case$path), case$expected)
   }
 })
+
+test_that("written XPT files match the shared golden hashes", {
+  path <- spec_path("study_xpt.json")
+  skip_if_not(file.exists(path), "spec/conformance is not available")
+  for (case in jsonlite::read_json(path)$cases) {
+    trial <- study(case$archetype, n = case$n, seed = case$seed)
+    rows <- vapply(c(trial$sdtm, trial$adam), nrow, integer(1))
+    expect_identical(as.list(rows), lapply(case$rows, as.integer))
+    paths <- write_study(trial, tempfile())
+    md5 <- as.list(stats::setNames(unname(tools::md5sum(paths)), basename(paths)))
+    expect_identical(md5[names(case$xpt_md5)], case$xpt_md5)
+  }
+})
