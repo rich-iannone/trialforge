@@ -1,0 +1,16 @@
+[package]
+name = "trialforge-processes"
+description = "Event-driven subject processes for trialforge (AE, dosing, labs, TTE, tumour, PK…)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+trialforge-core.workspace = true
+trialforge-model.workspace = true
+
+[lints]
+workspace = true
