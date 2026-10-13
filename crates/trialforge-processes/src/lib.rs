@@ -1,7 +1,11 @@
-//! Per-subject process engines that build each subject's timeline: dosing, visits, adverse
-//! events, con meds, labs, vitals, time-to-event, tumour, PK and more.
+//! Per-subject process engines that build each subject's [`timeline::Timeline`]: dosing, visits,
+//! adverse events, medications, medical history, labs and vital signs, time-to-event and more.
 //!
-//! The spike has one engine, [`oncology`]: a simplified SIMONC01 course (progression, death,
-//! withdrawal, discontinuation for AEs, Q-cycle dosing) without lesion-level tumour data.
+//! - [`fixed`]: fixed-duration studies with a visit schedule (e.g. `parallel_continuous`).
+//! - [`oncology`]: an event-driven solid-tumour course (SIMONC01-like).
+//! - [`reference`]: the reference data both draw on.
 
+pub mod fixed;
 pub mod oncology;
+pub mod reference;
+pub mod timeline;
