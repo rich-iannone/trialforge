@@ -1,5 +1,9 @@
-//! Output writers: Arrow, Parquet, SAS XPORT v5/v8, Dataset-JSON 1.1, CSV and define.xml 2.1.
-//!
-//! The spike has the SAS XPORT v5 writer ([`xpt`]).
+//! Output writers: SAS XPORT v5 ([`xpt`]), CSV ([`csv`]), Arrow ([`arrow`], feature `arrow`)
+//! and Parquet ([`parquet`], feature `parquet`). Dataset-JSON and define.xml come in Phase 2.
 
+#[cfg(feature = "arrow")]
+pub mod arrow;
+pub mod csv;
+#[cfg(feature = "parquet")]
+pub mod parquet;
 pub mod xpt;
