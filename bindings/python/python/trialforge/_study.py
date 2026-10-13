@@ -5,7 +5,7 @@ from __future__ import annotations
 import datetime
 import json
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import cached_property
 from os import PathLike
 from pathlib import Path
@@ -53,6 +53,28 @@ def study(
     return Study(_core.study(archetype, n, seed, studyid, payload), output)
 
 
+def study_from_spec(
+    spec: str | PathLike[str] | dict[str, Any], *, output: Output = "polars"
+) -> Study:
+    """Generate a study from a study spec (see `spec/study-spec.schema.json`).
+
+    `spec` is a path to a JSON or YAML file, the JSON/YAML text itself, or a dict. The spec's
+    `outputs` section is for the command-line tool; write files with `Study.write()` or
+    `Study.write_submission()`.
+    """
+    if output not in _OUTPUTS:
+        raise ValueError(f"`output` must be one of {', '.join(map(repr, _OUTPUTS))}")
+    if isinstance(spec, dict):
+        text = json.dumps(spec)
+    elif isinstance(spec, PathLike) or (
+        "\n" not in spec and not spec.lstrip().startswith("{") and Path(spec).exists()
+    ):
+        text = Path(spec).read_text(encoding="utf-8")
+    else:
+        text = spec
+    return Study(_core.study_from_spec(text), output)
+
+
 def archetypes() -> dict[str, str]:
     """The available study archetypes, mapped to one-line descriptions."""
     return dict(_core.archetypes())
@@ -94,10 +116,15 @@ class Finding:
 
 @dataclass(frozen=True)
 class Report:
-    """The result of `Study.verify()`."""
+    """The result of `Study.verify()`.
+
+    `waived` lists level-3 findings caused by known defects in Pointblank's rule catalog (each
+    message names the defect); they do not affect `passed`.
+    """
 
     passed: bool
     findings: list[Finding]
+    waived: list[Finding] = field(default_factory=list[Finding])
 
 
 class Study:
@@ -157,13 +184,38 @@ class Study:
             formats = [formats]
         return [Path(p) for p in self._core.write(Path(path), list(formats))]
 
-    def verify(self) -> Report:
-        """Re-run verification levels 0–2 (structural, referential, derivational).
+    def write_submission(self, path: str | PathLike[str]) -> list[Path]:
+        """Write a submission-style package to the directory `path`.
 
-        Generation already guarantees these pass; this is for after you modify the data.
+        Creates `sdtm/` and `adam/`, each with one XPT file per dataset and a Define-XML 2.1
+        `define.xml`, plus `truth.json`. Returns the paths written.
         """
-        passed, findings = self._core.verify()
-        return Report(passed, [Finding(*f) for f in findings])
+        return [Path(p) for p in self._core.write_submission(Path(path))]
+
+    def define_xml(self, standard: Literal["sdtm", "adam"] = "sdtm") -> str:
+        """The Define-XML 2.1 document for the SDTM or ADaM datasets."""
+        return self._core.define_xml(standard)
+
+    def verify(self, level: Literal[2, 3] = 2) -> Report:
+        """Verify the study.
+
+        - Level 2 (default) re-runs trialforge's structural, referential and derivational
+          checks. Generation already guarantees these pass; this is for after you modify data.
+        - Level 3 also runs Pointblank's SDTMIG 3.4 conformance rules on the written SDTM
+          package, including its define.xml checks (needs `pip install 'trialforge[verify]'`).
+        """
+        if level not in (2, 3):
+            raise ValueError("`level` must be 2 or 3")
+        passed, raw = self._core.verify()
+        findings = [Finding(*f) for f in raw]
+        waived: list[Finding] = []
+        if level == 3:
+            from trialforge._conformance import pointblank_findings
+
+            failed, waived = pointblank_findings(self)
+            findings.extend(failed)
+            passed = passed and not failed
+        return Report(passed, findings, waived)
 
     def _frame(self, name: str) -> Any:
         table = self._core.table(name)
