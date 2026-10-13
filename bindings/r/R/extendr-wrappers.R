@@ -42,6 +42,10 @@ formats_impl <- function() .Call(wrap__formats_impl)
 #' @noRd
 study_impl <- function(archetype, n, seed, studyid, controls) .Call(wrap__study_impl, archetype, n, seed, studyid, controls)
 
+#' Generates a study from JSON or YAML spec text.
+#' @noRd
+study_from_spec_impl <- function(text) .Call(wrap__study_from_spec_impl, text)
+
 #' A generated study, held in Rust.
 #' @noRd
 #' @section Methods:
@@ -70,6 +74,10 @@ RStudy$cutoff_days <- function() .Call(wrap__RStudy__cutoff_days, self)
 RStudy$controls_json <- function() .Call(wrap__RStudy__controls_json, self)
 
 RStudy$truth_json <- function() .Call(wrap__RStudy__truth_json, self)
+
+RStudy$write_submission <- function(path) .Call(wrap__RStudy__write_submission, self, path)
+
+RStudy$define_xml <- function(standard) .Call(wrap__RStudy__define_xml, self, standard)
 
 RStudy$verify <- function() .Call(wrap__RStudy__verify, self)
 
