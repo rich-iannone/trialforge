@@ -7,7 +7,7 @@ here, the Python and R packages must agree on it exactly.
 - `conformance/`: golden cases that both test suites replay.
   - `rng_streams.json`: RNG stream seeds (`crates/trialforge-core/src/rng.rs`). Seeds are
     decimal strings because R has no unsigned 64-bit integer.
-  - `study_xpt.json`: for reference `study(archetype, n, seed)` calls, the row count of each
+  - `study_xpt.json`: for reference `study(archetype, n, seed, **controls)` calls, the row count of each
     dataset and the MD5 of each XPT file written. Both bindings write through the Rust writer
     and hash the bytes themselves, which proves Python and R produce identical files.
 - `designs/`: per-archetype semantics, i.e. controls, defaults, derived truths and expected
@@ -28,10 +28,12 @@ import trialforge as tf
 path = pathlib.Path("spec/conformance/study_xpt.json")
 doc = json.loads(path.read_text())
 for case in doc["cases"]:
-    s = tf.study(case["archetype"], n=case["n"], seed=case["seed"])
+    s = tf.study(case["archetype"], n=case["n"], seed=case["seed"], **case["controls"])
     case["rows"] = {k: len(v) for k, v in {**s.sdtm, **s.adam}.items()}
     out = pathlib.Path(tempfile.mkdtemp())
-    case["xpt_md5"] = {p.name: hashlib.md5(p.read_bytes()).hexdigest() for p in s.write(out)}
+    case["xpt_md5"] = {
+        p.name: hashlib.md5(p.read_bytes()).hexdigest() for p in s.write(out) if p.suffix == ".xpt"
+    }
 path.write_text(json.dumps(doc, indent=2) + "\n")
 PY
 ```
