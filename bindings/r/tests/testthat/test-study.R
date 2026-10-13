@@ -1,60 +1,86 @@
-onc <- study("oncology_solid_tumor", n = 120, seed = 3)
+par <- study("parallel_continuous", n = 80, seed = 3)
+onc <- study("oncology_solid_tumor", n = 60, seed = 3)
 
-test_that("archetypes() lists the oncology archetype", {
-  expect_true("oncology_solid_tumor" %in% names(archetypes()))
+test_that("archetypes(), controls() and formats() describe the build", {
+  expect_setequal(names(archetypes()), c("parallel_continuous", "oncology_solid_tumor"))
+  ctl <- controls("parallel_continuous")
+  expect_true(all(c("indication", "weeks") %in% ctl$name))
+  expect_identical(ctl$default[[which(ctl$name == "weeks")]], 24L)
+  expect_true(all(c("xpt", "csv") %in% formats()))
 })
 
-test_that("study() returns the expected structure", {
-  expect_s3_class(onc, "trialforge_study")
-  expect_identical(onc$studyid, "SIMONC02")
-  expect_identical(onc$seed, 3)
-  expect_identical(onc$cutoff, as.Date("2025-08-29"))
-  expect_named(onc$sdtm, c("DM", "EX", "DS"))
-  expect_named(onc$adam, "ADSL")
-  expect_identical(nrow(onc$sdtm$DM), 120L)
-  expect_s3_class(onc$adam$ADSL$TRTSDT, "Date")
-  expect_type(onc$sdtm$DM$AGE, "integer")
-  expect_identical(attr(onc$sdtm$DM$USUBJID, "label"), "Unique Subject Identifier")
-  expect_identical(attr(onc$adam$ADSL, "label"), "Subject-Level Analysis Dataset")
-  expect_output(print(onc), "SIMONC02")
+test_that("a parallel study has every Phase 1 dataset", {
+  expect_s3_class(par, "trialforge_study")
+  expect_identical(par$studyid, "SIMPAR01")
+  expect_identical(par$seed, 3)
+  expect_named(par$sdtm, c("TA", "TE", "TV", "TI", "TS", "DM", "SE", "SV", "EX", "CM", "AE", "DS", "MH", "LB", "VS", "SUPPAE"))
+  expect_named(par$adam, c("ADSL", "ADAE", "ADLB", "ADVS"))
+  expect_identical(nrow(par$sdtm$DM), 80L)
+  expect_s3_class(par$adam$ADSL$TRTSDT, "Date")
+  expect_type(par$sdtm$DM$AGE, "integer")
+  expect_identical(attr(par$sdtm$DM$USUBJID, "label"), "Unique Subject Identifier")
+  expect_identical(attr(par$adam$ADSL, "label"), "Subject-Level Analysis Dataset")
+  expect_identical(par$truth$endpoint$paramcd, "HBA1C")
+  expect_true(verify(par)$passed)
+  expect_output(print(par), "SIMPAR01")
+})
+
+test_that("an oncology study keeps its strata and cutoff", {
+  expect_identical(onc$cutoff, as.Date("2025-08-30"))
+  expect_true("STRAT1R" %in% names(onc$adam$ADSL))
+  expect_true("overall_survival" %in% names(onc$truth))
+})
+
+test_that("controls are applied and validated", {
+  s <- study("parallel_continuous", n = 20, seed = 1, indication = "hypertension", weeks = 12)
+  expect_identical(s$controls$weeks, 12L)
+  expect_identical(s$truth$endpoint$paramcd, "SYSBP")
+  expect_error(study("parallel_continuous", n = 5, seed = 1, wekks = 3), "unknown control")
+  expect_error(study("parallel_continuous", n = 5, seed = 1, weeks = "twelve"), "invalid controls")
+  expect_error(study("parallel_continuous", 5, 1, NULL, 12), "must be named")
+  expect_error(study("parallel_continuous", n = 5, seed = 1, 12), "`studyid` must be a single string")
 })
 
 test_that("a missing seed is drawn and recorded", {
-  a <- study("oncology_solid_tumor", n = 10)
+  a <- study("parallel_continuous", n = 10)
   expect_true(a$seed >= 0 && a$seed <= 2^53)
-  b <- study("oncology_solid_tumor", n = 10, seed = a$seed)
+  b <- study("parallel_continuous", n = 10, seed = a$seed)
   expect_identical(a$sdtm, b$sdtm)
-  expect_no_error(study("oncology_solid_tumor", n = 1, seed = 2^53))
-  expect_error(study("oncology_solid_tumor", n = 1, seed = 2^53 + 2), "2\\^53")
+  expect_no_error(study("parallel_continuous", n = 1, seed = 2^53))
+  expect_error(study("parallel_continuous", n = 1, seed = 2^53 + 2), "2\\^53")
 })
 
 test_that("bad input is rejected", {
   expect_error(study("nope", n = 10, seed = 1), "unknown archetype")
-  expect_error(study("oncology_solid_tumor", n = 0, seed = 1), "at least 1")
-  expect_error(write_study(onc, tempfile(), formats = "sas7bdat"), "unknown format")
+  expect_error(study("parallel_continuous", n = 0, seed = 1), "at least 1")
+  expect_error(write_study(par, tempfile(), formats = "sas7bdat"), "unknown format")
   expect_error(write_study(list(), tempfile()), "trialforge_study")
+  expect_error(verify(list()), "trialforge_study")
 })
 
-test_that("XPT files read back with haven match the in-memory data", {
-  skip_if_not_installed("haven")
-  dir <- tempfile()
-  paths <- write_study(onc, dir)
-  expect_setequal(basename(paths), c("dm.xpt", "ex.xpt", "ds.xpt", "adsl.xpt"))
-  frames <- c(onc$sdtm, onc$adam)
-  for (path in paths) {
-    name <- toupper(tools::file_path_sans_ext(basename(path)))
-    back <- haven::read_xpt(path)
-    mem <- frames[[name]]
-    expect_identical(names(back), names(mem))
-    expect_identical(nrow(back), nrow(mem))
-    for (col in names(mem)) {
-      expected <- mem[[col]]
-      got <- back[[col]]
-      # XPT has no character missing value: missing reads back as "".
-      if (is.character(expected)) expected[is.na(expected)] <- ""
-      if (is.integer(expected)) got <- as.integer(got)
-      expect_identical(as.vector(got), as.vector(expected), info = paste0(name, ".", col))
-      expect_identical(attr(back[[col]], "label"), attr(mem[[col]], "label"))
+for (trial in list(par, onc)) {
+  test_that(paste("XPT files read back with haven match the in-memory data:", trial$archetype), {
+    skip_if_not_installed("haven")
+    paths <- write_study(trial, tempfile())
+    xpts <- paths[grepl("\\.xpt$", paths)]
+    frames <- c(trial$sdtm, trial$adam)
+    expect_setequal(toupper(tools::file_path_sans_ext(basename(xpts))), names(frames))
+    for (path in xpts) {
+      name <- toupper(tools::file_path_sans_ext(basename(path)))
+      back <- haven::read_xpt(path)
+      mem <- frames[[name]]
+      expect_identical(names(back), names(mem))
+      expect_identical(nrow(back), nrow(mem))
+      for (col in names(mem)) {
+        expected <- mem[[col]]
+        got <- back[[col]]
+        # XPT has no character missing value: missing reads back as "".
+        if (is.character(expected)) expected[is.na(expected)] <- ""
+        if (is.integer(expected)) got <- as.integer(got)
+        expect_identical(as.vector(got), as.vector(expected), info = paste0(name, ".", col))
+        expect_identical(attr(back[[col]], "label"), attr(mem[[col]], "label"))
+      }
     }
-  }
-})
+    expect_true(file.exists(file.path(dirname(path), "truth.json")))
+  })
+}

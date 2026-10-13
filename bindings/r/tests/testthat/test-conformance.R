@@ -17,10 +17,11 @@ test_that("written XPT files match the shared golden hashes", {
   path <- spec_path("study_xpt.json")
   skip_if_not(file.exists(path), "spec/conformance is not available")
   for (case in jsonlite::read_json(path)$cases) {
-    trial <- study(case$archetype, n = case$n, seed = case$seed)
+    trial <- do.call(study, c(list(case$archetype, n = case$n, seed = case$seed), case$controls))
     rows <- vapply(c(trial$sdtm, trial$adam), nrow, integer(1))
     expect_identical(as.list(rows), lapply(case$rows, as.integer))
     paths <- write_study(trial, tempfile())
+    paths <- paths[grepl("\\.xpt$", paths)]
     md5 <- as.list(stats::setNames(unname(tools::md5sum(paths)), basename(paths)))
     expect_identical(md5[names(case$xpt_md5)], case$xpt_md5)
   }
