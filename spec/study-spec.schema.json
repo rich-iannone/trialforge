@@ -1,0 +1,136 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/rich-iannone/trialforge/spec/study-spec.schema.json",
+  "title": "trialforge study spec",
+  "description": "v0 draft of the language-neutral study spec. Only `study` is fully specified; the other sections are sketched and stay open (additionalProperties) until their engine work lands. Review edc2cdisc's `study_spec` and random.cdisc.data's `lookup` tables before freezing v1.",
+  "type": "object",
+  "required": ["study"],
+  "additionalProperties": false,
+  "properties": {
+    "spec_version": { "const": 0 },
+    "study": {
+      "type": "object",
+      "required": ["studyid", "seed"],
+      "additionalProperties": false,
+      "properties": {
+        "studyid": { "type": "string", "pattern": "^[A-Z0-9_-]{1,20}$" },
+        "archetype": {
+          "description": "Study-type archetype supplying defaults. Omit for a fully explicit spec.",
+          "type": "string",
+          "enum": [
+            "parallel_continuous",
+            "oncology_solid_tumor",
+            "oncology_single_arm_ph2",
+            "dose_escalation",
+            "heme_lymphoma",
+            "phase1_sad_mad",
+            "crossover_be",
+            "dose_ranging_ph2",
+            "cns_alzheimers",
+            "cv_outcomes",
+            "respiratory_exacerbation",
+            "vaccine",
+            "ophthalmology",
+            "pediatric_growth"
+          ]
+        },
+        "modifiers": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "non_inferiority",
+              "open_label_extension",
+              "multiple_cuts",
+              "adaptive",
+              "crossover_on_progression",
+              "multi_regional",
+              "blinded"
+            ]
+          },
+          "uniqueItems": true
+        },
+        "seed": {
+          "description": "Root RNG seed. Limited to 2^53 so it round-trips through R doubles and JSON.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740992
+        },
+        "standards": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "sdtmig": { "enum": ["3.4"] },
+            "adamig": { "enum": ["1.3"] },
+            "define": { "enum": ["2.1"] },
+            "ct": { "type": "string", "format": "date" }
+          }
+        },
+        "start_date": { "type": "string", "format": "date" }
+      }
+    },
+    "population": {
+      "type": "object",
+      "properties": {
+        "n": { "type": "integer", "minimum": 1 },
+        "countries": {
+          "description": "ISO 3166-1 alpha-3 codes mapped to enrollment weights.",
+          "type": "object",
+          "propertyNames": { "pattern": "^[A-Z]{3}$" },
+          "additionalProperties": { "type": "number", "exclusiveMinimum": 0 }
+        },
+        "sites": { "type": "object" }
+      },
+      "additionalProperties": true
+    },
+    "design": {
+      "type": "object",
+      "properties": {
+        "arms": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["armcd", "arm"],
+            "properties": {
+              "armcd": { "type": "string", "pattern": "^[A-Z0-9_]{1,20}$" },
+              "arm": { "type": "string", "maxLength": 200 },
+              "ratio": { "type": "number", "exclusiveMinimum": 0, "default": 1 }
+            },
+            "additionalProperties": true
+          }
+        },
+        "randomization": { "type": "object" },
+        "enrollment_months": { "type": "number", "exclusiveMinimum": 0 },
+        "cutoff": { "type": "object" },
+        "assessments": { "type": "object" }
+      },
+      "additionalProperties": true
+    },
+    "endpoints": { "type": "object" },
+    "safety": { "type": "object" },
+    "dropout": { "type": "object" },
+    "data_quality": { "type": "object" },
+    "outputs": {
+      "type": "object",
+      "properties": {
+        "layers": {
+          "type": "array",
+          "items": { "enum": ["raw", "tdm", "sdtm", "adam", "define"] },
+          "uniqueItems": true
+        },
+        "domains": {
+          "oneOf": [
+            { "const": "auto" },
+            { "type": "array", "items": { "type": "string", "pattern": "^[A-Z]{2,8}$" } }
+          ]
+        },
+        "formats": {
+          "type": "array",
+          "items": { "enum": ["arrow", "parquet", "xpt", "xpt8", "dataset-json", "ndjson", "csv"] },
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": true
+    }
+  }
+}
