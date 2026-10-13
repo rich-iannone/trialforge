@@ -7,26 +7,41 @@ types and output that is verified to be workable.
 trialforge has a Rust core with Python and R bindings. The same spec and seed produce identical
 data in both languages.
 
-> **Status: pre-alpha.** One archetype, `oncology_solid_tumor`, generates SDTM DM, EX and DS
-> and ADaM ADSL, written as SAS transport (XPT v5) files.
+> **Status: pre-alpha.** Two archetypes generate a complete, verified study: trial design
+> (TA, TE, TV, TI, TS), SDTM (DM, SE, SV, EX, CM, AE + SUPPAE, DS, MH, LB, VS) and ADaM (ADSL,
+> ADAE, ADLB, ADVS), written as XPT v5, CSV or Parquet.
 
 ```python
 import trialforge as tf
 
-trial = tf.study("oncology_solid_tumor", n=300, seed=1)   # polars by default
-trial.adam["ADSL"]
-trial.write("out/")                                       # dm.xpt, ex.xpt, ds.xpt, adsl.xpt
+trial = tf.study("parallel_continuous", n=300, seed=1, indication="hypertension", weeks=12)
+trial.adam["ADVS"]                       # polars by default
+trial.truth["endpoint"]                  # target vs realised treatment effect
+trial.write("out/", formats=["xpt", "parquet"])
+tf.controls("parallel_continuous")       # every control, with its default
 ```
 
 ```r
 library(trialforge)
 
-trial <- study("oncology_solid_tumor", n = 300, seed = 1)
-trial$adam$ADSL
-write_study(trial, "out/")
+trial <- study("parallel_continuous", n = 300, seed = 1, indication = "hypertension", weeks = 12)
+trial$adam$ADVS
+trial$truth$endpoint
+write_study(trial, "out/", formats = c("xpt", "csv"))
 ```
 
-The same `seed` gives byte-identical files from Python and R.
+The same `seed` and controls give byte-identical files from Python and R. Every study passes
+trialforge's structural, referential and derivational checks before it is returned
+(`verify()` re-runs them after you modify the data).
+
+| Archetype | What it simulates |
+|---|---|
+| `parallel_continuous` | Randomised, double-blind, placebo-controlled study with a continuous endpoint: `type_2_diabetes` (HbA1c), `hypertension` (SBP) or `obesity` (weight) |
+| `oncology_solid_tumor` | Randomised solid-tumour study with progression, death and disposition (tumour data comes later) |
+
+Coding uses open dictionaries: MedDRA System Organ Class names with common Preferred Terms (no
+MedDRA codes), and RxNorm ingredients with ATC classes. Bring-your-own MedDRA and WHODrug are
+planned.
 
 ## Layout
 
