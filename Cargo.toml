@@ -1,0 +1,42 @@
+[workspace]
+resolver = "3"
+members = ["crates/*", "bindings/python"]
+# The Python extension only links when built by maturin (it resolves libpython symbols at load
+# time), so plain `cargo build` / `cargo test` cover the pure-Rust crates.
+default-members = ["crates/*"]
+# The R package's crate is built by R (rextendr) and vendored for CRAN, so it stays outside the
+# workspace and depends on the facade crate by path.
+exclude = ["bindings/r/src/rust"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+license = "MIT"
+repository = "https://github.com/rich-iannone/trialforge"
+authors = ["Richard Iannone <riannone@me.com>"]
+
+[workspace.dependencies]
+trialforge = { path = "crates/trialforge", version = "0.1.0" }
+trialforge-core = { path = "crates/trialforge-core", version = "0.1.0" }
+trialforge-model = { path = "crates/trialforge-model", version = "0.1.0" }
+trialforge-processes = { path = "crates/trialforge-processes", version = "0.1.0" }
+trialforge-cdisc = { path = "crates/trialforge-cdisc", version = "0.1.0" }
+trialforge-sdtm = { path = "crates/trialforge-sdtm", version = "0.1.0" }
+trialforge-adam = { path = "crates/trialforge-adam", version = "0.1.0" }
+trialforge-calibrate = { path = "crates/trialforge-calibrate", version = "0.1.0" }
+trialforge-designs = { path = "crates/trialforge-designs", version = "0.1.0" }
+trialforge-check = { path = "crates/trialforge-check", version = "0.1.0" }
+trialforge-io = { path = "crates/trialforge-io", version = "0.1.0" }
+trialforge-hooks = { path = "crates/trialforge-hooks", version = "0.1.0" }
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+missing_docs = "warn"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
