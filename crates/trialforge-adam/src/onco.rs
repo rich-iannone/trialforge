@@ -372,7 +372,7 @@ fn best_of_cr_pr(cd: &'static str, best: &RsRec) -> RsRec {
 }
 
 /// Columns copied from ADSL onto every record.
-fn adsl_columns<'a>(
+pub(crate) fn adsl_columns<'a>(
     sl: &Frame<'a>,
     rows: &[usize],
     names: &[&'a str],
@@ -387,13 +387,14 @@ fn adsl_columns<'a>(
             Values::Num(v) => Values::Num(rows.iter().map(|&r| v[r]).collect()),
             Values::Int(v) => Values::Int(rows.iter().map(|&r| v[r]).collect()),
             Values::Date(v) => Values::Date(rows.iter().map(|&r| v[r]).collect()),
+            Values::DateTime(v) => Values::DateTime(rows.iter().map(|&r| v[r]).collect()),
         };
         out.push((name, v));
     }
     Ok(out)
 }
 
-const ADSL_KEYS: [&str; 10] = [
+pub(crate) const ADSL_KEYS: [&str; 10] = [
     "STUDYID", "USUBJID", "SUBJID", "SITEID", "ARMCD", "ARM", "TRT01P", "TRT01A", "STRAT1R",
     "ITTFL",
 ];
@@ -549,19 +550,19 @@ pub fn adrs(rs: &Dataset, tu: Option<&Dataset>, adsl: &Dataset) -> Result<Datase
 
 /// A dated record that can end or censor a time-to-event parameter.
 #[derive(Clone, Copy)]
-struct Source {
-    date: Date,
-    event: bool,
-    desc: &'static str,
-    cnsdesc: Option<&'static str>,
-    srcdom: &'static str,
-    srcvar: &'static str,
-    srcseq: Option<i64>,
+pub(crate) struct Source {
+    pub date: Date,
+    pub event: bool,
+    pub desc: &'static str,
+    pub cnsdesc: Option<&'static str>,
+    pub srcdom: &'static str,
+    pub srcvar: &'static str,
+    pub srcseq: Option<i64>,
 }
 
 /// admiral's `derive_param_tte()`: the earliest event (ties: the first source listed), else the
 /// latest censoring date (ties: the last source listed); never before the start date.
-fn tte(events: &[Option<Source>], censors: &[Option<Source>]) -> Option<Source> {
+pub(crate) fn tte(events: &[Option<Source>], censors: &[Option<Source>]) -> Option<Source> {
     let mut event: Option<Source> = None;
     for e in events.iter().flatten() {
         if event.is_none_or(|b| e.date < b.date) {
