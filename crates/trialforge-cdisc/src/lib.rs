@@ -12,8 +12,10 @@
 //! - `assets/ct/2024-09-27.tsv`: a curated subset of NCI EVS CDISC CT 2024-09-27 covering every
 //!   codelist-controlled value trialforge emits. `source` records whether a term came from
 //!   Pointblank's bundled subset or was curated here.
+//! - `assets/growth/`: the CDC 2000 growth charts' LMS parameters ([`growth`]).
 
 pub mod dictionaries;
+pub mod growth;
 
 /// Days after the last dose during which a new AE still counts as treatment-emergent (SUPPAE
 /// `AETRTEM`, ADAE `TRTEMFL`).
