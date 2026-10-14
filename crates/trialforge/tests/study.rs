@@ -17,6 +17,16 @@ fn opts(n: usize, seed: u64, controls: serde_json::Value) -> StudyOptions {
     }
 }
 
+/// A study generated, or rejected only because an interim cutoff precedes every
+/// randomisation (possible for small random specs).
+fn generated_or_empty_cut(s: &Result<trialforge::Study, trialforge::Error>) -> bool {
+    match s {
+        Ok(_) => true,
+        Err(trialforge::Error::Invalid(e)) => e.contains("randomised by the data cutoff"),
+        Err(_) => false,
+    }
+}
+
 fn xpt(s: &trialforge::Study) -> Vec<Vec<u8>> {
     s.sdtm
         .iter()
@@ -247,7 +257,15 @@ fn controls_are_documented() {
         let docs = trialforge::controls(name).unwrap();
         for d in docs.as_array().unwrap() {
             assert!(!d["description"].as_str().unwrap().is_empty());
-            let nullable = ["change", "ni_margin", "placebo_change", "emax"];
+            let nullable = [
+                "change",
+                "ni_margin",
+                "placebo_change",
+                "emax",
+                "crossover_os_hr",
+                "interim_months",
+                "interim_events",
+            ];
             assert!(!d["default"].is_null() || nullable.iter().any(|n| d["name"] == *n));
         }
     }
@@ -433,6 +451,468 @@ fn cv_outcomes_are_event_driven_and_verified() {
     assert!(rules(&s).contains(&"L2.ADTTE"), "{:?}", rules(&s));
 }
 
+#[test]
+fn ophthalmology_bcva_is_verified_and_recovered() {
+    let s = study(
+        "ophthalmology",
+        &opts(1500, 4, json!({"bcva_change": [8.0, 5.0]})),
+    )
+    .unwrap();
+    let names: Vec<&str> = s
+        .sdtm
+        .iter()
+        .chain(&s.adam)
+        .map(|d| d.name.as_str())
+        .collect();
+    for want in ["OE", "SC", "ADBCVA"] {
+        assert!(names.contains(&want), "missing {want}: {names:?}");
+    }
+    let ex = s.dataset("EX").unwrap();
+    assert!(
+        chars(ex, "EXROUTE")
+            .iter()
+            .all(|r| r.as_deref() == Some("INTRAVITREAL"))
+    );
+    let b = &s.truth["bcva"]["realised"];
+    let (c, d) = (
+        b["Comparator 2 mg"]["mean_change"].as_f64().unwrap(),
+        b["Drug A 6 mg"]["mean_change"].as_f64().unwrap(),
+    );
+    assert!((c - 8.0).abs() < 1.0 && (d - 5.0).abs() < 1.0, "{c} {d}");
+    let rules = |s: &trialforge::Study| {
+        trialforge::verify(s)
+            .counts
+            .keys()
+            .copied()
+            .collect::<Vec<_>>()
+    };
+    let mut bad = s.clone();
+    corrupt(&mut bad.adam, "ADBCVA", "AFEYE", "Study Eye", "Fellow Eye");
+    edit(&mut bad.adam, "ADBCVA", "CHG", |v| {
+        let Values::Num(v) = v else {
+            panic!("CHG is numeric")
+        };
+        let x = v.iter_mut().find(|x| x.is_some()).unwrap();
+        *x = Some(x.unwrap() + 1.0);
+    });
+    assert!(rules(&bad).contains(&"L2.ADBCVA"), "{:?}", rules(&bad));
+}
+
+#[test]
+fn pediatric_growth_is_verified_and_recovered() {
+    let s = study(
+        "pediatric_growth",
+        &opts(1500, 6, json!({"height_velocity": [10.0, 9.0]})),
+    )
+    .unwrap();
+    let dm = s.dataset("DM").unwrap();
+    assert!(chars(dm, "BRTHDTC").iter().all(Option::is_some));
+    let advs = s.dataset("ADVS").unwrap();
+    let params = chars(advs, "PARAMCD");
+    for want in ["HGTSDS", "HGTPCTL", "WGTASDS", "BMIPCTL", "HTVEL"] {
+        assert!(
+            params.iter().any(|p| p.as_deref() == Some(want)),
+            "missing {want}"
+        );
+    }
+    let hv = &s.truth["height_velocity"]["realised"];
+    let (c, d) = (
+        hv["Somatropin 0.034 mg/kg/day"]["mean"].as_f64().unwrap(),
+        hv["Drug A 0.24 mg/kg/week"]["mean"].as_f64().unwrap(),
+    );
+    assert!((c - 10.0).abs() < 0.4 && (d - 9.0).abs() < 0.4, "{c} {d}");
+    let rules = |s: &trialforge::Study| {
+        trialforge::verify(s)
+            .counts
+            .keys()
+            .copied()
+            .collect::<Vec<_>>()
+    };
+    let mut bad = s.clone();
+    edit(&mut bad.adam, "ADVS", "AVAL", |v| {
+        let Values::Num(v) = v else {
+            panic!("AVAL is numeric")
+        };
+        let i = (0..v.len())
+            .find(|&i| params[i].as_deref() == Some("HGTSDS"))
+            .unwrap();
+        v[i] = v[i].map(|x| x + 0.1);
+    });
+    assert!(rules(&bad).contains(&"L2.GROWTH"), "{:?}", rules(&bad));
+    let mut bad = s.clone();
+    edit(&mut bad.sdtm, "DM", "AGE", |v| {
+        let Values::Int(v) = v else {
+            panic!("AGE is integer")
+        };
+        v[0] = v[0].map(|a| a + 1);
+    });
+    assert!(rules(&bad).contains(&"L1.AGE"), "{:?}", rules(&bad));
+}
+
+#[test]
+fn respiratory_exacerbations_are_verified_and_recovered() {
+    let s = study(
+        "respiratory_exacerbation",
+        &opts(2000, 8, json!({"rate_ratio": 0.6, "dispersion": 0.4})),
+    )
+    .unwrap();
+    let names: Vec<&str> = s
+        .sdtm
+        .iter()
+        .chain(&s.adam)
+        .map(|d| d.name.as_str())
+        .collect();
+    for want in ["RE", "CE", "ADRE", "ADEXAC", "ADTTE"] {
+        assert!(names.contains(&want), "missing {want}: {names:?}");
+    }
+    let rr = s.truth["exacerbations"]["rate_ratio"]["estimate"]
+        .as_f64()
+        .unwrap();
+    assert!((rr - 0.6).abs() < 0.08, "rate ratio {rr}");
+    let rules = |s: &trialforge::Study| {
+        trialforge::verify(s)
+            .counts
+            .keys()
+            .copied()
+            .collect::<Vec<_>>()
+    };
+    let mut bad = s.clone();
+    edit(&mut bad.adam, "ADEXAC", "AVAL", |v| {
+        let Values::Num(v) = v else {
+            panic!("AVAL is numeric")
+        };
+        v[0] = v[0].map(|x| x + 1.0);
+    });
+    assert!(rules(&bad).contains(&"L2.ADEXAC"), "{:?}", rules(&bad));
+}
+
+#[test]
+fn vaccine_immunogenicity_and_reactogenicity_are_verified() {
+    let s = study("vaccine", &opts(1000, 9, json!({"gmt": 320.0}))).unwrap();
+    let names: Vec<&str> = s
+        .sdtm
+        .iter()
+        .chain(&s.adam)
+        .map(|d| d.name.as_str())
+        .collect();
+    for want in ["IS", "CE", "FACE", "ADIS", "ADCE", "ADFACE"] {
+        assert!(names.contains(&want), "missing {want}: {names:?}");
+    }
+    let gmt = s.truth["vaccine"]["realised"]["Vaccine A"]["gmt"]
+        .as_f64()
+        .unwrap();
+    assert!((gmt / 320.0 - 1.0).abs() < 0.15, "GMT {gmt}");
+    let face = s.dataset("FACE").unwrap();
+    assert!(
+        chars(face, "DOMAIN")
+            .iter()
+            .all(|d| d.as_deref() == Some("FA"))
+    );
+    let rules = |s: &trialforge::Study| {
+        trialforge::verify(s)
+            .counts
+            .keys()
+            .copied()
+            .collect::<Vec<_>>()
+    };
+    let mut bad = s.clone();
+    edit(&mut bad.adam, "ADIS", "AVAL", |v| {
+        let Values::Num(v) = v else {
+            panic!("AVAL is numeric")
+        };
+        v[0] = v[0].map(|x| x * 2.0);
+    });
+    assert!(rules(&bad).contains(&"L2.VACCINE"), "{:?}", rules(&bad));
+    let mut bad = s.clone();
+    corrupt(&mut bad.adam, "ADCE", "AOCC01FL", "Y", "N");
+    assert!(rules(&bad).contains(&"L2.VACCINE"), "{:?}", rules(&bad));
+}
+
+#[test]
+fn dose_escalation_follows_its_design_and_flags_dlts() {
+    for method in ["3+3", "boin", "mtpi2"] {
+        let s = study("dose_escalation", &opts(36, 10, json!({"method": method}))).unwrap();
+        let e = &s.truth["escalation"];
+        let cohorts = e["cohorts"].as_array().unwrap();
+        let treated: u64 = cohorts
+            .iter()
+            .map(|c| c["subjects"].as_u64().unwrap())
+            .sum();
+        assert_eq!(
+            treated as usize,
+            s.dataset("DM").unwrap().n_rows(),
+            "{method}"
+        );
+        assert!(treated <= 36, "{method}");
+        // Escalation starts at the lowest dose and never skips a level upwards.
+        assert_eq!(cohorts[0]["dose"], "Drug A 10 mg", "{method}");
+        let sl = s.dataset("ADSL").unwrap();
+        assert!(sl.column("DLTEVLFL").is_some(), "{method}");
+    }
+    let s = study("dose_escalation", &opts(36, 10, json!(null))).unwrap();
+    let rules = |s: &trialforge::Study| {
+        trialforge::verify(s)
+            .counts
+            .keys()
+            .copied()
+            .collect::<Vec<_>>()
+    };
+    let mut bad = s.clone();
+    corrupt(&mut bad.adam, "ADSL", "DLTEVLFL", "Y", "N");
+    assert!(rules(&bad).contains(&"L2.DLT"), "{:?}", rules(&bad));
+    assert!(matches!(
+        study(
+            "dose_escalation",
+            &opts(36, 1, json!({"dlt_rates": [0.5, 0.1]}))
+        ),
+        Err(trialforge::Error::Invalid(_))
+    ));
+}
+
+#[test]
+fn lymphoma_follows_lugano_and_recovers_targets() {
+    let s = study("heme_lymphoma", &opts(1500, 12, json!(null))).unwrap();
+    let rs = s.dataset("RS").unwrap();
+    assert!(
+        chars(rs, "RSCAT")
+            .iter()
+            .all(|c| c.as_deref() == Some("LUGANO CLASSIFICATION"))
+    );
+    let tr = s.dataset("TR").unwrap();
+    for want in ["LPERP", "PPD", "SUMPPD", "FDP5PS"] {
+        assert!(
+            chars(tr, "TRTESTCD")
+                .iter()
+                .any(|t| t.as_deref() == Some(want)),
+            "{want}"
+        );
+    }
+    let orr = s.truth["orr"]["Drug A"]["proportion"].as_f64().unwrap();
+    assert!((orr - 0.6).abs() < 0.06, "ORR {orr}");
+    assert!(s.dataset("ADTR").is_none());
+    let rules = |s: &trialforge::Study| {
+        trialforge::verify(s)
+            .counts
+            .keys()
+            .copied()
+            .collect::<Vec<_>>()
+    };
+    let mut bad = s.clone();
+    corrupt(&mut bad.sdtm, "RS", "RSSTRESC", "CMR", "PMR");
+    assert!(rules(&bad).contains(&"L1.LUGANO"), "{:?}", rules(&bad));
+}
+
+#[test]
+fn multiple_cuts_are_snapshots_of_the_same_study() {
+    let ts_value = |s: &trialforge::Study, parm: &str| {
+        let ts = s.dataset("TS").unwrap();
+        let i = (0..ts.n_rows())
+            .find(|&i| chars(ts, "TSPARMCD")[i].as_deref() == Some(parm))
+            .unwrap();
+        chars(ts, "TSVAL")[i].clone().unwrap()
+    };
+    let subjects = |s: &trialforge::Study| -> Vec<(String, String)> {
+        let sl = s.dataset("ADSL").unwrap();
+        (0..sl.n_rows())
+            .map(|i| {
+                (
+                    chars(sl, "USUBJID")[i].clone().unwrap(),
+                    chars(sl, "TRT01P")[i].clone().unwrap(),
+                )
+            })
+            .collect()
+    };
+    for archetype in ["oncology_solid_tumor", "heme_lymphoma"] {
+        let fin = study(archetype, &opts(400, 4, json!(null))).unwrap();
+        let mid = study(archetype, &opts(400, 4, json!({"interim_months": 10}))).unwrap();
+        assert!(mid.cutoff < fin.cutoff);
+        assert_eq!(ts_value(&mid, "DCUTDTC"), mid.cutoff.to_string());
+        assert_eq!(ts_value(&mid, "DCUTDESC"), "INTERIM ANALYSIS");
+        assert_eq!(ts_value(&mid, "PLANSUB"), "400");
+        // Subjects randomised by the interim cutoff, with the same IDs and arms.
+        let (m, f) = (subjects(&mid), subjects(&fin));
+        assert!(m.len() < f.len(), "{} of {}", m.len(), f.len());
+        assert!(m.iter().all(|x| f.contains(x)));
+        assert_eq!(
+            mid.truth["interim"]["n_randomised"].as_u64(),
+            Some(m.len() as u64)
+        );
+        let deaths = |s: &trialforge::Study| {
+            s.truth["overall_survival"]["by_arm"]
+                .as_object()
+                .unwrap()
+                .values()
+                .map(|a| a["events"].as_u64().unwrap())
+                .sum::<u64>()
+        };
+        assert!(deaths(&mid) < deaths(&fin));
+    }
+    // An event-driven interim: the cut falls at the interim event count.
+    let mid = study(
+        "cv_outcomes",
+        &opts(1500, 3, json!({"interim_events": 100})),
+    )
+    .unwrap();
+    assert_eq!(
+        mid.truth["outcomes"]["realised_first_mace_events"].as_u64(),
+        Some(100)
+    );
+    assert_eq!(ts_value(&mid, "DCUTDESC"), "INTERIM ANALYSIS");
+    assert!(matches!(
+        study(
+            "oncology_solid_tumor",
+            &opts(40, 1, json!({"interim_months": 31}))
+        ),
+        Err(trialforge::Error::Invalid(_))
+    ));
+}
+
+#[test]
+fn crossover_on_progression_switches_control_subjects() {
+    let c = json!({"crossover_prob": 0.8, "os_hr": 0.6});
+    let s = study("oncology_solid_tumor", &opts(800, 13, c)).unwrap();
+    let x = &s.truth["crossover"];
+    let crossed = x["crossed_over"].as_u64().unwrap();
+    assert!(crossed > 100, "{crossed} crossed over");
+    let ta = s.dataset("TA").unwrap();
+    assert!(
+        chars(ta, "EPOCH")
+            .iter()
+            .any(|e| e.as_deref() == Some("CONTINUATION TREATMENT"))
+    );
+    let ex = s.dataset("EX").unwrap();
+    let sl = s.dataset("ADSL").unwrap();
+    let control: std::collections::HashSet<&str> = (0..sl.n_rows())
+        .filter(|&i| chars(sl, "TRT01P")[i].as_deref() == Some("Control"))
+        .filter_map(|i| chars(sl, "USUBJID")[i].as_deref())
+        .collect();
+    let switched = (0..ex.n_rows()).any(|i| {
+        chars(ex, "EXTRT")[i].as_deref() == Some("DRUG A")
+            && chars(ex, "USUBJID")[i]
+                .as_deref()
+                .is_some_and(|u| control.contains(u))
+    });
+    assert!(switched);
+    // The intention-to-treat OS hazard ratio is diluted towards 1.
+    let hr = s.truth["overall_survival"]["stratified_cox_hr"]["hr"]
+        .as_f64()
+        .unwrap();
+    assert!(hr > 0.65, "OS HR {hr}");
+    let rules = |s: &trialforge::Study| {
+        trialforge::verify(s)
+            .counts
+            .keys()
+            .copied()
+            .collect::<Vec<_>>()
+    };
+    let mut bad = s.clone();
+    corrupt(&mut bad.adam, "ADSL", "CROSSFL", "Y", "N");
+    assert!(rules(&bad).contains(&"L2.CROSSOVER"), "{:?}", rules(&bad));
+}
+
+prop_compose! {
+    fn escalation_controls()(
+        method in prop::sample::select(vec!["3+3", "boin", "mtpi2"]),
+        levels in 1usize..7,
+        base in 0.0f64..0.3,
+        step in 0.0f64..0.2,
+        target in 0.1f64..0.4,
+        cohort in 1u32..=6,
+        weeks in prop::sample::select(vec![4u32, 8, 12, 24]),
+        dropout in 0.0f64..3.0,
+    ) -> serde_json::Value {
+        let doses: Vec<f64> = (0..levels).map(|k| 10.0 * (k as f64 + 1.0)).collect();
+        let rates: Vec<f64> = (0..levels).map(|k| (base + step * k as f64).min(1.0)).collect();
+        json!({
+            "method": method, "doses": doses, "dlt_rates": rates, "target": target,
+            "cohort_size": cohort, "weeks": weeks, "dropout_rate": dropout,
+        })
+    }
+}
+
+prop_compose! {
+    fn vaccine_controls()(
+        doses in 1u32..=2,
+        interval in 21u32..=84,
+        gmt in 10.0f64..5000.0,
+        sero in 0.0f64..1.0,
+        frac in 0.0f64..1.0,
+        sd in 0.05f64..1.5,
+        reacto in 0.0f64..3.0,
+        fever in 0.0f64..1.0,
+        fu in 56u32..400,
+        dropout in 0.0f64..3.0,
+        missed in 0.0f64..0.5,
+    ) -> serde_json::Value {
+        json!({
+            "doses": doses, "interval_days": interval, "gmt": gmt, "seropositive": sero,
+            "first_dose_fraction": frac, "titer_sd": sd, "reactogenicity": reacto,
+            "fever_rate": fever, "followup_days": fu, "dropout_rate": dropout, "missed_visit": missed,
+        })
+    }
+}
+
+prop_compose! {
+    fn respiratory_controls()(
+        weeks in prop::sample::select(vec![12u32, 24, 52, 104]),
+        rate in 0.0f64..5.0,
+        rr in 0.2f64..2.0,
+        dispersion in 0.0f64..3.0,
+        severe in 0.0f64..1.0,
+        prior in 0.5f64..4.0,
+        fev1 in 0.5f64..3.0,
+        change in (-0.5f64..0.5, -0.5f64..0.5),
+        dropout in 0.0f64..3.0,
+    ) -> serde_json::Value {
+        json!({
+            "weeks": weeks, "exacerbation_rate": rate, "rate_ratio": rr, "dispersion": dispersion,
+            "severe_fraction": severe, "prior_exacerbations_rr": prior, "fev1_baseline": fev1,
+            "fev1_change": [change.0, change.1], "dropout_rate": dropout,
+        })
+    }
+}
+
+prop_compose! {
+    fn pediatric_controls()(
+        weeks in prop::sample::select(vec![26u32, 52, 78, 104]),
+        ages in (3i64..=15, 0i64..=6),
+        velocity in (1.0f64..20.0, 1.0f64..20.0),
+        sd in 0.0f64..5.0,
+        sds in -4.5f64..-1.0,
+        max_sds in -4.0f64..0.0,
+        untreated in 0.5f64..10.0,
+        dropout in 0.0f64..3.0,
+        missed in 0.0f64..0.5,
+    ) -> serde_json::Value {
+        json!({
+            "weeks": weeks, "age_range": [ages.0, (ages.0 + ages.1).min(15)],
+            "height_velocity": [velocity.0, velocity.1], "velocity_sd": sd, "height_sds": sds,
+            "max_screening_sds": max_sds, "untreated_velocity": untreated,
+            "dropout_rate": dropout, "missed_visit": missed,
+        })
+    }
+}
+
+prop_compose! {
+    fn ophthalmology_controls()(
+        weeks in prop::sample::select(vec![12u32, 24, 48, 52, 100]),
+        loading in 1u32..=3,
+        intervals in (prop::sample::select(vec![4u32, 8, 12, 16]), prop::sample::select(vec![4u32, 8, 12, 16])),
+        baseline in 30.0f64..75.0,
+        change in (-10.0f64..20.0, -10.0f64..20.0),
+        response in 0.0f64..20.0,
+        cst in (-300.0f64..100.0, -300.0f64..100.0),
+        dropout in 0.0f64..3.0,
+        missed in 0.0f64..0.5,
+    ) -> serde_json::Value {
+        json!({
+            "weeks": weeks, "loading_doses": loading, "interval_weeks": [intervals.0, intervals.1],
+            "bcva_baseline": baseline, "bcva_change": [change.0, change.1], "response_sd": response,
+            "cst_change": [cst.0, cst.1], "dropout_rate": dropout, "missed_visit": missed,
+        })
+    }
+}
+
 prop_compose! {
     fn cv_controls()(
         target in 1usize..200,
@@ -445,8 +925,13 @@ prop_compose! {
         extra in 1.0f64..60.0,
         stop in 0.0f64..1.0,
         withdraw in 0.0f64..1.0,
+        interim in prop::option::of(0.0f64..1.0),
     ) -> serde_json::Value {
+        let interim = interim
+            .filter(|_| target > 1)
+            .map(|f| ((target as f64 * f) as usize).clamp(1, target - 1));
         json!({
+            "interim_events": interim,
             "target_events": target, "mace_rate": rate, "hr": hr,
             "components": [components.0, components.1, components.2], "non_cv_death_rate": ncv,
             "frailty_sd": frailty, "enrollment_months": enrollment, "max_months": enrollment + extra,
@@ -546,8 +1031,15 @@ prop_compose! {
         ae in 0.0f64..1.0,
         enrollment in 1.0f64..36.0,
         extra in 1.0f64..36.0,
+        crossover in prop::option::of((0.0f64..1.0, 0.3f64..2.0)),
+        interim in prop::option::of(0.0f64..1.0),
     ) -> serde_json::Value {
+        let (cross, cross_hr) = crossover.map_or((0.0, None), |(p, h)| (p, Some(h)));
+        // An interim cutoff in [1, cutoff_months).
+        let interim = interim.map(|f| 1.0 + f * (enrollment + extra - 1.0) * 0.999);
         json!({
+            "interim_months": interim,
+            "crossover_prob": cross, "crossover_os_hr": cross_hr,
             "os_median_months": os_median, "pfs_median_months": os_median * pfs_fraction,
             "os_hr": hr.0, "pfs_hr": hr.1, "orr": [orr.0, orr.1],
             "os_shape": shape.0, "pfs_shape": shape.1, "os_pfs_correlation": correlation,
@@ -569,6 +1061,36 @@ proptest! {
     #[test]
     fn random_cv_specs_verify(c in cv_controls(), n in 1usize..300, seed in 0u64..=trialforge::MAX_SEED) {
         let s = study("cv_outcomes", &opts(n, seed, c.clone()));
+        prop_assert!(generated_or_empty_cut(&s), "{c}: {}", s.err().map(|e| e.to_string()).unwrap_or_default());
+    }
+
+    #[test]
+    fn random_ophthalmology_specs_verify(c in ophthalmology_controls(), n in 1usize..60, seed in 0u64..=trialforge::MAX_SEED) {
+        let s = study("ophthalmology", &opts(n, seed, c.clone()));
+        prop_assert!(s.is_ok(), "{c}: {}", s.err().map(|e| e.to_string()).unwrap_or_default());
+    }
+
+    #[test]
+    fn random_pediatric_specs_verify(c in pediatric_controls(), n in 1usize..60, seed in 0u64..=trialforge::MAX_SEED) {
+        let s = study("pediatric_growth", &opts(n, seed, c.clone()));
+        prop_assert!(s.is_ok(), "{c}: {}", s.err().map(|e| e.to_string()).unwrap_or_default());
+    }
+
+    #[test]
+    fn random_respiratory_specs_verify(c in respiratory_controls(), n in 1usize..60, seed in 0u64..=trialforge::MAX_SEED) {
+        let s = study("respiratory_exacerbation", &opts(n, seed, c.clone()));
+        prop_assert!(s.is_ok(), "{c}: {}", s.err().map(|e| e.to_string()).unwrap_or_default());
+    }
+
+    #[test]
+    fn random_vaccine_specs_verify(c in vaccine_controls(), n in 1usize..60, seed in 0u64..=trialforge::MAX_SEED) {
+        let s = study("vaccine", &opts(n, seed, c.clone()));
+        prop_assert!(s.is_ok(), "{c}: {}", s.err().map(|e| e.to_string()).unwrap_or_default());
+    }
+
+    #[test]
+    fn random_escalation_specs_verify(c in escalation_controls(), n in 3usize..60, seed in 0u64..=trialforge::MAX_SEED) {
+        let s = study("dose_escalation", &opts(n, seed, c.clone()));
         prop_assert!(s.is_ok(), "{c}: {}", s.err().map(|e| e.to_string()).unwrap_or_default());
     }
 
@@ -597,8 +1119,14 @@ proptest! {
     }
 
     #[test]
+    fn random_lymphoma_specs_verify(c in oncology_controls(), n in 1usize..80, seed in 0u64..=trialforge::MAX_SEED) {
+        let s = study("heme_lymphoma", &opts(n, seed, c.clone()));
+        prop_assert!(generated_or_empty_cut(&s), "{c}: {}", s.err().map(|e| e.to_string()).unwrap_or_default());
+    }
+
+    #[test]
     fn random_oncology_specs_verify(c in oncology_controls(), n in 1usize..80, seed in 0u64..=trialforge::MAX_SEED) {
         let s = study("oncology_solid_tumor", &opts(n, seed, c.clone()));
-        prop_assert!(s.is_ok(), "{c}: {}", s.err().map(|e| e.to_string()).unwrap_or_default());
+        prop_assert!(generated_or_empty_cut(&s), "{c}: {}", s.err().map(|e| e.to_string()).unwrap_or_default());
     }
 }
