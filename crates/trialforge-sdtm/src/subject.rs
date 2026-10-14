@@ -1,4 +1,4 @@
-//! Subject-level domains: DM, SE, SV, EX, CM, AE, SUPPAE, DS, MH, LB, VS.
+//! Subject-level domains: DM, SE, SV, EX, CM, AE, SUPPAE, DS, MH, LB, VS, FT, CE.
 
 use trialforge_cdisc::{MetadataError, TEAE_WINDOW_DAYS, build, dictionaries};
 use trialforge_core::{Dataset, Date};
@@ -22,6 +22,8 @@ pub(crate) fn emit(ctx: &Context<'_>) -> Result<Vec<Dataset>, MetadataError> {
         mh(ctx)?,
         lb(ctx)?,
         vs(ctx)?,
+        ft(ctx)?,
+        ce(ctx)?,
         suppae,
     ])
 }
@@ -94,6 +96,7 @@ fn se(ctx: &Context<'_>) -> Result<Dataset, MetadataError> {
         seq: i64,
         etcd: String,
         element: String,
+        order: i64,
         epoch: Epoch,
         start: Date,
         end: Date,
@@ -103,7 +106,9 @@ fn se(ctx: &Context<'_>) -> Result<Dataset, MetadataError> {
     for (s, t) in ctx.sorted() {
         for (k, e) in t.elements.iter().enumerate() {
             let (etcd, element) = element(ctx, e.epoch, s.arm);
+            let order = taetord(ctx, e.epoch, s.arm);
             rows.push(Row {
+                order,
                 usubjid: s.usubjid.clone(),
                 seq: k as i64 + 1,
                 etcd,
@@ -124,7 +129,7 @@ fn se(ctx: &Context<'_>) -> Result<Dataset, MetadataError> {
             ("SESEQ", ints(&rows, |r| Some(r.seq))),
             ("ETCD", chars(&rows, |r| Some(r.etcd.clone()))),
             ("ELEMENT", chars(&rows, |r| Some(r.element.clone()))),
-            ("TAETORD", ints(&rows, |r| Some(taetord(r.epoch)))),
+            ("TAETORD", ints(&rows, |r| Some(r.order))),
             (
                 "EPOCH",
                 chars(&rows, |r| Some(r.epoch.as_str().to_string())),
@@ -145,6 +150,7 @@ fn sv(ctx: &Context<'_>) -> Result<Dataset, MetadataError> {
         visitdy: Option<i64>,
         epoch: Epoch,
         date: Date,
+        end: Date,
         rf: Date,
     }
     let schedule = ctx.design.schedule.as_ref();
@@ -161,6 +167,7 @@ fn sv(ctx: &Context<'_>) -> Result<Dataset, MetadataError> {
                 visitdy: pv.day.map(i64::from),
                 epoch: t.epoch_of(v.date),
                 date: v.date,
+                end: v.end.unwrap_or(v.date),
                 rf: t.first_dose(),
             });
         }
@@ -180,9 +187,9 @@ fn sv(ctx: &Context<'_>) -> Result<Dataset, MetadataError> {
                 chars(&rows, |r| Some(r.epoch.as_str().to_string())),
             ),
             ("SVSTDTC", chars(&rows, |r| iso(r.date))),
-            ("SVENDTC", chars(&rows, |r| iso(r.date))),
+            ("SVENDTC", chars(&rows, |r| iso(r.end))),
             ("SVSTDY", ints(&rows, |r| dy(r.date, r.rf))),
-            ("SVENDY", ints(&rows, |r| dy(r.date, r.rf))),
+            ("SVENDY", ints(&rows, |r| dy(r.end, r.rf))),
         ],
     )
 }
@@ -193,48 +200,68 @@ fn ex(ctx: &Context<'_>) -> Result<Dataset, MetadataError> {
         seq: i64,
         start: Date,
         end: Date,
+        time: Option<trialforge_core::DateTime>,
         dose: f64,
         epoch: Epoch,
         rf: Date,
+        visit: Option<&'a trialforge_model::PlannedVisit>,
     }
+    let schedule = ctx.design.schedule.as_ref();
     let mut rows = Vec::new();
     for (s, t) in ctx.sorted() {
         for (k, e) in t.exposure.iter().enumerate() {
+            let study_day = e.start.days_since(t.first_dose()) + 1;
             rows.push(Row {
                 s,
                 seq: k as i64 + 1,
                 start: e.start,
                 end: e.end,
+                time: e.time,
                 dose: e.dose,
                 epoch: t.epoch_of(e.start),
                 rf: t.first_dose(),
+                // Timed administrations (PK studies) belong to the dosing day's visit.
+                visit: e
+                    .time
+                    .and_then(|_| schedule?.visits.iter().find(|v| v.day == Some(study_day))),
             });
         }
     }
+    let timed = rows.iter().any(|r| r.time.is_some());
+    let dtc = |r: &Row<'_>, d: Date| match r.time {
+        Some(t) => Some(t.to_string()),
+        None => iso(d),
+    };
     let trt = |r: &Row<'_>| &ctx.design.arms[r.s.arm].treatment;
-    build(
-        "EX",
-        vec![
-            ("STUDYID", constant(&rows, &ctx.design.studyid)),
-            ("DOMAIN", constant(&rows, "EX")),
-            ("USUBJID", chars(&rows, |r| Some(r.s.usubjid.clone()))),
-            ("EXSEQ", ints(&rows, |r| Some(r.seq))),
-            ("EXTRT", chars(&rows, |r| Some(trt(r).name.clone()))),
-            ("EXDOSE", nums(&rows, |r| Some(r.dose))),
-            ("EXDOSU", chars(&rows, |r| Some(trt(r).unit.clone()))),
-            ("EXDOSFRM", chars(&rows, |r| Some(trt(r).form.clone()))),
-            ("EXDOSFRQ", chars(&rows, |r| Some(trt(r).frequency.clone()))),
-            ("EXROUTE", chars(&rows, |r| Some(trt(r).route.clone()))),
-            (
-                "EPOCH",
-                chars(&rows, |r| Some(r.epoch.as_str().to_string())),
-            ),
-            ("EXSTDTC", chars(&rows, |r| iso(r.start))),
-            ("EXENDTC", chars(&rows, |r| iso(r.end))),
-            ("EXSTDY", ints(&rows, |r| dy(r.start, r.rf))),
-            ("EXENDY", ints(&rows, |r| dy(r.end, r.rf))),
-        ],
-    )
+    let mut cols = vec![
+        ("STUDYID", constant(&rows, &ctx.design.studyid)),
+        ("DOMAIN", constant(&rows, "EX")),
+        ("USUBJID", chars(&rows, |r| Some(r.s.usubjid.clone()))),
+        ("EXSEQ", ints(&rows, |r| Some(r.seq))),
+        ("EXTRT", chars(&rows, |r| Some(trt(r).name.clone()))),
+        ("EXDOSE", nums(&rows, |r| Some(r.dose))),
+        ("EXDOSU", chars(&rows, |r| Some(trt(r).unit.clone()))),
+        ("EXDOSFRM", chars(&rows, |r| Some(trt(r).form.clone()))),
+        ("EXDOSFRQ", chars(&rows, |r| Some(trt(r).frequency.clone()))),
+        ("EXROUTE", chars(&rows, |r| Some(trt(r).route.clone()))),
+        (
+            "EPOCH",
+            chars(&rows, |r| Some(r.epoch.as_str().to_string())),
+        ),
+        ("EXSTDTC", chars(&rows, |r| dtc(r, r.start))),
+        ("EXENDTC", chars(&rows, |r| dtc(r, r.end))),
+        ("EXSTDY", ints(&rows, |r| dy(r.start, r.rf))),
+        ("EXENDY", ints(&rows, |r| dy(r.end, r.rf))),
+    ];
+    if timed {
+        cols.push(("VISITNUM", ints(&rows, |r| r.visit.map(|v| v.visitnum))));
+        cols.push(("VISIT", chars(&rows, |r| r.visit.map(|v| v.name.clone()))));
+        cols.push((
+            "VISITDY",
+            ints(&rows, |r| r.visit.and_then(|v| v.day.map(i64::from))),
+        ));
+    }
+    build("EX", cols)
 }
 
 fn cm(ctx: &Context<'_>) -> Result<Dataset, MetadataError> {
@@ -574,7 +601,9 @@ fn finding_rows<'a>(
                 let last = fs
                     .iter()
                     .enumerate()
-                    .filter(|(_, g)| g.testcd == f.testcd && g.date <= t.first_dose())
+                    .filter(|(_, g)| {
+                        g.testcd == f.testcd && g.date <= t.first_dose() && !g.value.is_nan()
+                    })
                     .map(|(j, _)| j)
                     .next_back();
                 (last == Some(i)).then_some(i)
@@ -734,6 +763,107 @@ fn vs(ctx: &Context<'_>) -> Result<Dataset, MetadataError> {
             ),
             ("VSDTC", chars(&rows, |r| iso(r.f.date))),
             ("VSDY", ints(&rows, |r| dy(r.f.date, r.rf))),
+        ],
+    )
+}
+
+fn ft(ctx: &Context<'_>) -> Result<Dataset, MetadataError> {
+    let items = reference::adas_items();
+    let pos = |cd: &str| {
+        items
+            .iter()
+            .position(|v| v.testcd == cd)
+            .unwrap_or(usize::MAX)
+    };
+    let rows = finding_rows(ctx, FindingDomain::Ft, pos);
+    let item = |r: &FindingRow<'_>| &items[pos(&r.f.testcd)];
+    let done = |r: &FindingRow<'_>| !r.f.value.is_nan();
+    let result = |r: &FindingRow<'_>| done(r).then(|| fmt_dp(r.f.value, 0));
+    build(
+        "FT",
+        vec![
+            ("STUDYID", constant(&rows, &ctx.design.studyid)),
+            ("DOMAIN", constant(&rows, "FT")),
+            ("USUBJID", chars(&rows, |r| Some(r.usubjid.to_string()))),
+            ("FTSEQ", ints(&rows, |r| Some(r.seq))),
+            ("FTTESTCD", chars(&rows, |r| Some(r.f.testcd.clone()))),
+            ("FTTEST", chars(&rows, |r| Some(item(r).test.clone()))),
+            ("FTCAT", constant(&rows, "ADAS-COG")),
+            ("FTORRES", chars(&rows, result)),
+            ("FTSTRESC", chars(&rows, result)),
+            ("FTSTRESN", nums(&rows, |r| done(r).then_some(r.f.value))),
+            (
+                "FTSTAT",
+                chars(&rows, |r| (!done(r)).then(|| "NOT DONE".to_string())),
+            ),
+            (
+                "FTREASND",
+                chars(&rows, |r| {
+                    (!done(r)).then(|| "UNABLE TO COMPLETE".to_string())
+                }),
+            ),
+            (
+                "FTLOBXFL",
+                chars(&rows, |r| r.baseline.then(|| "Y".to_string())),
+            ),
+            ("VISITNUM", ints(&rows, |r| Some(r.f.visitnum))),
+            ("VISIT", chars(&rows, |r| Some(r.visit.clone()))),
+            ("VISITDY", ints(&rows, |r| r.visitdy)),
+            (
+                "EPOCH",
+                chars(&rows, |r| Some(r.epoch.as_str().to_string())),
+            ),
+            ("FTDTC", chars(&rows, |r| iso(r.f.date))),
+            ("FTDY", ints(&rows, |r| dy(r.f.date, r.rf))),
+        ],
+    )
+}
+
+fn ce(ctx: &Context<'_>) -> Result<Dataset, MetadataError> {
+    struct Row<'a> {
+        usubjid: &'a str,
+        seq: i64,
+        pt: &'a str,
+        date: Date,
+        epoch: Epoch,
+        rf: Date,
+    }
+    let mut rows = Vec::new();
+    for (s, t) in ctx.sorted() {
+        for (k, e) in t.clinical_events.iter().enumerate() {
+            rows.push(Row {
+                usubjid: &s.usubjid,
+                seq: k as i64 + 1,
+                pt: &e.pt,
+                date: e.date,
+                epoch: t.epoch_of(e.date),
+                rf: t.first_dose(),
+            });
+        }
+    }
+    let soc = |r: &Row<'_>| {
+        dictionaries::ae_term(r.pt)
+            .expect("clinical events come from the dictionary")
+            .soc
+            .clone()
+    };
+    build(
+        "CE",
+        vec![
+            ("STUDYID", constant(&rows, &ctx.design.studyid)),
+            ("DOMAIN", constant(&rows, "CE")),
+            ("USUBJID", chars(&rows, |r| Some(r.usubjid.to_string()))),
+            ("CESEQ", ints(&rows, |r| Some(r.seq))),
+            ("CETERM", chars(&rows, |r| Some(r.pt.to_string()))),
+            ("CEDECOD", chars(&rows, |r| Some(r.pt.to_string()))),
+            ("CECAT", constant(&rows, "ADJUDICATED ENDPOINT EVENT")),
+            ("CEBODSYS", chars(&rows, |r| Some(soc(r)))),
+            (
+                "EPOCH",
+                chars(&rows, |r| Some(r.epoch.as_str().to_string())),
+            ),
+            ("CESTDTC", chars(&rows, |r| iso(r.date))),
+            ("CESTDY", ints(&rows, |r| dy(r.date, r.rf))),
         ],
     )
 }
