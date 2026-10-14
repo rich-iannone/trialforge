@@ -64,79 +64,84 @@ pub fn adae(ae: &Dataset, adsl: &Dataset) -> Result<Dataset, DeriveError> {
     let y = |b: &bool| b.then(|| "Y".to_string());
     let sev = ae.chars("AESEV")?;
 
-    Ok(build(
-        "ADAE",
-        vec![
-            ("STUDYID", copy("STUDYID")?),
-            ("USUBJID", copy("USUBJID")?),
-            ("SUBJID", from_sl_char("SUBJID")?),
-            ("SITEID", from_sl_char("SITEID")?),
-            ("AGE", from_sl_num("AGE")?),
-            ("SEX", from_sl_char("SEX")?),
-            ("RACE", from_sl_char("RACE")?),
-            ("SAFFL", from_sl_char("SAFFL")?),
-            ("TRTA", from_sl_char("TRT01A")?),
-            ("TRTAN", from_sl_num("TRT01AN")?),
-            ("TRTSDT", Values::Date(sdt.clone())),
-            ("TRTEDT", Values::Date(edt)),
-            ("AESEQ", Values::Int(aeseq.clone())),
-            ("AETERM", copy("AETERM")?),
-            ("AEDECOD", copy("AEDECOD")?),
-            ("AEBODSYS", copy("AEBODSYS")?),
-            ("AESOC", copy("AESOC")?),
-            ("AESEV", copy("AESEV")?),
-            ("AESER", copy("AESER")?),
-            ("AEREL", copy("AEREL")?),
-            ("AEACN", copy("AEACN")?),
-            ("AEOUT", copy("AEOUT")?),
-            ("ASEV", copy("AESEV")?),
-            (
-                "ASEVN",
-                Values::Num(
-                    sev.iter()
-                        .map(|s| match s.as_deref() {
-                            Some("MILD") => Some(1.0),
-                            Some("MODERATE") => Some(2.0),
-                            Some("SEVERE") => Some(3.0),
-                            _ => None,
-                        })
-                        .collect(),
-                ),
+    let mut cols: Vec<(&str, Values)> = vec![
+        ("STUDYID", copy("STUDYID")?),
+        ("USUBJID", copy("USUBJID")?),
+        ("SUBJID", from_sl_char("SUBJID")?),
+        ("SITEID", from_sl_char("SITEID")?),
+        ("AGE", from_sl_num("AGE")?),
+        ("SEX", from_sl_char("SEX")?),
+        ("RACE", from_sl_char("RACE")?),
+        ("SAFFL", from_sl_char("SAFFL")?),
+        ("TRTA", from_sl_char("TRT01A")?),
+        ("TRTAN", from_sl_num("TRT01AN")?),
+        ("TRTSDT", Values::Date(sdt.clone())),
+        ("TRTEDT", Values::Date(edt)),
+        ("AESEQ", Values::Int(aeseq.clone())),
+        ("AETERM", copy("AETERM")?),
+        ("AEDECOD", copy("AEDECOD")?),
+        ("AEBODSYS", copy("AEBODSYS")?),
+        ("AESOC", copy("AESOC")?),
+        ("AESEV", copy("AESEV")?),
+        ("AESER", copy("AESER")?),
+        ("AEREL", copy("AEREL")?),
+        ("AEACN", copy("AEACN")?),
+        ("AEOUT", copy("AEOUT")?),
+        ("ASEV", copy("AESEV")?),
+        (
+            "ASEVN",
+            Values::Num(
+                sev.iter()
+                    .map(|s| match s.as_deref() {
+                        Some("MILD") => Some(1.0),
+                        Some("MODERATE") => Some(2.0),
+                        Some("SEVERE") => Some(3.0),
+                        _ => None,
+                    })
+                    .collect(),
             ),
-            ("AREL", copy("AEREL")?),
-            ("ASTDT", Values::Date(astdt.clone())),
-            ("AENDT", Values::Date(aendt.clone())),
-            (
-                "ASTDY",
-                Values::Int((0..n).map(|i| rel_day(astdt[i], sdt[i])).collect()),
+        ),
+        ("AREL", copy("AEREL")?),
+        ("ASTDT", Values::Date(astdt.clone())),
+        ("AENDT", Values::Date(aendt.clone())),
+        (
+            "ASTDY",
+            Values::Int((0..n).map(|i| rel_day(astdt[i], sdt[i])).collect()),
+        ),
+        (
+            "AENDY",
+            Values::Int((0..n).map(|i| rel_day(aendt[i], sdt[i])).collect()),
+        ),
+        (
+            "ADURN",
+            Values::Num(
+                (0..n)
+                    .map(|i| match (astdt[i], aendt[i]) {
+                        (Some(a), Some(b)) => Some(f64::from(b.days_since(a) + 1)),
+                        _ => None,
+                    })
+                    .collect(),
             ),
-            (
-                "AENDY",
-                Values::Int((0..n).map(|i| rel_day(aendt[i], sdt[i])).collect()),
+        ),
+        (
+            "ADURU",
+            Values::Char(
+                (0..n)
+                    .map(|i| aendt[i].and(astdt[i]).map(|_| "DAYS".to_string()))
+                    .collect(),
             ),
-            (
-                "ADURN",
-                Values::Num(
-                    (0..n)
-                        .map(|i| match (astdt[i], aendt[i]) {
-                            (Some(a), Some(b)) => Some(f64::from(b.days_since(a) + 1)),
-                            _ => None,
-                        })
-                        .collect(),
-                ),
-            ),
-            (
-                "ADURU",
-                Values::Char(
-                    (0..n)
-                        .map(|i| aendt[i].and(astdt[i]).map(|_| "DAYS".to_string()))
-                        .collect(),
-                ),
-            ),
-            ("TRTEMFL", Values::Char(trtem.iter().map(y).collect())),
-            ("AOCCFL", Values::Char(occ.iter().map(y).collect())),
-            ("AOCCSFL", Values::Char(occ_soc.iter().map(y).collect())),
-            ("AOCCPFL", Values::Char(occ_pt.iter().map(y).collect())),
-        ],
-    )?)
+        ),
+        ("TRTEMFL", Values::Char(trtem.iter().map(y).collect())),
+        ("AOCCFL", Values::Char(occ.iter().map(y).collect())),
+        ("AOCCSFL", Values::Char(occ_soc.iter().map(y).collect())),
+        ("AOCCPFL", Values::Char(occ_pt.iter().map(y).collect())),
+    ];
+    let periods = crate::Periods::new(adsl)?;
+    let keys: Vec<(usize, Option<trialforge_core::Date>)> = row
+        .iter()
+        .zip(&astdt)
+        .map(|(r, d)| (r.unwrap_or(0), *d))
+        .collect();
+    crate::by_period(&mut cols, &periods, &keys);
+    Ok(build("ADAE", cols)?)
 }
