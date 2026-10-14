@@ -20,6 +20,15 @@ CASES: list[tuple[str, dict[str, Any]]] = [
     ("cns_alzheimers", {}),
     ("dose_ranging_ph2", {}),
     ("cv_outcomes", {"target_events": 30}),
+    ("ophthalmology", {}),
+    ("pediatric_growth", {}),
+    ("respiratory_exacerbation", {}),
+    ("vaccine", {}),
+    ("dose_escalation", {}),
+    ("heme_lymphoma", {}),
+    ("oncology_solid_tumor", {"crossover_prob": 0.7}),
+    ("oncology_solid_tumor", {"interim_months": 12}),
+    ("cv_outcomes", {"target_events": 30, "interim_events": 15}),
 ]
 
 
