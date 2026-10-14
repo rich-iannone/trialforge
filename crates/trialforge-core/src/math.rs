@@ -17,6 +17,11 @@ pub fn sqrt(x: f64) -> f64 {
     libm::sqrt(x)
 }
 
+/// Base-10 logarithm.
+pub fn log10(x: f64) -> f64 {
+    libm::log10(x)
+}
+
 /// `x` raised to `y`.
 pub fn pow(x: f64, y: f64) -> f64 {
     libm::pow(x, y)
