@@ -104,6 +104,8 @@ pub struct Codelist {
     pub extensible: bool,
     /// Submission values, in CT order.
     pub terms: Vec<String>,
+    /// Sponsor extensions of an extensible codelist (not CDISC terms).
+    pub extended: Vec<String>,
 }
 
 impl Codelist {
@@ -239,8 +241,12 @@ pub fn ct() -> &'static Terminology {
                 .or_insert_with(|| Codelist {
                     extensible: r["extensible"] == "Y",
                     terms: Vec::new(),
+                    extended: Vec::new(),
                 });
             cl.terms.push(r["term"].to_string());
+            if r["source"].starts_with("sponsor extension") {
+                cl.extended.push(r["term"].to_string());
+            }
         }
         Terminology {
             version: "2024-09-27",
@@ -431,6 +437,8 @@ mod tests {
             ("LBTESTCD", "LBTEST"),
             ("VSTESTCD", "VSTEST"),
             ("TSPARMCD", "TSPARM"),
+            ("PKPARMCD", "PKPARM"),
+            ("ADCTC", "ADCTN"),
         ] {
             let (a, b) = (ct().codelist(cd).unwrap(), ct().codelist(name).unwrap());
             assert_eq!(a.terms.len(), b.terms.len(), "{cd}/{name}");
