@@ -33,6 +33,11 @@ KNOWN_POINTBLANK_DEFECTS: dict[str, tuple[frozenset[str] | None, str]] = {
         None,
         "requires VISITNUM in AE, which is only Permissible (Pointblank BUGS.md #34)",
     ),
+    "SDTM-434": (
+        frozenset({f"TREATMENT {k}" for k in range(1, 5)} | {f"WASHOUT {k}" for k in range(1, 4)}),
+        "rejects sponsor extensions of the extensible EPOCH codelist that define.xml declares "
+        "(def:ExtendedValue) (Pointblank BUGS.md #37)",
+    ),
     "SDTM-170": (None, "requires LBORNRLO to be numeric; SDTMIG defines it as Char (BUGS.md #35)"),
     "SDTM-171": (None, "requires LBORNRHI to be numeric; SDTMIG defines it as Char (BUGS.md #35)"),
 }
