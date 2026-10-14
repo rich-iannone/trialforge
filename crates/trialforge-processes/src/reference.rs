@@ -343,3 +343,32 @@ mod tests {
         }
     }
 }
+
+/// An ADAS-Cog item.
+#[derive(Clone, Debug, PartialEq)]
+pub struct AdasItem {
+    /// `FTTESTCD` (CDISC ADCTC).
+    pub testcd: String,
+    /// `FTTEST` (CDISC ADCTN).
+    pub test: String,
+    /// Maximum error score.
+    pub max: u32,
+    /// Typical share of the maximum in mild-to-moderate Alzheimer's disease.
+    pub baseline_fraction: f64,
+}
+
+/// The ADAS-Cog (11-item) items, in administration order.
+pub fn adas_items() -> &'static [AdasItem] {
+    static A: OnceLock<Vec<AdasItem>> = OnceLock::new();
+    A.get_or_init(|| {
+        read_tsv(include_str!("../assets/adas_items.tsv"))
+            .into_iter()
+            .map(|r| AdasItem {
+                testcd: r["testcd"].into(),
+                test: r["test"].into(),
+                max: r["max"].parse().expect("integer max"),
+                baseline_fraction: num(r["baseline_fraction"]),
+            })
+            .collect()
+    })
+}
