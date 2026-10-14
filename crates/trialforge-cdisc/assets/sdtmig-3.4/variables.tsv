@@ -99,6 +99,9 @@ EX	EXDOSU	Dose Units	Char	Exp	UNIT	Protocol
 EX	EXDOSFRM	Dose Form	Char	Exp	FRM	Protocol		
 EX	EXDOSFRQ	Dosing Frequency per Interval	Char	Perm	FREQ	Protocol		
 EX	EXROUTE	Route of Administration	Char	Perm	ROUTE	Protocol		
+EX	VISITNUM	Visit Number	Num	Perm		Assigned	Sponsor	
+EX	VISIT	Visit Name	Char	Perm		Assigned	Sponsor	
+EX	VISITDY	Planned Study Day of Visit	Num	Perm		Assigned	Sponsor	
 EX	EPOCH	Epoch	Char	Perm	EPOCH	Derived		The epoch of the subject's SE element that contains the record's start date.
 EX	EXSTDTC	Start Date/Time of Treatment	Char	Exp		Collected	Investigator	
 EX	EXENDTC	End Date/Time of Treatment	Char	Exp		Collected	Investigator	
@@ -286,3 +289,74 @@ RS	VISIT	Visit Name	Char	Perm		Assigned	Sponsor
 RS	EPOCH	Epoch	Char	Perm	EPOCH	Derived		The epoch of the subject's SE element that contains the record's start date.
 RS	RSDTC	Date/Time of Assessment	Char	Exp		Collected	Investigator	
 RS	RSDY	Study Day of Assessment	Num	Perm		Derived		Study day of RSDTC relative to DM.RFSTDTC: date - RFSTDTC + 1 on or after RFSTDTC, date - RFSTDTC before it (no day 0).
+PC	STUDYID	Study Identifier	Char	Req		Assigned	Sponsor	
+PC	DOMAIN	Domain Abbreviation	Char	Req	DOMAIN	Assigned	Sponsor	
+PC	USUBJID	Unique Subject Identifier	Char	Req		Assigned	Sponsor	
+PC	PCSEQ	Sequence Number	Num	Req		Assigned	Sponsor	
+PC	PCTESTCD	Pharmacokinetic Test Short Name	Char	Req		Assigned	Sponsor	
+PC	PCTEST	Pharmacokinetic Test Name	Char	Req		Assigned	Sponsor	
+PC	PCORRES	Result or Finding in Original Units	Char	Exp		Collected	Vendor	
+PC	PCORRESU	Original Units	Char	Exp	UNIT	Collected	Vendor	
+PC	PCSTRESC	Character Result/Finding in Std Format	Char	Exp		Derived		PCORRES in standard format; <BLQ below the lower limit of quantitation.
+PC	PCSTRESN	Numeric Result/Finding in Standard Units	Num	Exp		Derived		PCSTRESC as a number; missing when BLQ.
+PC	PCSTRESU	Standard Units	Char	Exp	UNIT	Assigned	Sponsor	
+PC	PCNAM	Vendor Name	Char	Exp		Collected	Vendor	
+PC	PCSPEC	Specimen Material Type	Char	Req	SPECTYPE	Collected	Vendor	
+PC	PCLLOQ	Lower Limit of Quantitation	Num	Exp		Collected	Vendor	
+PC	VISITNUM	Visit Number	Num	Exp		Assigned	Sponsor	
+PC	VISIT	Visit Name	Char	Perm		Assigned	Sponsor	
+PC	VISITDY	Planned Study Day of Visit	Num	Perm		Assigned	Sponsor	
+PC	EPOCH	Epoch	Char	Perm	EPOCH	Derived		The epoch of the subject's SE element that contains the record's start date.
+PC	PCDTC	Date/Time of Specimen Collection	Char	Exp		Collected	Vendor	
+PC	PCDY	Study Day of Specimen Collection	Num	Perm		Derived		Study day of PCDTC relative to DM.RFSTDTC: date - RFSTDTC + 1 on or after RFSTDTC, date - RFSTDTC before it (no day 0).
+PC	PCTPT	Planned Time Point Name	Char	Perm		Assigned	Sponsor	
+PC	PCTPTNUM	Planned Time Point Number	Num	Perm		Assigned	Sponsor	
+PC	PCELTM	Planned Elapsed Time from Time Point Ref	Char	Perm		Assigned	Sponsor	
+PC	PCTPTREF	Time Point Reference	Char	Perm		Assigned	Sponsor	
+PC	PCRFTDTC	Date/Time of Reference Time Point	Char	Perm		Derived		EXSTDTC of the most recent administration before the sample (the first for the pre-dose sample).
+PP	STUDYID	Study Identifier	Char	Req		Assigned	Sponsor	
+PP	DOMAIN	Domain Abbreviation	Char	Req	DOMAIN	Assigned	Sponsor	
+PP	USUBJID	Unique Subject Identifier	Char	Req		Assigned	Sponsor	
+PP	PPSEQ	Sequence Number	Num	Req		Assigned	Sponsor	
+PP	PPTESTCD	Parameter Short Name	Char	Req	PKPARMCD	Assigned	Sponsor	
+PP	PPTEST	Parameter Name	Char	Req	PKPARM	Assigned	Sponsor	
+PP	PPCAT	Parameter Category	Char	Exp		Assigned	Sponsor	
+PP	PPORRES	Result or Finding in Original Units	Char	Exp		Derived		Non-compartmental analysis of PC (PCSTRESN, BLQ as 0) against hours after PCRFTDTC (pre-dose as 0; after the first dose, the previous dose's tau sample is the value at 0), as PKNCA 0.12 defaults: lin up/log down AUC, lambda z by best adjusted R-squared (within 1e-4, most points) on 3+ points after Tmax.
+PP	PPORRESU	Original Units	Char	Exp	PKUNIT	Assigned	Sponsor	
+PP	PPSTRESC	Character Result/Finding in Std Format	Char	Exp		Derived		PPORRES.
+PP	PPSTRESN	Numeric Result/Finding in Standard Units	Num	Exp		Derived		Non-compartmental analysis of PC (PCSTRESN, BLQ as 0) against hours after PCRFTDTC (pre-dose as 0; after the first dose, the previous dose's tau sample is the value at 0), as PKNCA 0.12 defaults: lin up/log down AUC, lambda z by best adjusted R-squared (within 1e-4, most points) on 3+ points after Tmax.
+PP	PPSTRESU	Standard Units	Char	Exp	PKUNIT	Assigned	Sponsor	
+PP	PPSPEC	Specimen Material Type	Char	Exp	SPECTYPE	Assigned	Sponsor	
+PP	PPRFTDTC	Date/Time of Reference Point	Char	Exp		Derived		PCRFTDTC of the profile.
+PP	PPSTINT	Planned Start of Assessment Interval	Char	Perm		Assigned	Sponsor	
+PP	PPENINT	Planned End of Assessment Interval	Char	Perm		Assigned	Sponsor	
+FT	STUDYID	Study Identifier	Char	Req		Assigned	Sponsor	
+FT	DOMAIN	Domain Abbreviation	Char	Req	DOMAIN	Assigned	Sponsor	
+FT	USUBJID	Unique Subject Identifier	Char	Req		Assigned	Sponsor	
+FT	FTSEQ	Sequence Number	Num	Req		Assigned	Sponsor	
+FT	FTTESTCD	Short Name of Test	Char	Req	ADCTC	Assigned	Sponsor	
+FT	FTTEST	Name of Test	Char	Req	ADCTN	Assigned	Sponsor	
+FT	FTCAT	Category	Char	Exp	FTCAT	Assigned	Sponsor	
+FT	FTORRES	Result or Finding in Original Units	Char	Exp		Collected	Investigator	
+FT	FTSTRESC	Character Result/Finding in Std Format	Char	Exp		Derived		FTORRES in standard format.
+FT	FTSTRESN	Numeric Result/Finding in Standard Units	Num	Exp		Derived		FTSTRESC as a number.
+FT	FTSTAT	Completion Status	Char	Perm	ND	Collected	Investigator	
+FT	FTREASND	Reason Not Performed	Char	Perm		Collected	Investigator	
+FT	FTLOBXFL	Last Observation Before Exposure Flag	Char	Exp	NY	Derived		'Y' on the last non-missing result on or before the first dose, per test.
+FT	VISITNUM	Visit Number	Num	Exp		Assigned	Sponsor	
+FT	VISIT	Visit Name	Char	Perm		Assigned	Sponsor	
+FT	VISITDY	Planned Study Day of Visit	Num	Perm		Assigned	Sponsor	
+FT	EPOCH	Epoch	Char	Perm	EPOCH	Derived		The epoch of the subject's SE element that contains the record's start date.
+FT	FTDTC	Date/Time of Test	Char	Exp		Collected	Investigator	
+FT	FTDY	Study Day of Test	Num	Perm		Derived		Study day of FTDTC relative to DM.RFSTDTC: date - RFSTDTC + 1 on or after RFSTDTC, date - RFSTDTC before it (no day 0).
+CE	STUDYID	Study Identifier	Char	Req		Assigned	Sponsor	
+CE	DOMAIN	Domain Abbreviation	Char	Req	DOMAIN	Assigned	Sponsor	
+CE	USUBJID	Unique Subject Identifier	Char	Req		Assigned	Sponsor	
+CE	CESEQ	Sequence Number	Num	Req		Assigned	Sponsor	
+CE	CETERM	Reported Term for the Clinical Event	Char	Req		Collected	Investigator	
+CE	CEDECOD	Dictionary-Derived Term	Char	Perm		Derived		CETERM coded to its Preferred Term (open MedDRA-shaped dictionary).
+CE	CECAT	Category for Clinical Event	Char	Perm		Assigned	Sponsor	
+CE	CEBODSYS	Body System or Organ Class	Char	Perm		Derived		Primary System Organ Class of CEDECOD.
+CE	EPOCH	Epoch	Char	Perm	EPOCH	Derived		The epoch of the subject's SE element that contains the record's start date.
+CE	CESTDTC	Start Date/Time of Clinical Event	Char	Exp		Collected	Investigator	
+CE	CESTDY	Study Day of Start of Event	Num	Perm		Derived		Study day of CESTDTC relative to DM.RFSTDTC: date - RFSTDTC + 1 on or after RFSTDTC, date - RFSTDTC before it (no day 0).
