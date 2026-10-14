@@ -2,7 +2,7 @@ par <- study("parallel_continuous", n = 80, seed = 3)
 onc <- study("oncology_solid_tumor", n = 60, seed = 3)
 
 test_that("archetypes(), controls() and formats() describe the build", {
-  expect_setequal(names(archetypes()), c("parallel_continuous", "oncology_solid_tumor", "phase1_sad_mad", "crossover_be", "dose_ranging_ph2", "cns_alzheimers", "cv_outcomes"))
+  expect_setequal(names(archetypes()), c("parallel_continuous", "oncology_solid_tumor", "phase1_sad_mad", "crossover_be", "dose_ranging_ph2", "cns_alzheimers", "cv_outcomes", "ophthalmology", "pediatric_growth", "respiratory_exacerbation", "vaccine", "dose_escalation", "heme_lymphoma"))
   ctl <- controls("parallel_continuous")
   expect_true(all(c("indication", "weeks") %in% ctl$name))
   expect_identical(ctl$default[[which(ctl$name == "weeks")]], 24L)
@@ -164,4 +164,63 @@ test_that("a cardiovascular outcomes study is event-driven", {
   expect_setequal(unique(cv$adam$ADTTE$PARAMCD), c("MACE", "CVDEATH", "MI", "STROKE", "DEATH"))
   expect_gte(cv$truth$outcomes$realised_first_mace_events, 30)
   expect_true(verify(cv)$passed)
+})
+
+test_that("an ophthalmology study examines both eyes", {
+  oph <- study("ophthalmology", n = 40, seed = 3, interval_weeks = c(4, 8))
+  expect_setequal(unique(oph$sdtm$OE$OELAT), c("LEFT", "RIGHT"))
+  expect_setequal(unique(oph$adam$ADBCVA$PARAMCD), c("SBCVA", "FBCVA", "SBCVALOG", "FBCVALOG"))
+  expect_true(all(oph$adam$ADSL$STUDYEYE %in% c("LEFT", "RIGHT")))
+  expect_true(verify(oph)$passed)
+})
+
+test_that("a paediatric growth study reports growth z-scores", {
+  ped <- study("pediatric_growth", n = 40, seed = 3, age_range = c(4, 9))
+  expect_false(anyNA(ped$sdtm$DM$BRTHDTC))
+  expect_true(all(c("HGTSDS", "BMIPCTL", "HTVEL") %in% ped$adam$ADVS$PARAMCD))
+  expect_true(verify(ped)$passed)
+})
+
+test_that("a respiratory study counts exacerbations", {
+  res <- study("respiratory_exacerbation", n = 60, seed = 3, exacerbation_rate = 2)
+  expect_setequal(unique(res$adam$ADEXAC$PARAMCD), c("EXACN", "SEVEXACN", "FUPYR", "EXACRATE"))
+  expect_true(all(res$sdtm$CE$CECAT == "EXACERBATION"))
+  expect_true(verify(res)$passed)
+})
+
+test_that("a vaccine study records immunogenicity and reactogenicity", {
+  vax <- study("vaccine", n = 40, seed = 3)
+  expect_true(all(vax$sdtm$FACE$DOMAIN == "FA"))
+  expect_true(all(c("ADIS", "ADCE", "ADFACE") %in% names(vax$adam)))
+  expect_true(verify(vax)$passed)
+})
+
+test_that("a dose-escalation study flags DLTs", {
+  esc <- study("dose_escalation", n = 30, seed = 3, method = "boin")
+  expect_true("DLTEVLFL" %in% names(esc$adam$ADSL))
+  expect_true(verify(esc)$passed)
+})
+
+test_that("a lymphoma study follows Lugano 2014", {
+  lym <- study("heme_lymphoma", n = 40, seed = 3)
+  expect_true(all(lym$sdtm$RS$RSCAT == "LUGANO CLASSIFICATION"))
+  expect_true(verify(lym)$passed)
+})
+
+test_that("control subjects cross over on progression", {
+  x <- study("oncology_solid_tumor", n = 200, seed = 4, crossover_prob = 0.8)
+  expect_true("CONTINUATION TREATMENT" %in% x$sdtm$SE$EPOCH)
+  expect_gt(x$truth$crossover$crossed_over, 0)
+  expect_true(verify(x)$passed)
+})
+
+test_that("an interim cut is a snapshot of the same study", {
+  final <- study("oncology_solid_tumor", n = 200, seed = 4)
+  interim <- study("oncology_solid_tumor", n = 200, seed = 4, interim_months = 10)
+  expect_lt(interim$cutoff, final$cutoff)
+  ts <- interim$sdtm$TS
+  expect_identical(ts$TSVAL[ts$TSPARMCD == "DCUTDESC"], "INTERIM ANALYSIS")
+  expect_true(all(interim$adam$ADSL$USUBJID %in% final$adam$ADSL$USUBJID))
+  expect_identical(interim$truth$interim$n_randomised, nrow(interim$adam$ADSL))
+  expect_true(verify(interim)$passed)
 })
