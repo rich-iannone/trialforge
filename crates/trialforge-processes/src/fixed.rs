@@ -81,6 +81,9 @@ pub struct CourseParams {
     pub endpoints: Vec<EndpointEffect>,
     /// Baseline BMI (mean, SD).
     pub bmi: (f64, f64),
+    /// Dose only on the first this-many days of treatment (e.g. 1 for a single-dose study);
+    /// `None` doses every day of the treatment period.
+    pub dosing_days: Option<i32>,
 }
 
 /// Why a course could not be simulated.
@@ -381,6 +384,9 @@ fn simulate_one(design: &Design, schedule: &Schedule, p: &CourseParams, s: &Subj
         }
     };
     let last_dose = last_dose.max(first_dose);
+    let last_dose = p.dosing_days.map_or(last_dose, |n| {
+        last_dose.min(first_dose.add_days(n.max(1) - 1))
+    });
     let discontinuing_ae = match &early {
         Some((_, Reason::AdverseEvent(i))) => Some(*i),
         _ => None,
@@ -518,6 +524,7 @@ fn simulate_one(design: &Design, schedule: &Schedule, p: &CourseParams, s: &Subj
             visits.push(VisitOccurrence {
                 visitnum: v.visitnum,
                 date: *date,
+                end: None,
             });
         }
     }
@@ -526,6 +533,7 @@ fn simulate_one(design: &Design, schedule: &Schedule, p: &CourseParams, s: &Subj
             visits.push(VisitOccurrence {
                 visitnum: fu.visitnum,
                 date: fd,
+                end: None,
             });
         }
     }
@@ -543,6 +551,7 @@ fn simulate_one(design: &Design, schedule: &Schedule, p: &CourseParams, s: &Subj
             visits.push(VisitOccurrence {
                 visitnum: et.visitnum,
                 date: *d,
+                end: None,
             });
         }
     }
@@ -644,6 +653,8 @@ fn simulate_one(design: &Design, schedule: &Schedule, p: &CourseParams, s: &Subj
         findings,
         lesions: Vec::new(),
         tumor: Vec::new(),
+        pk: Vec::new(),
+        clinical_events: Vec::new(),
     }
 }
 
@@ -679,6 +690,8 @@ fn exposure_intervals(
                     start: st,
                     end: d.add_days(-1),
                     dose,
+                    time: None,
+                    period: None,
                 });
                 start = None;
             }
@@ -693,6 +706,8 @@ fn exposure_intervals(
             start: st,
             end: last,
             dose,
+            time: None,
+            period: None,
         });
     }
     out
@@ -938,6 +953,7 @@ fn findings(
                     (pv.vitals && a.testcd != "HEIGHT")
                         || (a.testcd == "HEIGHT" && pv.kind == VisitKind::Screening)
                 }
+                FindingDomain::Ft => false,
             };
             if !wanted {
                 continue;
