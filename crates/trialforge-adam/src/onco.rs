@@ -7,6 +7,12 @@
 //!
 //! One adaptation: nodal target lesions are measured by short axis (`TRTESTCD = SAXIS`, RECIST
 //! 1.1) and become `NLDIAMnn`, where the template reads `LPERP`.
+//!
+//! Lymphoma (RS `RSCAT = LUGANO CLASSIFICATION`): ADRS analyses the PET-CT-based overall
+//! response (`RSSCAT = PET-CT`) in Lugano 2014's response categories, complete metabolic
+//! response as CR, partial as PR, stable metabolic disease as SD and progressive as PD
+//! ([`lugano_category`]); `PARCAT3` is the classification. ADTR is not derived (its template
+//! is for RECIST sums of diameters).
 
 use std::collections::HashMap;
 
@@ -14,6 +20,17 @@ use trialforge_cdisc::build;
 use trialforge_core::{Dataset, Date, Values};
 
 use crate::{DeriveError, Frame, dt, index, rel_day};
+
+/// The Lugano 2014 response category of a PET-CT-based overall response.
+pub fn lugano_category(c: &str) -> &str {
+    match c {
+        "CMR" => "CR",
+        "PMR" => "PR",
+        "SMD" => "SD",
+        "PMD" => "PD",
+        other => other,
+    }
+}
 
 /// admiralonco's `aval_resp()`.
 fn aval_resp(c: &str) -> Option<f64> {
@@ -415,13 +432,30 @@ pub fn adrs(rs: &Dataset, tu: Option<&Dataset>, adsl: &Dataset) -> Result<Datase
         rs.chars("RSDTC")?,
     );
     let (visit, visitnum, seq) = (rs.chars("VISIT")?, rs.ints("VISITNUM")?, rs.ints("RSSEQ")?);
+    let lugano = rs
+        .chars("RSCAT")?
+        .iter()
+        .any(|c| c.as_deref() == Some("LUGANO CLASSIFICATION"));
+    let scat = if rs.has("RSSCAT") {
+        rs.chars("RSSCAT")?.to_vec()
+    } else {
+        vec![None; rs.n()]
+    };
     for i in 0..rs.n() {
         if testcd[i].as_deref() != Some("OVRLRESP") || eval[i].as_deref() != Some("INVESTIGATOR") {
             continue;
         }
+        if lugano && scat[i].as_deref() != Some("PET-CT") {
+            continue;
+        }
         let Some(u) = u[i].as_deref() else { continue };
+        let value = stresc[i].clone().unwrap_or_default();
         ovr.entry(u).or_default().push(Ovr {
-            avalc: stresc[i].clone().unwrap_or_default(),
+            avalc: if lugano {
+                lugano_category(&value).to_string()
+            } else {
+                value
+            },
             adt: dt(&dtc[i]),
             visit: visit[i].clone(),
             visitnum: visitnum[i],
@@ -501,7 +535,18 @@ pub fn adrs(rs: &Dataset, tu: Option<&Dataset>, adsl: &Dataset) -> Result<Datase
         ("PARAM", param(|cd| Some(adrs_param(cd).0))),
         ("PARCAT1", param(|cd| adrs_param(cd).1)),
         ("PARCAT2", param(|cd| adrs_param(cd).2)),
-        ("PARCAT3", param(|cd| adrs_param(cd).3)),
+        (
+            "PARCAT3",
+            Values::Char(
+                recs.iter()
+                    .map(|r| {
+                        adrs_param(r.paramcd)
+                            .3
+                            .map(|c| if lugano { "LUGANO CLASSIFICATION" } else { c }.to_string())
+                    })
+                    .collect(),
+            ),
+        ),
         (
             "AVALC",
             Values::Char(recs.iter().map(|r| r.avalc.clone()).collect()),
