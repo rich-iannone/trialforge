@@ -199,6 +199,8 @@ pub fn simulate(design: &Design, p: &AdasParams, subjects: &[Subject], timelines
                     visitnum,
                     date,
                     value: if missing { f64::NAN } else { score as f64 },
+                    laterality: None,
+                    dp: None,
                 });
             }
         }
