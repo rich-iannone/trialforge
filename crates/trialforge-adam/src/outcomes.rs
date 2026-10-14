@@ -39,6 +39,9 @@ const PARAMS: [(&str, &str, &[&str]); 5] = [
     ),
 ];
 
+/// `CECAT` of the adjudicated endpoint events.
+pub(crate) const CATEGORY: &str = "ADJUDICATED ENDPOINT EVENT";
+
 /// The event description of a Preferred Term.
 fn desc(pt: &str) -> &'static str {
     match pt {
@@ -61,13 +64,17 @@ pub fn adtte_outcomes(ce: &Dataset, adsl: &Dataset) -> Result<Dataset, DeriveErr
     );
     // First event of each PT per subject: (date, CESEQ).
     let mut first: HashMap<(usize, &str), (Date, Option<i64>)> = HashMap::new();
-    let (u, decod, dtc, seq) = (
+    let (u, decod, dtc, seq, cat) = (
         ce.chars("USUBJID")?,
         ce.chars("CEDECOD")?,
         ce.chars("CESTDTC")?,
         ce.ints("CESEQ")?,
+        ce.chars("CECAT")?,
     );
     for i in 0..ce.n() {
+        if cat[i].as_deref() != Some(CATEGORY) {
+            continue;
+        }
         let (Some(x), Some(pt), Some(d)) = (u[i].as_deref(), decod[i].as_deref(), dt(&dtc[i]))
         else {
             continue;
@@ -77,13 +84,6 @@ pub fn adtte_outcomes(ce: &Dataset, adsl: &Dataset) -> Result<Dataset, DeriveErr
         if (d, seq[i]) < *e {
             *e = (d, seq[i]);
         }
-    }
-    struct Rec {
-        sl: usize,
-        paramcd: &'static str,
-        param: &'static str,
-        start: Date,
-        s: Source,
     }
     let mut recs = Vec::new();
     for r in 0..sl.n() {
@@ -134,7 +134,7 @@ pub fn adtte_outcomes(ce: &Dataset, adsl: &Dataset) -> Result<Dataset, DeriveErr
                     .collect()
             };
             if let Some(s) = tte(&events, &censors) {
-                recs.push(Rec {
+                recs.push(TteRec {
                     sl: r,
                     paramcd,
                     param,
@@ -144,6 +144,20 @@ pub fn adtte_outcomes(ce: &Dataset, adsl: &Dataset) -> Result<Dataset, DeriveErr
             }
         }
     }
+    tte_dataset(&sl, &recs)
+}
+
+/// One ADTTE record: the ADSL row, parameter, start date and the chosen event or censoring.
+pub(crate) struct TteRec {
+    pub sl: usize,
+    pub paramcd: &'static str,
+    pub param: &'static str,
+    pub start: Date,
+    pub s: Source,
+}
+
+/// Builds ADTTE from records in ADSL-row then parameter order.
+pub(crate) fn tte_dataset(sl: &Frame<'_>, recs: &[TteRec]) -> Result<Dataset, DeriveError> {
     let sl_rows: Vec<usize> = recs.iter().map(|r| r.sl).collect();
     let mut aseq: Vec<Option<i64>> = Vec::with_capacity(recs.len());
     for (i, r) in recs.iter().enumerate() {
@@ -155,8 +169,8 @@ pub fn adtte_outcomes(ce: &Dataset, adsl: &Dataset) -> Result<Dataset, DeriveErr
         aseq.push(Some(k));
     }
     let adt: Vec<Date> = recs.iter().map(|r| r.s.date.max(r.start)).collect();
-    let mut cols = adsl_columns(&sl, &sl_rows, &ADSL_KEYS)?;
-    cols.extend(adsl_columns(&sl, &sl_rows, &["AGE", "SEX", "RANDDT"])?);
+    let mut cols = adsl_columns(sl, &sl_rows, &ADSL_KEYS)?;
+    cols.extend(adsl_columns(sl, &sl_rows, &["AGE", "SEX", "RANDDT"])?);
     cols.extend(vec![
         ("ASEQ", Values::Int(aseq)),
         (
