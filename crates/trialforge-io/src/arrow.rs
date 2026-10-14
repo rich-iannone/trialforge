@@ -1,13 +1,16 @@
 //! Dataset → Arrow `RecordBatch` (feature `arrow`).
 //!
-//! Types: `Char` → `Utf8`, `Num` → `Float64`, `Int` → `Int64`, `Date` → `Date32`. Labels travel
+//! Types: `Char` → `Utf8`, `Num` → `Float64`, `Int` → `Int64`, `Date` → `Date32`, `DateTime`
+//! → `Timestamp(Second)` without a time zone. Labels travel
 //! as `label` metadata on each field and on the schema (with the dataset `name`).
 
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use arrow_array::{ArrayRef, Date32Array, Float64Array, Int64Array, RecordBatch, StringArray};
-use arrow_schema::{ArrowError, DataType, Field, Schema};
+use arrow_array::{
+    ArrayRef, Date32Array, Float64Array, Int64Array, RecordBatch, StringArray, TimestampSecondArray,
+};
+use arrow_schema::{ArrowError, DataType, Field, Schema, TimeUnit};
 use trialforge_core::{Dataset, Values};
 
 /// The dataset as a single Arrow record batch.
@@ -26,6 +29,12 @@ pub fn to_record_batch(ds: &Dataset) -> Result<RecordBatch, ArrowError> {
                 DataType::Date32,
                 Arc::new(Date32Array::from(
                     v.iter().map(|d| d.map(|d| d.days())).collect::<Vec<_>>(),
+                )),
+            ),
+            Values::DateTime(v) => (
+                DataType::Timestamp(TimeUnit::Second, None),
+                Arc::new(TimestampSecondArray::from(
+                    v.iter().map(|d| d.map(|d| d.seconds())).collect::<Vec<_>>(),
                 )),
             ),
         };
