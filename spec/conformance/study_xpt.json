@@ -52,7 +52,7 @@
       },
       "define_md5": {
         "sdtm": "aed12c28a935a825d5d87d0d1c829bbb",
-        "adam": "7da7b5c1a421706a61f7b602b3643821"
+        "adam": "442378d8ae4bd1e2c6bcecd966d5f60a"
       }
     },
     {
@@ -109,7 +109,7 @@
       },
       "define_md5": {
         "sdtm": "500a260034e8a3ceabcfaf22f44fce94",
-        "adam": "78796c90cb062d30ca11a11aa27c0a14"
+        "adam": "faed0b02a1b495f1ee40b7582485e119"
       }
     },
     {
@@ -159,7 +159,7 @@
       },
       "define_md5": {
         "sdtm": "abe896d102ffbc3a7f47014cbbf2249f",
-        "adam": "31781453a4ed820b409e0305fcb29383"
+        "adam": "8cb82e3ad643ea0569ed7cfc8b7cefc0"
       }
     },
     {
@@ -206,7 +206,7 @@
         "adtr.xpt": "f42862502b145de037a981fa5145e75a"
       },
       "define_md5": {
-        "sdtm": "9fd99dc3fb59cf0dbd9909c71070c5ce",
+        "sdtm": "f17eb27e620d41f21336aaaed147f7bb",
         "adam": "d4dac02eec53ec8f74473d6742bdc157"
       }
     },
@@ -254,7 +254,7 @@
         "adtr.xpt": "fd1419d7e64e301ab391915f060ec529"
       },
       "define_md5": {
-        "sdtm": "fafa28c1fba0750c7c17093fc4bbd185",
+        "sdtm": "c0a25eaee54cd1cc0dfda9bf64309001",
         "adam": "a00f073fbcaca38944436f7f137dff60"
       }
     },
@@ -317,7 +317,7 @@
       },
       "define_md5": {
         "sdtm": "7f2b72c69fda15799e02521f011eb630",
-        "adam": "9119244befce3561c6e5430a2b185ac5"
+        "adam": "61ddd3a856c17780655f206f5b6e9d65"
       }
     },
     {
@@ -387,7 +387,7 @@
       },
       "define_md5": {
         "sdtm": "d32ee333800faa271f71a2fcdec6b014",
-        "adam": "74f4ee3d6df061017ac5109bb46b6f67"
+        "adam": "4a1844b930417b38fecbf44366eb211f"
       }
     },
     {
@@ -449,7 +449,7 @@
       },
       "define_md5": {
         "sdtm": "569846befa366a82c34f6eea93cb37ce",
-        "adam": "8558918d6494495071c6a93314e8d6d5"
+        "adam": "26ab8b46c774bce51abb900991fa536a"
       }
     },
     {
@@ -514,7 +514,7 @@
       },
       "define_md5": {
         "sdtm": "4760379b06ca63497c594b24e5dbb7ed",
-        "adam": "b09426357aaf8b5329861229be2fef13"
+        "adam": "2a3215ced6321b24ea1ed2a651f5c964"
       }
     },
     {
@@ -580,7 +580,7 @@
       },
       "define_md5": {
         "sdtm": "1b5d926939168f9f0ca3bf67d5df8edf",
-        "adam": "2bc4221c58597e65906308449084ec02"
+        "adam": "6999025e480448ead79e87312d5c15a0"
       }
     },
     {
@@ -634,7 +634,7 @@
       },
       "define_md5": {
         "sdtm": "e00762d9c6e9d8c426f982fd48e51e06",
-        "adam": "f638f455de7c5a48c14c190211305b4c"
+        "adam": "835515396adfa0a81c958df6d5c4c394"
       }
     },
     {
@@ -692,7 +692,7 @@
       },
       "define_md5": {
         "sdtm": "b685abcb1246d89fd27ca2a73864aeee",
-        "adam": "de3da1aeb5f188cb6499752019b0e68e"
+        "adam": "4813656714cd87941195e8fd5c6e9655"
       }
     },
     {
@@ -750,7 +750,7 @@
       },
       "define_md5": {
         "sdtm": "c243aa519b563b02419ece7f6cfffea6",
-        "adam": "9d2c663587edf051fa3aa40bbd407c23"
+        "adam": "f181b15b55d68dce410d013d867d5649"
       }
     },
     {
@@ -818,7 +818,7 @@
       },
       "define_md5": {
         "sdtm": "7ad4a79ac39ae7652a3e62fe81845c1b",
-        "adam": "60cd403cbb86451a785619ea12c54b16"
+        "adam": "603f81172e8f51c1000d7b95e2591ff9"
       }
     },
     {
@@ -859,8 +859,813 @@
         "adtte.xpt": "cf7329b58d9a3ca388a36b7084ae0bf4"
       },
       "define_md5": {
-        "sdtm": "cce08add8ec24602e7fbfec95e95ae80",
+        "sdtm": "72cfb674e3e052484335378b94ec7fe0",
         "adam": "5edf8d2dadc165770d3bf6bc8f3075c3"
+      }
+    },
+    {
+      "archetype": "ophthalmology",
+      "n": 60,
+      "seed": 20261011,
+      "controls": {},
+      "rows": {
+        "TA": 6,
+        "TE": 4,
+        "TV": 30,
+        "TI": 4,
+        "TS": 35,
+        "DM": 60,
+        "SE": 120,
+        "SV": 754,
+        "EX": 376,
+        "CM": 172,
+        "AE": 66,
+        "DS": 240,
+        "MH": 368,
+        "LB": 4560,
+        "VS": 4584,
+        "OE": 3016,
+        "SC": 60,
+        "SUPPAE": 66,
+        "ADSL": 60,
+        "ADAE": 66,
+        "ADLB": 4560,
+        "ADVS": 4584,
+        "ADBCVA": 3016
+      },
+      "xpt_md5": {
+        "ta.xpt": "e9018ec5b36cce8c487736f6fa030474",
+        "te.xpt": "fb44db082a083c42974758123c86b159",
+        "tv.xpt": "1f4cdc40a79f4493cdb911e4bffe1640",
+        "ti.xpt": "38dee5f639b2862bf860ca057a8d5131",
+        "ts.xpt": "f4aa3114a8f9742317d625dd70ae05d0",
+        "dm.xpt": "c14b5f2aee73251ff23ee6cd4a6cda77",
+        "se.xpt": "89ae265b3a340feaa3dae1b10e6bd778",
+        "sv.xpt": "011c3853871f5f58dd56c70bdd92cfd0",
+        "ex.xpt": "74c0ee8f1faee06c4c6e6941c1cb319d",
+        "cm.xpt": "3518d844dc3d27b286ca2aae746c5a72",
+        "ae.xpt": "147a21d52d5d6d3bdcdc7ce555690c40",
+        "ds.xpt": "9994cf4f343131fb6ea922972aba7b04",
+        "mh.xpt": "268bb6b0aa3c8123802800cfc98f3f81",
+        "lb.xpt": "7ce3d4e3962bfe5e1d7c2dcccf23ca85",
+        "vs.xpt": "61b0296f2dd162f076ff9404f3a3a394",
+        "oe.xpt": "f23789e9bf10dc1b20280842a7d6fdd9",
+        "sc.xpt": "0c886360bf69db90df8aa8507bdf9d45",
+        "suppae.xpt": "40eb784c4fd7351e040af648177c3976",
+        "adsl.xpt": "4209a4bec18c8dff64c6cee0a5d1928e",
+        "adae.xpt": "3eeebd5b2ce85be56deb21cd35a10352",
+        "adlb.xpt": "1a4183c81e0f3a60f142967b4f68b4d1",
+        "advs.xpt": "7c9871273ca2261e3adffa8eb437f567",
+        "adbcva.xpt": "671e6d463b03268c0814b90283ec1de8"
+      },
+      "define_md5": {
+        "sdtm": "b7de471ef8ee531840b768f22dbbde54",
+        "adam": "e98b74e4b67c443955d2f86626ff19f6"
+      }
+    },
+    {
+      "archetype": "ophthalmology",
+      "n": 20,
+      "seed": 9,
+      "controls": {
+        "interval_weeks": [
+          4,
+          12
+        ],
+        "weeks": 24
+      },
+      "rows": {
+        "TA": 6,
+        "TE": 4,
+        "TV": 18,
+        "TI": 4,
+        "TS": 35,
+        "DM": 20,
+        "SE": 40,
+        "SV": 152,
+        "EX": 95,
+        "CM": 57,
+        "AE": 10,
+        "DS": 80,
+        "MH": 124,
+        "LB": 1580,
+        "VS": 932,
+        "OE": 608,
+        "SC": 20,
+        "SUPPAE": 10,
+        "ADSL": 20,
+        "ADAE": 10,
+        "ADLB": 1580,
+        "ADVS": 932,
+        "ADBCVA": 608
+      },
+      "xpt_md5": {
+        "ta.xpt": "47fab7e8420129699f0be0a5245cf179",
+        "te.xpt": "9d5e95acd2d16f61bd2a46c651d7b67e",
+        "tv.xpt": "9509bbc82d50736b63b238c00dc9c646",
+        "ti.xpt": "7922afb34c3ebd10969eed5f83ca9203",
+        "ts.xpt": "04b4a50399e25d145defdb4eb6926b82",
+        "dm.xpt": "b0d3a6513879c763f1191740b0b9fc7e",
+        "se.xpt": "6c67d332be4168af00fd7a59f2145594",
+        "sv.xpt": "bde651537a339144962b3520fc148a63",
+        "ex.xpt": "cb25bbdd2250b840ed9ecf842b103aff",
+        "cm.xpt": "8c17d9e20bed00bed4598e6e9f8022db",
+        "ae.xpt": "572bac64af5db4784856da6857612b21",
+        "ds.xpt": "88228cca05a26be203d6d9626e108862",
+        "mh.xpt": "ce3fd41016cf86095e3cc4dafdf137cd",
+        "lb.xpt": "ff6c1e4532e8d7dd73b26de79a02b7db",
+        "vs.xpt": "350f74d3867482494ce02bd18b9060ae",
+        "oe.xpt": "48ff0f7387f0271de44498f54a4acc25",
+        "sc.xpt": "8cf6d036dff175e59dffd147b2181b00",
+        "suppae.xpt": "556c0e7640a475853b7ff2c0afa7d417",
+        "adsl.xpt": "2c53a68b47a837de749dcc08c1bbe18f",
+        "adae.xpt": "b25ca7d6345d6a2ebc84e83d9978c471",
+        "adlb.xpt": "bb6a1f08dc79464d05e466f24e1b8168",
+        "advs.xpt": "281a33a9f4d0b09f231947d84f9f3e91",
+        "adbcva.xpt": "a05cb41d9bb86962395a201a01b74df6"
+      },
+      "define_md5": {
+        "sdtm": "90d79c3d07716d9d42c416cf79c1be5d",
+        "adam": "4c3a917ce93915eabc418c6b8ece3c23"
+      }
+    },
+    {
+      "archetype": "pediatric_growth",
+      "n": 60,
+      "seed": 20261011,
+      "controls": {},
+      "rows": {
+        "TA": 6,
+        "TE": 4,
+        "TV": 14,
+        "TI": 4,
+        "TS": 35,
+        "DM": 60,
+        "SE": 120,
+        "SV": 343,
+        "EX": 226,
+        "CM": 61,
+        "AE": 74,
+        "DS": 240,
+        "MH": 134,
+        "LB": 4700,
+        "VS": 2744,
+        "SUPPAE": 74,
+        "ADSL": 60,
+        "ADAE": 74,
+        "ADLB": 4700,
+        "ADVS": 5025
+      },
+      "xpt_md5": {
+        "ta.xpt": "a6865e89165536b915a1eb36c91a6d74",
+        "te.xpt": "2455a9313490160da7015eee8df500ea",
+        "tv.xpt": "e0985423ce85cf17b812ef2e1c52fc80",
+        "ti.xpt": "81c184c18445501a2500ec7dcf4b8696",
+        "ts.xpt": "b8f86fa921285736b17a2a1558f4cb31",
+        "dm.xpt": "554189a9f405b4a1fb68f9c3cb87fddf",
+        "se.xpt": "38c14f15348ec6c140e3dce243804670",
+        "sv.xpt": "6cbd04ec76ad37b26f1131591bedd086",
+        "ex.xpt": "7a47cf2f564a93a085ca970b6c577f61",
+        "cm.xpt": "45d1af20f1a4b64a9919e1552f94dc89",
+        "ae.xpt": "bada498c1dea76fc7dfa86d974855ea4",
+        "ds.xpt": "d1b0662df328a0f5f4a7ac027fe102b1",
+        "mh.xpt": "22331e2e2f977d23400e574d746d17bc",
+        "lb.xpt": "7e4b26c21efea2582bef8cb593279b77",
+        "vs.xpt": "861c4ca93a3b086265553956ce8d60fc",
+        "suppae.xpt": "54df898362a4e10e5d8e1c808f37ad39",
+        "adsl.xpt": "03ae8f7aa985288f23f885524182a307",
+        "adae.xpt": "69f5eae42dac30e5f5861eef5667adeb",
+        "adlb.xpt": "bb5e33a4e06b01523dd609a44422ac78",
+        "advs.xpt": "04671a07c93094a30163d29700dee985"
+      },
+      "define_md5": {
+        "sdtm": "3e4c097dcd7073fa1ecbe3de8cd95bdf",
+        "adam": "b18cdbff9c4483d0a9a0eb199d21ef38"
+      }
+    },
+    {
+      "archetype": "pediatric_growth",
+      "n": 20,
+      "seed": 10,
+      "controls": {
+        "age_range": [
+          5,
+          7
+        ],
+        "weeks": 26
+      },
+      "rows": {
+        "TA": 6,
+        "TE": 4,
+        "TV": 10,
+        "TI": 4,
+        "TS": 35,
+        "DM": 20,
+        "SE": 40,
+        "SV": 80,
+        "EX": 40,
+        "CM": 17,
+        "AE": 29,
+        "DS": 80,
+        "MH": 46,
+        "LB": 1200,
+        "VS": 640,
+        "SUPPAE": 29,
+        "ADSL": 20,
+        "ADAE": 29,
+        "ADLB": 1200,
+        "ADVS": 1160
+      },
+      "xpt_md5": {
+        "ta.xpt": "36735dd8bf0fa414a9d676ced3077acc",
+        "te.xpt": "d2b47e4fb1e2b0da2a6e3770c4098240",
+        "tv.xpt": "b428723d45fe0ee934ffb0a0d279d823",
+        "ti.xpt": "74741d30104926546e127764796b0dad",
+        "ts.xpt": "c2cbb426bca9fd0dcf275bc93b6b536a",
+        "dm.xpt": "0ac793a40f8b05d6ece6e19acfe643e8",
+        "se.xpt": "25f1cfb56174219e76ab287c561ca639",
+        "sv.xpt": "5f3065fd26a661717f727c36264c4f0a",
+        "ex.xpt": "94c13ceb824d49ab40dd5fd1e535f89d",
+        "cm.xpt": "78d41aef6e8c42e1fcbdcf1b2d4efe78",
+        "ae.xpt": "800b3c644b3cd4d8e721fe3cfd36fd9e",
+        "ds.xpt": "7b430643628733731d8682b83945c411",
+        "mh.xpt": "25dc746b87d47e3157a8b919f668d47f",
+        "lb.xpt": "585443f2c398ea3677e08fefc2d8259f",
+        "vs.xpt": "9306785058a89c208ec9a72306d3492a",
+        "suppae.xpt": "1d49390616e72c433edf108b99533b92",
+        "adsl.xpt": "ccc907834acb055b0bb41e062e30f62a",
+        "adae.xpt": "dc96285d8a9651a12421c77a34e510dd",
+        "adlb.xpt": "e1998e519093a1ce2bad19303b8b765a",
+        "advs.xpt": "c9e9067d027f76281e58cbd161dee480"
+      },
+      "define_md5": {
+        "sdtm": "48f3bb251057f0177a33df083fb0812d",
+        "adam": "be63208ca911bb3eeba0845c60500af7"
+      }
+    },
+    {
+      "archetype": "respiratory_exacerbation",
+      "n": 60,
+      "seed": 20261011,
+      "controls": {},
+      "rows": {
+        "TA": 6,
+        "TE": 4,
+        "TV": 22,
+        "TI": 4,
+        "TS": 35,
+        "DM": 60,
+        "SE": 120,
+        "SV": 546,
+        "EX": 429,
+        "CM": 176,
+        "AE": 55,
+        "DS": 240,
+        "MH": 267,
+        "LB": 4660,
+        "VS": 3336,
+        "RE": 546,
+        "CE": 45,
+        "SUPPAE": 55,
+        "ADSL": 60,
+        "ADAE": 55,
+        "ADLB": 4660,
+        "ADVS": 3336,
+        "ADRE": 546,
+        "ADTTE": 60,
+        "ADEXAC": 240
+      },
+      "xpt_md5": {
+        "ta.xpt": "6cfbf1546ee9cd293c1a625a46825410",
+        "te.xpt": "c6b95df7d7d7babf98c93860a079a406",
+        "tv.xpt": "a1431e4398f3864e7c59ba950c86ebd5",
+        "ti.xpt": "352e71c4949facb5cf265f4e246b5fe4",
+        "ts.xpt": "5890fd2e7a971244bdab24eb1591876a",
+        "dm.xpt": "b49afbbf99012e41cfa1448a50e0b424",
+        "se.xpt": "2fe2ae18e40b32992f2da18786d3d2fe",
+        "sv.xpt": "a9230b44a221988681268caf4bfd38cf",
+        "ex.xpt": "18a665c37a01fcbb26c64492fb92094c",
+        "cm.xpt": "76310dc5f74b7ac2700065ea2855ddae",
+        "ae.xpt": "323a38f19439bcfbc5e30584f5995060",
+        "ds.xpt": "500671ce99e0f77419d4ba10b734e8f9",
+        "mh.xpt": "2eb980d2ddd135f3a880420c2be253c1",
+        "lb.xpt": "9d976565130793b09ad903f250d274af",
+        "vs.xpt": "80a023e16728ca86fb3564757130887a",
+        "re.xpt": "cc381269d974f6c67546e411e0c8d564",
+        "ce.xpt": "540f3617272d68d18e90a276c17a6f91",
+        "suppae.xpt": "22aa67491fbb63c809f871e0b7da0e91",
+        "adsl.xpt": "47be37680774988597bc326fd8d7a835",
+        "adae.xpt": "c5df4c37bc7c675eb290993700c5c451",
+        "adlb.xpt": "4503bd1c5d7671636f4323264ae3d7c4",
+        "advs.xpt": "f6be4721165ab4a54fa5c0647e9af103",
+        "adre.xpt": "b60fb7c5fb9fb0a3259f77890e66d032",
+        "adtte.xpt": "36e4c98961caaeaa410e81568e511df6",
+        "adexac.xpt": "563c3e35d3362a0b5eefe716dc5d197a"
+      },
+      "define_md5": {
+        "sdtm": "249e5958d510bdfcb2a540352698892f",
+        "adam": "ac354d55beaffae24ee2098e5182a535"
+      }
+    },
+    {
+      "archetype": "respiratory_exacerbation",
+      "n": 30,
+      "seed": 11,
+      "controls": {
+        "exacerbation_rate": 2.5,
+        "weeks": 24
+      },
+      "rows": {
+        "TA": 6,
+        "TE": 4,
+        "TV": 16,
+        "TI": 4,
+        "TS": 35,
+        "DM": 30,
+        "SE": 60,
+        "SV": 196,
+        "EX": 137,
+        "CM": 96,
+        "AE": 16,
+        "DS": 120,
+        "MH": 153,
+        "LB": 2320,
+        "VS": 1206,
+        "RE": 196,
+        "CE": 22,
+        "SUPPAE": 16,
+        "ADSL": 30,
+        "ADAE": 16,
+        "ADLB": 2320,
+        "ADVS": 1206,
+        "ADRE": 196,
+        "ADTTE": 30,
+        "ADEXAC": 120
+      },
+      "xpt_md5": {
+        "ta.xpt": "eb79edcc697d4a541e556fa56561df57",
+        "te.xpt": "6b35ccc26882e1d7d751af74e5521cc9",
+        "tv.xpt": "f39838bfb0148ac9b2c7e295edd91be3",
+        "ti.xpt": "5b84182fa7f012c2041414c0e238d2c3",
+        "ts.xpt": "af05da11737233219850956991327f10",
+        "dm.xpt": "9e004c7ec338db25d593d42dfe3b18cc",
+        "se.xpt": "c2dded46bbe397b85b35470114b2805f",
+        "sv.xpt": "e20ea127ed4928b1654ba43b01f64698",
+        "ex.xpt": "9c4ccaa580103569a9bb4490ae958c31",
+        "cm.xpt": "5edf47746ebb239a1e785b0c736170bc",
+        "ae.xpt": "59f0733b92796af2e3cb623b485ac078",
+        "ds.xpt": "194eb36dab090b4f704e044edc54ef83",
+        "mh.xpt": "608f1d113b9046558f634408e7e60870",
+        "lb.xpt": "e7c76778210a36d743c8102d2703aab5",
+        "vs.xpt": "89398c998770862b72ae3cfdb1ea3955",
+        "re.xpt": "7298d6cf07026e3e1bce4b2502a61d22",
+        "ce.xpt": "417521193629e14cc10cc93fb32c943e",
+        "suppae.xpt": "4f95a99b8a19047fd0c76f100bc72863",
+        "adsl.xpt": "c5f0afcc3d18cb44cdbc65dcce9cfa52",
+        "adae.xpt": "4d02988ba97242510d562c9fe468a0f2",
+        "adlb.xpt": "e9ce05da35030efad88f04738e7d2aaa",
+        "advs.xpt": "057dfa5c96df942c4a06b0d28d5d7f04",
+        "adre.xpt": "8fb4ad3a3ef94ad9635427894ac7a152",
+        "adtte.xpt": "b085f0671a76cee7e00d578069c2a18b",
+        "adexac.xpt": "dc4f72cd43147929e75dbd941211f2ee"
+      },
+      "define_md5": {
+        "sdtm": "987036a219e12d9bf7cf791e29d23162",
+        "adam": "ced5665f326c27234862717acbfc68bf"
+      }
+    },
+    {
+      "archetype": "vaccine",
+      "n": 60,
+      "seed": 20261011,
+      "controls": {},
+      "rows": {
+        "TA": 6,
+        "TE": 4,
+        "TV": 12,
+        "TI": 3,
+        "TS": 37,
+        "DM": 60,
+        "SE": 179,
+        "SV": 296,
+        "EX": 117,
+        "CM": 82,
+        "AE": 38,
+        "DS": 240,
+        "MH": 118,
+        "LB": 2380,
+        "VS": 2655,
+        "IS": 235,
+        "CE": 1287,
+        "FACE": 8659,
+        "SUPPAE": 38,
+        "ADSL": 60,
+        "ADAE": 38,
+        "ADLB": 2380,
+        "ADVS": 1836,
+        "ADCE": 1287,
+        "ADIS": 940,
+        "ADFACE": 9843
+      },
+      "xpt_md5": {
+        "ta.xpt": "ff0e205c514e9ecb8384af409fe7ffac",
+        "te.xpt": "f9906b57115d7f4e61f1ddd5255bd023",
+        "tv.xpt": "f94f6594c0ce7e657e7d53ecef15c4f8",
+        "ti.xpt": "9306d53fc408db80ecb89388dcecf5fc",
+        "ts.xpt": "1a948b2fe0cb972d50127fffe290ac62",
+        "dm.xpt": "0610044ec8375387b8148eb80de7e2c2",
+        "se.xpt": "c8a21685ea4474686eec41b54d96c7ff",
+        "sv.xpt": "ddad910fbe93f5765cb68c58206e516c",
+        "ex.xpt": "33c00d5d48a9c5b8adb855388d73bf14",
+        "cm.xpt": "a5287665c4ac7c822b3e51746d634ec8",
+        "ae.xpt": "2a4b86f0ad39dcf149c0e78be2d35926",
+        "ds.xpt": "43502851dc68914af28ca6df5425117b",
+        "mh.xpt": "be9d9440b9ae16a7a0b2646231a87e2a",
+        "lb.xpt": "e02481e267a609a0377e25c27790e5e7",
+        "vs.xpt": "d6f030612fc5b6d15fffde1cff8539a9",
+        "is.xpt": "6e718aebaa833797bc2b2dd14c237e86",
+        "ce.xpt": "6e5578dcfbb5d9e69e3dc412a09466d0",
+        "face.xpt": "d4a51eb979b9016e1c7a8776b56543aa",
+        "suppae.xpt": "cf6134ec03b73b7a43373fe917ba186a",
+        "adsl.xpt": "dfd15627971be927b632f4e52deaa587",
+        "adae.xpt": "f27ebb710cbc6a4aba1ef0c2e52a7011",
+        "adlb.xpt": "ccff32816467e1970ba8e4501fe870b5",
+        "advs.xpt": "39da097e6d76c6247ec3258eaf099f65",
+        "adce.xpt": "78cea588b0e2a893f1631058003bbcd4",
+        "adis.xpt": "007f1b9a52e6b1dfd1d1ab61ac451a48",
+        "adface.xpt": "0b0fa2aadd90c5aee194e0ff5a3d92a9"
+      },
+      "define_md5": {
+        "sdtm": "a8e6c119a7e1b6a09ebe36953358a764",
+        "adam": "6d0aad38c02c81ca698fec4026869f6f"
+      }
+    },
+    {
+      "archetype": "vaccine",
+      "n": 30,
+      "seed": 12,
+      "controls": {
+        "doses": 1,
+        "followup_days": 90
+      },
+      "rows": {
+        "TA": 6,
+        "TE": 4,
+        "TV": 10,
+        "TI": 3,
+        "TS": 37,
+        "DM": 30,
+        "SE": 89,
+        "SV": 119,
+        "EX": 30,
+        "CM": 43,
+        "AE": 13,
+        "DS": 120,
+        "MH": 72,
+        "LB": 1180,
+        "VS": 954,
+        "IS": 88,
+        "CE": 330,
+        "FACE": 2197,
+        "SUPPAE": 13,
+        "ADSL": 30,
+        "ADAE": 13,
+        "ADLB": 1180,
+        "ADVS": 744,
+        "ADCE": 330,
+        "ADIS": 352,
+        "ADFACE": 2496
+      },
+      "xpt_md5": {
+        "ta.xpt": "d86cfd0eda9aca02eb550f833707edac",
+        "te.xpt": "2e624ccac34d760cf59d81a53e9a1141",
+        "tv.xpt": "3dceca7095ed8c83ef08cb8c9dfe262d",
+        "ti.xpt": "54fce873f792e58b688734c01a63f66b",
+        "ts.xpt": "f7470b14ae5e727b2b755bbf4ffc4a14",
+        "dm.xpt": "0b3f99bddc0b75933ae4a7b465c631c6",
+        "se.xpt": "45e81ca2e2bd6fd8a002ff1f4cd9787e",
+        "sv.xpt": "f4210327ca349d757038ac6b277aea44",
+        "ex.xpt": "bb36f1264821018d047de85db2ae8845",
+        "cm.xpt": "4ed3e22b87fdb1ad362d1da6eb7db1e9",
+        "ae.xpt": "493916821ae246d839ecb263c8cdf852",
+        "ds.xpt": "89db7047c833f2a34f7d7224b742c948",
+        "mh.xpt": "9ebbb0bdcb64f747c4f62186e3933927",
+        "lb.xpt": "f2dec916b0508a191b2c69ebe5f34a69",
+        "vs.xpt": "741e931037ea86b49ba2b18af3368d3f",
+        "is.xpt": "d014bf3f53af6f2e711026e60a448cbd",
+        "ce.xpt": "9f3edc45bcfe7140ade47ec50355ea28",
+        "face.xpt": "9c4c335616c8b8e525aef37630e84652",
+        "suppae.xpt": "aedb0ed9c992e9e56f7bf9876ac5b6d7",
+        "adsl.xpt": "c4dc39195822ea64fb93880379d0fa4c",
+        "adae.xpt": "15d96bc9a65c65711944006f4a264d19",
+        "adlb.xpt": "9d8df39ccce893ff570079f8a7e68ad0",
+        "advs.xpt": "4234edb90c92e16110d890354279fca1",
+        "adce.xpt": "419072c8e46f488bdf454c3738a30a8b",
+        "adis.xpt": "863f1407b17c97429c0ddd2f4698e303",
+        "adface.xpt": "121c1f4c7fa9a5890aafec2f7e30c9db"
+      },
+      "define_md5": {
+        "sdtm": "ef7eb183778eb5c58596ea33e6a14449",
+        "adam": "ed8537dbae0e47925eea3a6f53648c96"
+      }
+    },
+    {
+      "archetype": "dose_escalation",
+      "n": 30,
+      "seed": 20261011,
+      "controls": {},
+      "rows": {
+        "TA": 18,
+        "TE": 8,
+        "TV": 54,
+        "TI": 3,
+        "TS": 36,
+        "DM": 30,
+        "SE": 89,
+        "SV": 236,
+        "EX": 147,
+        "CM": 55,
+        "AE": 20,
+        "DS": 120,
+        "MH": 123,
+        "LB": 4720,
+        "VS": 1446,
+        "SUPPAE": 25,
+        "ADSL": 30,
+        "ADAE": 20,
+        "ADLB": 4720,
+        "ADVS": 1446
+      },
+      "xpt_md5": {
+        "ta.xpt": "6b429e47b6ae4e9f826f24d6265deb54",
+        "te.xpt": "c4211839788cb68e7d00de3e568bafd3",
+        "tv.xpt": "ae3ddb6d4967ac67eb9660549f975fae",
+        "ti.xpt": "5358a7851dd38ebc874b3f78e31d98ae",
+        "ts.xpt": "c1410b8486c3968a33cb21a955e8c72e",
+        "dm.xpt": "eba6ad365c2f34bff3d62b08a28cb0cf",
+        "se.xpt": "709249620ccd051ab0f4327d32adf051",
+        "sv.xpt": "a3dba686bc19c3fa069875d5409b8197",
+        "ex.xpt": "f5a1e48b5adae352287b6a23feadef94",
+        "cm.xpt": "0bb4efe4cbd3a731a18dc4af318068e9",
+        "ae.xpt": "2cdf478c150b098f7ddf8e7a88b640ac",
+        "ds.xpt": "cd21c7a51b2b62de0d529b9b31bc15db",
+        "mh.xpt": "3dd3dc0be8b94121193ca2f21094deb6",
+        "lb.xpt": "d8348cd05e1628c7e4a42a22f6666b94",
+        "vs.xpt": "45629d77a5f220d95260d2b0fc540e70",
+        "suppae.xpt": "1086289d0c2352f3b95cc51ae123c58f",
+        "adsl.xpt": "cfe51ac89870eb77ebc062820f8dfdd2",
+        "adae.xpt": "83ed6deb6b430174faa743d4c485ded5",
+        "adlb.xpt": "62dca0b03aacd8d41df7c4a20881b8e1",
+        "advs.xpt": "9e08596e0f76028a28dd55c0f650fbe6"
+      },
+      "define_md5": {
+        "sdtm": "7a8e3d418452c36f3ffe7437d76195bb",
+        "adam": "666b6aad4e379d547d22296cdbee8aa6"
+      }
+    },
+    {
+      "archetype": "dose_escalation",
+      "n": 24,
+      "seed": 13,
+      "controls": {
+        "method": "3+3"
+      },
+      "rows": {
+        "TA": 18,
+        "TE": 8,
+        "TV": 54,
+        "TI": 3,
+        "TS": 36,
+        "DM": 21,
+        "SE": 63,
+        "SV": 166,
+        "EX": 103,
+        "CM": 50,
+        "AE": 15,
+        "DS": 84,
+        "MH": 107,
+        "LB": 3320,
+        "VS": 1017,
+        "SUPPAE": 25,
+        "ADSL": 21,
+        "ADAE": 15,
+        "ADLB": 3320,
+        "ADVS": 1017
+      },
+      "xpt_md5": {
+        "ta.xpt": "ae93a34a7699e6e3b29f35d24dd2e6b2",
+        "te.xpt": "408fc35c3a0543c3f699a80fa3760e55",
+        "tv.xpt": "cef88243c0672fcffb3bbc4000889611",
+        "ti.xpt": "b655f751637b0a2ebd1c80a95bee860d",
+        "ts.xpt": "2d21b0bf52f79dac44c9023cec6c7948",
+        "dm.xpt": "3dfccc3665d40f734c2c1b0d09a11ef0",
+        "se.xpt": "54c4c1d18ce95119666e2d01d1528c79",
+        "sv.xpt": "a33f0cd57b4d1efd217cc059deccb1ac",
+        "ex.xpt": "a928bbf82fbe6377f6683a4406942c6f",
+        "cm.xpt": "7b985d3f0aa37339ec8be6ef7e76bc2f",
+        "ae.xpt": "61a00631d11cc1ce9695ca616807e501",
+        "ds.xpt": "ac294d63de2b0f7a2cdbf017780c2f3d",
+        "mh.xpt": "a889fcfba9c4e5eba8bbe88ac7e22578",
+        "lb.xpt": "10fd8611b2cddf8a2620e9ffac9269e4",
+        "vs.xpt": "aed91c98242dacd29784b522de5771a5",
+        "suppae.xpt": "ac589ec55f43205c537910c227840372",
+        "adsl.xpt": "8d63ac822c8df45be0cf4342bc3f6122",
+        "adae.xpt": "ea66c299da935d91d8fb66a102770dca",
+        "adlb.xpt": "b5ed1b04c7525afa70326b208318503d",
+        "advs.xpt": "1c11c4497b0edf1050037a845634be3f"
+      },
+      "define_md5": {
+        "sdtm": "e4e845e5fc60f7daa8a1983c844a8d1e",
+        "adam": "465cd11c667137f6c700dc8633593d46"
+      }
+    },
+    {
+      "archetype": "heme_lymphoma",
+      "n": 120,
+      "seed": 20261011,
+      "controls": {},
+      "rows": {
+        "TA": 6,
+        "TE": 4,
+        "TV": 36,
+        "TI": 3,
+        "TS": 34,
+        "DM": 120,
+        "SE": 329,
+        "SV": 542,
+        "EX": 1197,
+        "DS": 439,
+        "TU": 521,
+        "TR": 6810,
+        "RS": 844,
+        "ADSL": 120,
+        "ADRS": 1862,
+        "ADTTE": 297
+      },
+      "xpt_md5": {
+        "ta.xpt": "7686ba004ce7dc5699fe3aca4024f1a3",
+        "te.xpt": "5fa94d7ff533845a6eb26ba7a9fcafce",
+        "tv.xpt": "0cbedf60fd19abd7ccb4af45d588e7ad",
+        "ti.xpt": "1dfedd807b893509e966b99c8707362e",
+        "ts.xpt": "e0641390d2650a15bacab18a8acd9118",
+        "dm.xpt": "9489b562ce9cd1b7e53de52e5f58d7fd",
+        "se.xpt": "81f07da68da6908ede9f48148e62760f",
+        "sv.xpt": "32ae20d26a097a71d1542d503619d725",
+        "ex.xpt": "f8ed82cd53e9ce9f41c1a8c2a6c14776",
+        "ds.xpt": "612c443b0772c2d1e1f80390cf95a36a",
+        "tu.xpt": "e440c683eeb117fcf79726f4fe974223",
+        "tr.xpt": "b7c068e3803109798ac9b00336943254",
+        "rs.xpt": "b63bba4ca5d55a1e2f193ead1679e60b",
+        "adsl.xpt": "fcf8af7b88d44bc0c88a292672659927",
+        "adrs.xpt": "52efbd61e059497d60c557c7a5fa2e68",
+        "adtte.xpt": "c26394e8be9afd510f2c6144e24ce281"
+      },
+      "define_md5": {
+        "sdtm": "707487018076f7df663fb7e3ede71800",
+        "adam": "7ddac7c6e619aaa465388535bc282cd3"
+      }
+    },
+    {
+      "archetype": "oncology_solid_tumor",
+      "n": 150,
+      "seed": 14,
+      "controls": {
+        "crossover_prob": 0.7
+      },
+      "rows": {
+        "TA": 7,
+        "TE": 5,
+        "TV": 36,
+        "TI": 4,
+        "TS": 34,
+        "DM": 150,
+        "SE": 451,
+        "SV": 691,
+        "EX": 1879,
+        "DS": 540,
+        "TU": 666,
+        "TR": 3611,
+        "RS": 1467,
+        "ADSL": 150,
+        "ADRS": 2341,
+        "ADTTE": 351,
+        "ADTR": 2764
+      },
+      "xpt_md5": {
+        "ta.xpt": "2b20379409adc626725888e72ca58779",
+        "te.xpt": "a3614a22158825d7f99cd0da3dc20b94",
+        "tv.xpt": "c8e129c5cc11bc31951d946f9d185f01",
+        "ti.xpt": "ff809cdcd5fca7f1c6501e02b75934c4",
+        "ts.xpt": "31c794d11c06a7d15a3789566026b642",
+        "dm.xpt": "f66a66e615d8a71d1afec7b3bf746662",
+        "se.xpt": "2b28e7525c0f4a23e5f2b30e7b43b914",
+        "sv.xpt": "fe3fed97ccc297d1c9ea10023ea11b51",
+        "ex.xpt": "f85911a652d9fc22ea3e181cc75c7522",
+        "ds.xpt": "08f263025b07bfb85ef4aa5c4355b2ed",
+        "tu.xpt": "9b8f3171d7193b5b13d1d1b84e269b7e",
+        "tr.xpt": "b53de6b12d968796cf46b20f22609f26",
+        "rs.xpt": "7e90810ef32e3a6ad4a648669c50b289",
+        "adsl.xpt": "07ea2852f900365ab86ccf166cfa442e",
+        "adrs.xpt": "cfd3e848a6689cd053f6f1a66b1676f4",
+        "adtte.xpt": "84c695ac52e77bf4f2137a589b2f2eba",
+        "adtr.xpt": "4fe34dc5954aa71e6e5b9b4a4ff47430"
+      },
+      "define_md5": {
+        "sdtm": "5359fc61662bbda591715fd7f3d55e46",
+        "adam": "8caec25d14143e4b37e0507d9f3faafd"
+      }
+    },
+    {
+      "archetype": "oncology_solid_tumor",
+      "n": 300,
+      "seed": 20261011,
+      "controls": {
+        "interim_months": 12
+      },
+      "rows": {
+        "TA": 6,
+        "TE": 4,
+        "TV": 36,
+        "TI": 4,
+        "TS": 36,
+        "DM": 197,
+        "SE": 468,
+        "SV": 546,
+        "EX": 1158,
+        "DS": 532,
+        "TU": 860,
+        "TR": 2921,
+        "RS": 972,
+        "ADSL": 197,
+        "ADRS": 2713,
+        "ADTTE": 439,
+        "ADTR": 2183
+      },
+      "xpt_md5": {
+        "ta.xpt": "b1c2930d92237ab844224f48b97e4472",
+        "te.xpt": "9e600f429532aa9459d00d8fea8c4f09",
+        "tv.xpt": "ebbdfa93179d2a568b2457adef66765c",
+        "ti.xpt": "542a12227c60331f5ae6a6b6fb203715",
+        "ts.xpt": "6e4b043aceea169d974ffff7c1e7bbb7",
+        "dm.xpt": "05dbe07d798a4d6363653ad9c6e67f86",
+        "se.xpt": "05d47818c42da9c74510d70fa1a50339",
+        "sv.xpt": "6eaab7a7d7847f7c86a028ec2debdcf2",
+        "ex.xpt": "ab9e30583307922f7c36f52741a6c7cd",
+        "ds.xpt": "20c3250ae708a8b91ea85633b4336e96",
+        "tu.xpt": "97d213d8926d2d3d9eaa39131a747e07",
+        "tr.xpt": "b5059e6f458ccba0c4ae34a9432b4205",
+        "rs.xpt": "c883bb1eecfccf97a3248c08c9b306dc",
+        "adsl.xpt": "200dca9af35160d5b75c1f92b15d9b90",
+        "adrs.xpt": "38a6461565d6954666a0ddd2a7c24c6f",
+        "adtte.xpt": "f3c471ac182f90ec2ae52e045c8db89c",
+        "adtr.xpt": "6bc1637f71bc4a2e0b7b88e3a35f9c97"
+      },
+      "define_md5": {
+        "sdtm": "c6db27cf9e2f3a094b3621c378348fa8",
+        "adam": "47198c8461686c7b9e838e5956a38510"
+      }
+    },
+    {
+      "archetype": "cv_outcomes",
+      "n": 300,
+      "seed": 20261011,
+      "controls": {
+        "target_events": 30,
+        "interim_events": 15
+      },
+      "rows": {
+        "TA": 6,
+        "TE": 4,
+        "TV": 34,
+        "TI": 2,
+        "TS": 38,
+        "DM": 300,
+        "SE": 610,
+        "SV": 1175,
+        "EX": 859,
+        "DS": 622,
+        "CE": 16,
+        "ADSL": 300,
+        "ADTTE": 1500
+      },
+      "xpt_md5": {
+        "ta.xpt": "f6bd6f82ca8aed8f65bbf82969d31f93",
+        "te.xpt": "900935de5d1ec124de86c3982949a622",
+        "tv.xpt": "de3dc69456d05c24a6302e17b76cdd76",
+        "ti.xpt": "011b8c73fbe5c13521181bdca42a1e88",
+        "ts.xpt": "9c174583d8c4a44cc8ec9e4be4b80a10",
+        "dm.xpt": "1c36f64f682dc4873a1ba3abba0847c4",
+        "se.xpt": "9ee991c146efa1dec8ce482a413e71f7",
+        "sv.xpt": "df9f8ad3b7bca13be4c0382d2324a64a",
+        "ex.xpt": "ce75b67e019cd363476ea1cf303acfb1",
+        "ds.xpt": "5ab84777b8a9bc69f7dfe6428e55be5c",
+        "ce.xpt": "a47d89033ddf35622355356fbea416cd",
+        "adsl.xpt": "dc7a61777ef841be2be73e6b42cb9d59",
+        "adtte.xpt": "696a3c3cb67ed106e8b0f565e914d679"
+      },
+      "define_md5": {
+        "sdtm": "aac6fe3d1a84e1dae9d57fbdd6cb8994",
+        "adam": "1574a6d9a4e4ad839a42ac43c1efe628"
       }
     }
   ]
