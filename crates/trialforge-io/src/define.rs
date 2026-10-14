@@ -128,6 +128,7 @@ fn shape_of<'a>(var: &str, values: impl Iterator<Item = ValueRef<'a>>) -> Shape 
                 digits = digits.max(decimals(x));
             }
             ValueRef::Date => kind = Some("date"),
+            ValueRef::DateTime => kind = Some("datetime"),
         }
     }
     let is_dtc = var.ends_with("DTC");
@@ -162,6 +163,12 @@ fn shape_of<'a>(var: &str, values: impl Iterator<Item = ValueRef<'a>>) -> Shape 
             digits: None,
             display_format: Some("DATE9."),
         },
+        Some("datetime") => Shape {
+            data_type: "integer",
+            length: Some(8),
+            digits: None,
+            display_format: Some("DATETIME20."),
+        },
         _ if is_dtc => Shape {
             data_type: "date",
             length: None,
@@ -183,6 +190,7 @@ enum ValueRef<'a> {
     Int(i64),
     Num(f64),
     Date,
+    DateTime,
 }
 
 fn values_at<'a>(
@@ -194,6 +202,7 @@ fn values_at<'a>(
         Values::Int(x) => x[i].map(ValueRef::Int),
         Values::Num(x) => x[i].map(ValueRef::Num),
         Values::Date(x) => x[i].map(|_| ValueRef::Date),
+        Values::DateTime(x) => x[i].map(|_| ValueRef::DateTime),
     })
 }
 
@@ -519,9 +528,15 @@ pub fn to_string(datasets: &[Dataset], info: &DefineInfo<'_>) -> Result<String, 
             esc(name)
         );
         for (k, term) in list.terms.iter().filter(|t| used.contains(*t)).enumerate() {
+            // Sponsor extensions of an extensible codelist are flagged as such.
+            let extended = if list.extended.contains(term) {
+                " def:ExtendedValue=\"Yes\""
+            } else {
+                ""
+            };
             let _ = writeln!(
                 out,
-                "        <EnumeratedItem CodedValue=\"{}\" OrderNumber=\"{}\"/>",
+                "        <EnumeratedItem CodedValue=\"{}\" OrderNumber=\"{}\"{extended}/>",
                 esc(term),
                 k + 1
             );
