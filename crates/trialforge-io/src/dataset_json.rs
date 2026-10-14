@@ -75,6 +75,9 @@ pub fn to_string(dataset: &Dataset, info: &DefineInfo<'_>, source_version: &str)
             Values::Date(_) => {
                 out.push_str(",\"dataType\":\"date\",\"targetDataType\":\"integer\",\"displayFormat\":\"DATE9.\"");
             }
+            Values::DateTime(_) => {
+                out.push_str(",\"dataType\":\"datetime\",\"targetDataType\":\"integer\",\"displayFormat\":\"DATETIME20.\"");
+            }
         }
         if let Some(p) = keys.iter().position(|key| *key == c.name) {
             let _ = write!(out, ",\"keySequence\":{}", p + 1);
@@ -104,6 +107,9 @@ pub fn to_string(dataset: &Dataset, info: &DefineInfo<'_>, source_version: &str)
                 )),
                 Values::Date(v) => {
                     out.push_str(&v[i].map_or_else(|| "null".into(), |d| json(&d.to_string())))
+                }
+                Values::DateTime(v) => {
+                    out.push_str(&v[i].map_or_else(|| "null".into(), |d| json(&d.iso_seconds())))
                 }
             }
         }
