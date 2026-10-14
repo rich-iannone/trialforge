@@ -55,3 +55,12 @@ def test_km_medians_match_greenwood(trial: tf.Study, paramcd: str, key: str) -> 
 def test_treatment_effect_direction(trial: tf.Study) -> None:
     for _, key in ENDPOINTS:
         assert trial.truth[key]["stratified_cox_hr"]["hr"] < 1
+
+
+def test_cv_outcomes_mace_hr_matches_greenwood() -> None:
+    s = tf.study("cv_outcomes", n=2000, seed=5)
+    t = s.adam["ADTTE"].filter(pl.col("PARAMCD") == "MACE")
+    x = (t["TRT01P"] == "Drug A").cast(pl.Float64).to_numpy().reshape(-1, 1)
+    fit = gw.CoxPH(ties="breslow").fit(_surv(t), x, strata=t["STRAT1R"].to_numpy())
+    truth = s.truth["outcomes"]["mace"]["stratified_cox_hr"]
+    assert fit.hazard_ratio_[0] == pytest.approx(truth["hr"], abs=1e-4)
