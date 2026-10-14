@@ -29,3 +29,4 @@ Appendicectomy	SURGICAL HISTORY	0.08	0.08	0.20	N	40
 Cholecystectomy	SURGICAL HISTORY	0.08	0.04	0.50	N	25
 Hysterectomy	SURGICAL HISTORY	0.12	0	0.80	N	25
 Knee arthroplasty	SURGICAL HISTORY	0.03	0.025	1.00	N	10
+Dementia Alzheimer's type	GENERAL MEDICAL HISTORY	0	0	0	Y	6
