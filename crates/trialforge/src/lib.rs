@@ -122,6 +122,40 @@ pub fn study(archetype: &str, opts: &StudyOptions) -> Result<Study, Error> {
                 .map_err(|e| Error::Invalid(e.to_string()))?;
             (t, HashMap::new(), None)
         }
+        designs::Course::Pk(p, pk) => {
+            let mut t = processes::fixed::simulate(design, p, &subjects)
+                .map_err(|e| Error::Invalid(e.to_string()))?;
+            processes::pk::simulate(design, pk, &subjects, &mut t);
+            (t, HashMap::new(), None)
+        }
+        designs::Course::Crossover(p, pk, days) => {
+            let mut t = processes::fixed::simulate(design, p, &subjects)
+                .map_err(|e| Error::Invalid(e.to_string()))?;
+            for x in &mut t {
+                processes::crossover::apply(x, days, designs::crossover::IN_HOUSE_DAYS);
+            }
+            processes::pk::simulate(design, pk, &subjects, &mut t);
+            (t, HashMap::new(), None)
+        }
+        designs::Course::Adas(p, adas) => {
+            let mut t = processes::fixed::simulate(design, p, &subjects)
+                .map_err(|e| Error::Invalid(e.to_string()))?;
+            processes::adas::simulate(design, adas, &subjects, &mut t);
+            (t, HashMap::new(), None)
+        }
+        designs::Course::Outcomes(p) => {
+            let (t, cut) = processes::outcomes::simulate(design, p, &subjects);
+            let strata = subjects
+                .iter()
+                .map(|s| {
+                    (
+                        s.usubjid.clone(),
+                        design.population.strata.levels[s.stratum].0.clone(),
+                    )
+                })
+                .collect();
+            (t, strata, Some(cut))
+        }
         designs::Course::Oncology(p, _) => {
             let t = processes::oncology::simulate(design, p, &subjects);
             let strata = subjects
