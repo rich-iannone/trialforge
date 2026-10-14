@@ -18,7 +18,7 @@ use trialforge_model::{
     Arm, Categorical, Design, Epoch, PlannedVisit, Population, Schedule, Site, Timing, Treatment,
     TrialInfo, VisitKind,
 };
-use trialforge_processes::oncology::{DAYS_PER_MONTH, OncologyParams};
+use trialforge_processes::oncology::{Criteria, DAYS_PER_MONTH, OncologyParams};
 
 use crate::{ControlDoc, StudyOptions};
 
@@ -50,6 +50,14 @@ pub struct Controls {
     pub enrollment_months: f64,
     /// Data cutoff, months after the first randomisation.
     pub cutoff_months: f64,
+    /// Probability that a control-arm subject who progresses crosses over to Drug A.
+    pub crossover_prob: f64,
+    /// Hazard ratio of death after crossing over, relative to staying on control; `null` uses
+    /// `os_hr`.
+    pub crossover_os_hr: Option<f64>,
+    /// An interim snapshot: the data cutoff in months after the first randomisation (multiple
+    /// cuts: same seed and controls, earlier cutoff), or `null` for the final analysis.
+    pub interim_months: Option<f64>,
 }
 
 impl Default for Controls {
@@ -67,6 +75,9 @@ impl Default for Controls {
             ae_stop_prob: 0.10,
             enrollment_months: 18.0,
             cutoff_months: 30.0,
+            crossover_prob: 0.0,
+            crossover_os_hr: None,
+            interim_months: None,
         }
     }
 }
@@ -113,6 +124,18 @@ pub(crate) fn docs() -> Vec<ControlDoc> {
             "cutoff_months",
             "Data cutoff, in months after the first randomisation",
         ),
+        ControlDoc::new(
+            "crossover_prob",
+            "Probability that a control-arm subject who progresses crosses over to Drug A (crossover on progression)",
+        ),
+        ControlDoc::new(
+            "crossover_os_hr",
+            "Hazard ratio of death after crossing over, relative to staying on control; null uses os_hr",
+        ),
+        ControlDoc::new(
+            "interim_months",
+            "Interim snapshot: data cutoff in months after the first randomisation (multiple cuts of the same study); null for the final analysis",
+        ),
     ]
 }
 
@@ -139,6 +162,17 @@ pub(crate) fn validate(c: &Controls) -> Result<(), String> {
     }
     if !c.orr.iter().all(|r| (0.0..=0.9).contains(r)) {
         return Err("`orr` values must be between 0 and 0.9".into());
+    }
+    if !(0.0..=1.0).contains(&c.crossover_prob)
+        || c.crossover_os_hr
+            .is_some_and(|h| !(h.is_finite() && h > 0.0 && h <= 5.0))
+    {
+        return Err("`crossover_prob` must be in [0, 1] and `crossover_os_hr` in (0, 5]".into());
+    }
+    if c.interim_months
+        .is_some_and(|m| !(m.is_finite() && m >= 1.0 && m < c.cutoff_months))
+    {
+        return Err("`interim_months` must be at least 1 and before `cutoff_months`".into());
     }
     if !(0.0..=1.0).contains(&c.withdrawal_prob) || !(0.0..=1.0).contains(&c.ae_stop_prob) {
         return Err("probabilities must be in [0, 1]".into());
@@ -217,16 +251,38 @@ fn base_params() -> OncologyParams {
         assessment_interval_days: 56,
         max_cycles: 61,
         last_contact_lag_days: 28,
+        criteria: Criteria::Recist11,
+        crossover: None,
+        data_cutoff: None,
     }
 }
 
 /// Seed of the calibration cohort (fixed, so calibration depends on the controls alone).
 const CALIBRATION_SEED: u64 = 20_261_013;
 
+/// Which disease the oncology design is for.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum Variant {
+    /// `oncology_solid_tumor`: RECIST 1.1.
+    SolidTumor,
+    /// `heme_lymphoma`: Lugano 2014.
+    Lymphoma,
+}
+
 /// Calibrated parameters for a control set, computed once per process.
-fn calibrated(c: &Controls, design: &Design) -> Calibration {
+fn calibrated(c: &Controls, design: &Design, variant: Variant) -> Calibration {
     static CACHE: OnceLock<Mutex<HashMap<String, Calibration>>> = OnceLock::new();
-    let key = serde_json::to_string(c).expect("controls serialize");
+    // Crossover happens after progression: it changes nothing that is calibrated.
+    let plain = Controls {
+        crossover_prob: 0.0,
+        crossover_os_hr: None,
+        interim_months: None,
+        ..c.clone()
+    };
+    let key = format!(
+        "{variant:?}{}",
+        serde_json::to_string(&plain).expect("controls serialize")
+    );
     let cache = CACHE.get_or_init(|| Mutex::new(HashMap::new()));
     if let Some(hit) = cache.lock().expect("calibration cache").get(&key) {
         return hit.clone();
@@ -237,6 +293,10 @@ fn calibrated(c: &Controls, design: &Design) -> Calibration {
     base.os_pd_correlation = c.os_pfs_correlation;
     base.withdrawal_prob = c.withdrawal_prob;
     base.ae_stop_prob = c.ae_stop_prob;
+    if variant == Variant::Lymphoma {
+        base.criteria = Criteria::Lugano;
+        base.cr_fraction = 0.6;
+    }
     // Calibration depends on the targets and design structure only, not the study's seed or n.
     let mut cal_design = design.clone();
     cal_design.seed = CALIBRATION_SEED;
@@ -257,6 +317,14 @@ fn calibrated(c: &Controls, design: &Design) -> Calibration {
 }
 
 pub(crate) fn resolve(opts: &StudyOptions, c: &Controls) -> (Design, OncologyParams, Calibration) {
+    resolve_with(opts, c, Variant::SolidTumor)
+}
+
+pub(crate) fn resolve_with(
+    opts: &StudyOptions,
+    c: &Controls,
+    variant: Variant,
+) -> (Design, OncologyParams, Calibration) {
     let first = Date::from_ymd(2023, 3, 1).expect("valid date");
     let treatment = |name: &str, dose: f64, unit: &str| Treatment {
         name: name.into(),
@@ -295,6 +363,7 @@ pub(crate) fn resolve(opts: &StudyOptions, c: &Controls) -> (Design, OncologyPar
                 ratio: 1,
                 treatment: treatment("DRUG A", 200.0, "mg"),
                 periods: Vec::new(),
+                switch_to: None,
             },
             Arm {
                 armcd: "C".into(),
@@ -302,12 +371,14 @@ pub(crate) fn resolve(opts: &StudyOptions, c: &Controls) -> (Design, OncologyPar
                 ratio: 1,
                 treatment: treatment("CONTROL", 75.0, "mg/m2"),
                 periods: Vec::new(),
+                switch_to: None,
             },
         ],
         sites,
         first_randomization: first,
         enrollment_days: month(c.enrollment_months),
         cutoff: first.add_days(month(c.cutoff_months)),
+        interim: false,
         block_size: 4,
         population: Population {
             age_mean: 62.0,
@@ -351,6 +422,7 @@ pub(crate) fn resolve(opts: &StudyOptions, c: &Controls) -> (Design, OncologyPar
             trial_types: vec!["EFFICACY".into()],
             intervention_model: "PARALLEL".into(),
             healthy_subjects: false,
+            intervention_type: "DRUG".into(),
             criteria: vec![
                 (
                     "INCL01".into(),
@@ -375,6 +447,48 @@ pub(crate) fn resolve(opts: &StudyOptions, c: &Controls) -> (Design, OncologyPar
             ],
         },
     };
-    let cal = calibrated(c, &design);
-    (design, cal.params.clone(), cal)
+    let mut design = design;
+    if variant == Variant::Lymphoma {
+        lymphoma_design(&mut design, opts);
+    }
+    let cal = calibrated(c, &design, variant);
+    let mut params = cal.params.clone();
+    params.data_cutoff = c
+        .interim_months
+        .map(|m| design.first_randomization.add_days(month(m)));
+    if c.crossover_prob > 0.0 {
+        let drug = design.arms[0].treatment.clone();
+        let element = format!(
+            "{} {} {} (crossover)",
+            drug.name,
+            trialforge_core::math::round_dp(drug.dose, 4),
+            drug.unit
+        );
+        design.arms[1].switch_to = Some((drug, element));
+        params.crossover = Some((c.crossover_prob, c.crossover_os_hr.unwrap_or(c.os_hr)));
+    }
+    (design, params, cal)
+}
+
+/// The lymphoma version of the design: relapsed or refractory DLBCL, Drug A vs investigator's
+/// choice, stratified by IPI risk, Lugano 2014 PET-CT assessments.
+fn lymphoma_design(design: &mut Design, opts: &StudyOptions) {
+    design.studyid = opts.studyid.clone().unwrap_or_else(|| "SIMLYM01".into());
+    design.arms[0].treatment.name = "DRUG A".into();
+    design.arms[1].arm = "Investigator's Choice".into();
+    design.arms[1].armcd = "IC".into();
+    design.arms[1].treatment.name = "INVESTIGATOR'S CHOICE".into();
+    design.population.age_mean = 64.0;
+    design.population.age_max = 90;
+    design.population.strata = Categorical::new([("IPI 0-2", 0.55), ("IPI 3-5", 0.45)]);
+    let info = &mut design.info;
+    info.title = "A Randomized, Open-Label Study of Drug A versus Investigator's Choice in Relapsed or Refractory Diffuse Large B-Cell Lymphoma".into();
+    info.indication = "Diffuse large B-cell lymphoma".into();
+    info.therapeutic_area = "HEMATOLOGY/ONCOLOGY".into();
+    info.primary_objective = "To compare progression-free survival (Lugano 2014, PET-CT) between Drug A and investigator's choice".into();
+    info.criteria = vec![
+        ("INCL01".into(), "INCLUSION".into(), "Histologically confirmed diffuse large B-cell lymphoma, relapsed or refractory after at least two lines of therapy".into()),
+        ("INCL02".into(), "INCLUSION".into(), "FDG-avid disease with at least one measurable nodal lesion over 15 mm or extranodal lesion over 10 mm (Lugano 2014)".into()),
+        ("EXCL01".into(), "EXCLUSION".into(), "Active central nervous system lymphoma".into()),
+    ];
 }
