@@ -100,6 +100,7 @@ pub(crate) fn run(sdtm: &[Dataset], adam: &[Dataset], r: &mut Report) {
     disposition(sdtm, r);
     seriousness(sdtm, r);
     crate::onco::l1(sdtm, r);
+    crate::pk::l1(sdtm, r);
 }
 
 /// Pairs of (study day, date) variables in a dataset.
@@ -282,30 +283,37 @@ fn visits(sdtm: &[Dataset], r: &mut Report) {
     let planned: HashMap<i64, (Option<&str>, Option<i64>)> = (0..tv.n())
         .filter_map(|i| Some((num[i]?, (name[i].as_deref(), day[i]))))
         .collect();
-    // SV visit dates, for matching findings.
-    let mut sv_dates: HashMap<(&str, i64), Date> = HashMap::new();
+    // SV visit spans (start, end), for matching findings.
+    let mut sv_dates: HashMap<(&str, i64), (Date, Date)> = HashMap::new();
     if let Some(sv) = get(sdtm, "SV") {
-        if let (Some(u), Some(n), Some(d)) = (sv.c("USUBJID"), sv.i("VISITNUM"), sv.d("SVSTDTC")) {
+        if let (Some(u), Some(n), Some(d), Some(e)) = (
+            sv.c("USUBJID"),
+            sv.i("VISITNUM"),
+            sv.d("SVSTDTC"),
+            sv.d("SVENDTC"),
+        ) {
             for i in 0..sv.n() {
                 if let (Some(u), Some(n), Some(d)) = (u[i].as_deref(), n[i], d[i]) {
-                    sv_dates.insert((u, n), d);
+                    sv_dates.insert((u, n), (d, e[i].unwrap_or(d)));
                 }
             }
         }
     }
-    for ds in sdtm
-        .iter()
-        .filter(|d| matches!(d.name.as_str(), "SV" | "LB" | "VS" | "TU" | "TR" | "RS"))
-    {
+    for ds in sdtm.iter().filter(|d| {
+        matches!(
+            d.name.as_str(),
+            "SV" | "LB" | "VS" | "TU" | "TR" | "RS" | "PC" | "EX"
+        )
+    }) {
         let t = T::new(ds);
         let (Some(u), Some(n), Some(v)) = (t.c("USUBJID"), t.i("VISITNUM"), t.c("VISIT")) else {
             continue;
         };
         let vdy = t.i("VISITDY");
-        let date_var = if t.name() == "SV" {
-            "SVSTDTC".to_string()
-        } else {
-            format!("{}DTC", t.name())
+        let date_var = match t.name() {
+            "SV" => "SVSTDTC".to_string(),
+            "EX" => "EXSTDTC".to_string(),
+            p => format!("{p}DTC"),
         };
         let dates = t.d(&date_var).unwrap_or_default();
         for i in 0..t.n() {
@@ -334,14 +342,19 @@ fn visits(sdtm: &[Dataset], r: &mut Report) {
             }
             if t.name() != "SV" {
                 let sv = u[i].as_deref().and_then(|u| sv_dates.get(&(u, vn)));
-                if sv.copied() != dates.get(i).copied().flatten() {
+                let date = dates.get(i).copied().flatten();
+                let within = matches!((sv, date), (Some((a, b)), Some(d)) if *a <= d && d <= *b);
+                if !within {
                     r.add(
                         L,
                         "L1.SV",
                         t.name(),
                         Some(&date_var),
                         Some(i),
-                        "date does not match the SV visit date".into(),
+                        format!(
+                            "{} visit {vn}: {date:?} is not within the SV visit {sv:?}",
+                            u[i].as_deref().unwrap_or("")
+                        ),
                     );
                 }
             }
