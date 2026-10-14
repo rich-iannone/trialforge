@@ -1,4 +1,5 @@
-//! Derivation layer: SDTM to ADaM (ADSL, ADAE, ADLB, ADVS, ADRS, ADTTE, ADTR, ADPC, ADPP),
+//! Derivation layer: SDTM to ADaM (ADSL, ADAE, ADLB, ADVS, ADRS, ADTTE, ADTR, ADPC, ADPP,
+//! ADADAS, ADBCVA),
 //! following
 //! admiral and admiralonco conventions.
 //!
@@ -10,9 +11,13 @@ mod adae;
 mod adas;
 mod adsl;
 mod bds;
+mod exacerbation;
+mod growth;
 mod onco;
+mod ophtha;
 mod outcomes;
 mod pk;
+mod vaccine;
 
 use std::collections::HashMap;
 
@@ -22,10 +27,13 @@ use trialforge_core::{Dataset, Date, Values};
 pub use adae::adae;
 pub use adas::adadas;
 pub use adsl::{AdslInputs, adsl};
-pub use bds::{adlb, advs};
+pub use bds::{adlb, adre, advs};
+pub use exacerbation::{adexac, adtte_exacerbation};
 pub use onco::{adrs, adtr, adtte};
+pub use ophtha::adbcva;
 pub use outcomes::adtte_outcomes;
 pub use pk::{adpc, adpp};
+pub use vaccine::{adce, adface, adis};
 
 /// Errors from deriving ADaM.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -254,7 +262,7 @@ pub fn derive(sdtm: &[Dataset], inputs: &AdslInputs) -> Result<Vec<Dataset>, Der
     let tv = find(sdtm, "TV");
     let mut out = Vec::new();
     if let Some(ae) = find(sdtm, "AE") {
-        out.push(adae(ae, &adsl)?);
+        out.push(adae(ae, find(sdtm, "SUPPAE"), &adsl)?);
     }
     if let Some(lb) = find(sdtm, "LB") {
         out.push(adlb(lb, &adsl, tv)?);
@@ -270,8 +278,34 @@ pub fn derive(sdtm: &[Dataset], inputs: &AdslInputs) -> Result<Vec<Dataset>, Der
     if let (Some(pc), Some(ex)) = (find(sdtm, "PC"), find(sdtm, "EX")) {
         out.push(adpc(pc, ex, &adsl)?);
     }
+    if let Some(re) = find(sdtm, "RE") {
+        out.push(adre(re, &adsl, tv)?);
+    }
     if let Some(ce) = find(sdtm, "CE") {
-        out.push(adtte_outcomes(ce, &adsl)?);
+        let category = |c: &str| {
+            Frame::new(ce)
+                .chars("CECAT")
+                .is_ok_and(|v| v.iter().any(|x| x.as_deref() == Some(c)))
+        };
+        if category(outcomes::CATEGORY) {
+            out.push(adtte_outcomes(ce, &adsl)?);
+        }
+        if category(exacerbation::CATEGORY) {
+            out.push(adtte_exacerbation(ce, &adsl)?);
+            out.push(adexac(ce, &adsl)?);
+        }
+        if category("REACTOGENICITY") {
+            out.push(adce(ce, &adsl)?);
+        }
+    }
+    if let Some(is) = find(sdtm, "IS") {
+        out.push(adis(is, &adsl)?);
+    }
+    if let (Some(face), Some(ex)) = (find(sdtm, "FACE"), find(sdtm, "EX")) {
+        out.push(adface(face, ex, find(sdtm, "VS"), &adsl)?);
+    }
+    if let (Some(oe), true) = (find(sdtm, "OE"), Frame::new(&adsl).has("STUDYEYE")) {
+        out.push(adbcva(oe, &adsl)?);
     }
     if let Some(ft) = find(sdtm, "FT") {
         out.push(adadas(ft, &adsl, tv)?);
@@ -280,7 +314,12 @@ pub fn derive(sdtm: &[Dataset], inputs: &AdslInputs) -> Result<Vec<Dataset>, Der
         out.push(adpp(pp, &adsl)?);
     }
     if let (Some(tr), Some(tu), Some(rs)) = (find(sdtm, "TR"), find(sdtm, "TU"), find(sdtm, "RS")) {
-        out.push(adtr(tr, tu, rs, &adsl)?);
+        let recist = Frame::new(rs)
+            .chars("RSCAT")
+            .is_ok_and(|c| c.iter().any(|x| x.as_deref() == Some("RECIST 1.1")));
+        if recist {
+            out.push(adtr(tr, tu, rs, &adsl)?);
+        }
     }
     out.insert(0, adsl);
     Ok(out)
