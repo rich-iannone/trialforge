@@ -36,6 +36,12 @@ def test_archetypes_and_controls() -> None:
         "dose_ranging_ph2",
         "cns_alzheimers",
         "cv_outcomes",
+        "ophthalmology",
+        "pediatric_growth",
+        "respiratory_exacerbation",
+        "vaccine",
+        "dose_escalation",
+        "heme_lymphoma",
     }
     names = {c.name: c.default for c in tf.controls("parallel_continuous")}
     assert names["indication"] == "type_2_diabetes"
@@ -108,6 +114,97 @@ def test_cv_outcomes_study_shape() -> None:
     assert set(s.adam["ADTTE"]["PARAMCD"]) == {"MACE", "CVDEATH", "MI", "STROKE", "DEATH"}
     assert s.truth["outcomes"]["realised_first_mace_events"] >= 40
     assert s.verify().passed
+
+
+def test_ophthalmology_study_shape() -> None:
+    s = tf.study("ophthalmology", n=60, seed=3)
+    assert {"OE", "SC"} <= set(s.sdtm)
+    oe = s.sdtm["OE"]
+    assert set(oe["OETESTCD"]) == {"NUMLCOR", "THICK"}
+    assert set(oe["OELAT"]) == {"LEFT", "RIGHT"}
+    assert set(s.sdtm["EX"]["EXROUTE"]) == {"INTRAVITREAL"}
+    adsl = s.adam["ADSL"]
+    assert set(adsl["STUDYEYE"]) <= {"LEFT", "RIGHT"}
+    bcva = s.adam["ADBCVA"]
+    assert set(bcva["PARAMCD"]) == {"SBCVA", "FBCVA", "SBCVALOG", "FBCVALOG"}
+    assert s.truth["bcva"]["non_inferiority"]["margin"] == 4.0
+    assert s.verify().passed
+
+
+def test_pediatric_growth_study_shape() -> None:
+    s = tf.study("pediatric_growth", n=60, seed=3)
+    dm = s.sdtm["DM"]
+    assert dm["BRTHDTC"].null_count() == 0
+    assert dm["AGE"].min() >= 3
+    advs = s.adam["ADVS"]
+    assert {"HGTSDS", "HGTPCTL", "WGTASDS", "BMISDS", "HTVEL"} <= set(advs["PARAMCD"])
+    assert "AAGECUR" in advs.columns
+    assert s.truth["height_velocity"]["non_inferiority"]["margin"] == 2.0
+    assert s.verify().passed
+
+
+def test_respiratory_study_shape() -> None:
+    s = tf.study("respiratory_exacerbation", n=80, seed=3)
+    assert set(s.sdtm["CE"]["CECAT"]) == {"EXACERBATION"}
+    assert set(s.sdtm["CE"]["CESEV"]) <= {"MODERATE", "SEVERE"}
+    assert set(s.sdtm["RE"]["RETESTCD"]) == {"FEV1"}
+    assert set(s.adam["ADEXAC"]["PARAMCD"]) == {"EXACN", "SEVEXACN", "FUPYR", "EXACRATE"}
+    assert set(s.adam["ADTTE"]["PARAMCD"]) == {"TTFEXAC"}
+    assert "STRAT1R" in s.adam["ADSL"].columns
+    assert "rate_ratio" in s.truth["exacerbations"]
+    assert s.verify().passed
+
+
+def test_vaccine_study_shape() -> None:
+    s = tf.study("vaccine", n=60, seed=3)
+    assert {"IS", "FACE"} <= set(s.sdtm)
+    assert set(s.sdtm["FACE"]["DOMAIN"]) == {"FA"}
+    assert set(s.sdtm["CE"]["CECAT"]) == {"REACTOGENICITY"}
+    assert {"ADIS", "ADCE", "ADFACE"} <= set(s.adam)
+    assert {"VAX01DT", "VAX02DT", "AP02SDT"} <= set(s.adam["ADSL"].columns)
+    assert "gmt_ratio" in s.truth["vaccine"]
+    assert s.verify().passed
+
+
+def test_dose_escalation_study_shape() -> None:
+    s = tf.study("dose_escalation", n=30, seed=3, method="3+3")
+    assert s.sdtm["DM"].height <= 30
+    assert "AEDLT" in set(s.sdtm["SUPPAE"]["QNAM"])
+    assert "DLTEVLFL" in s.adam["ADSL"].columns
+    assert s.truth["escalation"]["method"] == "3+3"
+    assert s.verify().passed
+
+
+def test_lymphoma_study_shape() -> None:
+    s = tf.study("heme_lymphoma", n=60, seed=3)
+    rs = s.sdtm["RS"]
+    assert set(rs["RSCAT"]) == {"LUGANO CLASSIFICATION"}
+    assert set(rs["RSSCAT"]) == {"CT", "PET-CT"}
+    assert set(s.adam) == {"ADSL", "ADRS", "ADTTE"}
+    assert "orr" in s.truth
+    assert s.verify().passed
+
+
+def test_crossover_on_progression() -> None:
+    s = tf.study("oncology_solid_tumor", n=200, seed=4, crossover_prob=0.8)
+    assert "CONTINUATION TREATMENT" in set(s.sdtm["SE"]["EPOCH"])
+    assert {"CROSSFL", "CROSSDT"} <= set(s.adam["ADSL"].columns)
+    assert s.truth["crossover"]["crossed_over"] > 0
+    assert s.verify().passed
+
+
+def test_multiple_cuts() -> None:
+    final = tf.study("oncology_solid_tumor", n=200, seed=4)
+    interim = tf.study("oncology_solid_tumor", n=200, seed=4, interim_months=10)
+    assert interim.cutoff < final.cutoff
+    ts = interim.sdtm["TS"].filter(pl.col("TSPARMCD") == "DCUTDESC")
+    assert ts["TSVAL"].to_list() == ["INTERIM ANALYSIS"]
+    ids = set(interim.adam["ADSL"]["USUBJID"])
+    assert ids < set(final.adam["ADSL"]["USUBJID"])
+    assert interim.truth["interim"]["n_randomised"] == len(ids)
+    cv = tf.study("cv_outcomes", n=600, seed=2, target_events=60, interim_events=30)
+    assert cv.truth["outcomes"]["realised_first_mace_events"] == 30
+    assert cv.verify().passed
 
 
 def test_crossover_study_shape() -> None:
