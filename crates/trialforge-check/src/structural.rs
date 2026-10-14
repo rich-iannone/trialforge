@@ -164,10 +164,15 @@ fn dataset(ds: &Dataset, is_sdtm: bool, r: &mut Report) {
         }
     }
 
-    // DOMAIN matches the dataset.
+    // DOMAIN matches the dataset (a split dataset such as FACE keeps its parent's DOMAIN, FA).
+    let domain = if name.len() > 2 && name.starts_with("FA") {
+        "FA"
+    } else {
+        name
+    };
     if let Some(dom) = t.c("DOMAIN") {
         for (i, d) in dom.iter().enumerate() {
-            if d.as_deref() != Some(name) {
+            if d.as_deref() != Some(domain) {
                 r.add(
                     L,
                     "L0.DOMAIN",
@@ -216,7 +221,7 @@ fn dataset(ds: &Dataset, is_sdtm: bool, r: &mut Report) {
     }
 
     // --SEQ unique within subject.
-    let seq_var = format!("{name}SEQ");
+    let seq_var = format!("{domain}SEQ");
     if let (Some(u), Some(seq)) = (t.c("USUBJID"), t.i(&seq_var)) {
         let mut seen: HashMap<(&str, i64), usize> = HashMap::new();
         for i in 0..t.n() {
