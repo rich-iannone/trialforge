@@ -84,6 +84,9 @@ pub struct CourseParams {
     /// Dose only on the first this-many days of treatment (e.g. 1 for a single-dose study);
     /// `None` doses every day of the treatment period.
     pub dosing_days: Option<i32>,
+    /// Archetype-specific AE terms added to the background table (each on its own stream, so
+    /// other archetypes are unaffected).
+    pub extra_ae: Vec<reference::AeBackground>,
 }
 
 /// Why a course could not be simulated.
@@ -258,7 +261,7 @@ fn simulate_one(design: &Design, schedule: &Schedule, p: &CourseParams, s: &Subj
     let rr = &p.ae_relative_risk[s.arm];
     let frailty = Draws::new(stream.label("ae-frailty")).gamma(2.0, 0.5);
     let mut drafts: Vec<AeDraft> = Vec::new();
-    for bg in reference::ae_background() {
+    for bg in reference::ae_background().iter().chain(&p.extra_ae) {
         let mut d = Draws::new(stream.label("ae").label(&bg.pt));
         let base = bg.rate_per_year * p.ae_rate_multiplier * frailty / DAYS_PER_YEAR;
         let on = base * rr.get(&bg.pt).copied().unwrap_or(1.0);
@@ -478,6 +481,7 @@ fn simulate_one(design: &Design, schedule: &Schedule, p: &CourseParams, s: &Subj
             action,
             outcome,
             treated,
+            dlt: None,
         });
     }
     if let Some(dd) = death {
@@ -507,6 +511,7 @@ fn simulate_one(design: &Design, schedule: &Schedule, p: &CourseParams, s: &Subj
             },
             outcome: "FATAL",
             treated: false,
+            dlt: None,
         });
     }
     adverse_events.sort_by(|a, b| (a.start, &a.pt).cmp(&(b.start, &b.pt)));
@@ -655,6 +660,9 @@ fn simulate_one(design: &Design, schedule: &Schedule, p: &CourseParams, s: &Subj
         tumor: Vec::new(),
         pk: Vec::new(),
         clinical_events: Vec::new(),
+        study_eye: None,
+        birth_date: None,
+        diaries: Vec::new(),
     }
 }
 
@@ -692,6 +700,10 @@ fn exposure_intervals(
                     dose,
                     time: None,
                     period: None,
+                    location: None,
+                    group: None,
+                    visitnum: None,
+                    switched: false,
                 });
                 start = None;
             }
@@ -708,6 +720,10 @@ fn exposure_intervals(
             dose,
             time: None,
             period: None,
+            location: None,
+            group: None,
+            visitnum: None,
+            switched: false,
         });
     }
     out
@@ -953,7 +969,9 @@ fn findings(
                     (pv.vitals && a.testcd != "HEIGHT")
                         || (a.testcd == "HEIGHT" && pv.kind == VisitKind::Screening)
                 }
-                FindingDomain::Ft => false,
+                FindingDomain::Ft | FindingDomain::Oe | FindingDomain::Re | FindingDomain::Is => {
+                    false
+                }
             };
             if !wanted {
                 continue;
@@ -986,6 +1004,8 @@ fn findings(
                 visitnum: v.visitnum,
                 date: v.date,
                 value,
+                laterality: None,
+                dp: None,
             });
         }
         // Diastolic stays below systolic.
