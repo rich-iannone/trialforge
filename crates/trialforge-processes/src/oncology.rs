@@ -566,6 +566,8 @@ pub fn simulate_one(design: &Design, p: &OncologyParams, s: &Subject) -> Timelin
             start: dd,
             end: dd,
             dose,
+            time: None,
+            period: None,
         })
         .collect();
     let first_dose = s.treatment_start;
@@ -638,6 +640,7 @@ pub fn simulate_one(design: &Design, p: &OncologyParams, s: &Subject) -> Timelin
         .map(|a| VisitOccurrence {
             visitnum: a.visitnum,
             date: a.date,
+            end: None,
         })
         .collect();
 
@@ -655,6 +658,8 @@ pub fn simulate_one(design: &Design, p: &OncologyParams, s: &Subject) -> Timelin
         findings: Vec::new(),
         lesions: tumor.lesions,
         tumor: tumor.assessments,
+        pk: Vec::new(),
+        clinical_events: Vec::new(),
     }
 }
 
