@@ -195,6 +195,25 @@ pub fn vital_signs() -> &'static [VitalSign] {
     })
 }
 
+/// Vital-sign tests that are reported but not simulated by the fixed course (derived or
+/// archetype-specific), after [`vital_signs`] in reporting order.
+pub fn extra_vital_signs() -> &'static [VitalSign] {
+    static V: OnceLock<Vec<VitalSign>> = OnceLock::new();
+    V.get_or_init(|| {
+        vec![VitalSign {
+            testcd: "BMI".into(),
+            test: "Body Mass Index".into(),
+            unit: "kg/m2".into(),
+            dp: 1,
+            mean: (0.0, 0.0),
+            sd_between: 0.0,
+            sd_within: 0.0,
+            position: None,
+            group: None,
+        }]
+    })
+}
+
 /// Background AE rates.
 pub fn ae_background() -> &'static [AeBackground] {
     static A: OnceLock<Vec<AeBackground>> = OnceLock::new();
@@ -371,4 +390,48 @@ pub fn adas_items() -> &'static [AdasItem] {
             })
             .collect()
     })
+}
+
+/// An ophthalmic examination test (OE).
+#[derive(Clone, Debug, PartialEq)]
+pub struct OeTest {
+    /// `OETESTCD` (CDISC OETESTCD).
+    pub testcd: &'static str,
+    /// `OETEST` (CDISC OETEST).
+    pub test: &'static str,
+    /// `OETSTDTL`.
+    pub detail: Option<&'static str>,
+    /// `OECAT`.
+    pub category: &'static str,
+    /// `OELOC` (CDISC LOC).
+    pub location: &'static str,
+    /// `OEMETHOD` (CDISC METHOD).
+    pub method: &'static str,
+    /// `OEORRESU`/`OESTRESU` (CDISC UNIT); `None` for scores.
+    pub unit: Option<&'static str>,
+}
+
+/// The ophthalmic examination tests, in reporting order.
+pub fn oe_tests() -> &'static [OeTest] {
+    const T: &[OeTest] = &[
+        OeTest {
+            testcd: "NUMLCOR",
+            test: "Number of Letters Correct",
+            detail: None,
+            category: "BEST CORRECTED VISUAL ACUITY",
+            location: "EYE",
+            method: "ETDRS EYE CHART",
+            unit: None,
+        },
+        OeTest {
+            testcd: "THICK",
+            test: "Thickness",
+            detail: Some("CENTRAL SUBFIELD"),
+            category: "RETINAL THICKNESS",
+            location: "MACULA",
+            method: "SPECTRAL DOMAIN OPTICAL COHERENCE TOMOGRAPHY",
+            unit: Some("um"),
+        },
+    ];
+    T
 }
