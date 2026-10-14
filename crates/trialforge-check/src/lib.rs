@@ -13,13 +13,20 @@
 
 mod adas;
 mod derivational;
+mod escalation;
+mod exacerbation;
+mod growth;
+mod lugano;
 mod onco;
+mod ophtha;
 mod outcomes;
 mod periods;
 mod pk;
 mod referential;
 mod structural;
+mod switching;
 mod table;
+mod vaccine;
 
 use std::collections::BTreeMap;
 
