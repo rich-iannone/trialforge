@@ -51,6 +51,9 @@ pub struct Arm {
     pub treatment: Treatment,
     /// Treatment periods, in order, when the arm is a crossover sequence; empty otherwise.
     pub periods: Vec<Period>,
+    /// A treatment subjects may switch to after progression (crossover on progression), and
+    /// its element name.
+    pub switch_to: Option<(Treatment, String)>,
 }
 
 /// A site with its country (ISO 3166-1 alpha-3).
@@ -117,6 +120,8 @@ pub enum Epoch {
     Period(u8),
     /// The washout after period `n` of a crossover (`n = 0` when there is a single washout).
     Washout(u8),
+    /// Treatment after switching, e.g. crossover to the experimental drug on progression.
+    Continuation,
 }
 
 impl Epoch {
@@ -133,6 +138,7 @@ impl Epoch {
                 4 => "TREATMENT 4",
                 _ => "TREATMENT",
             },
+            Epoch::Continuation => "CONTINUATION TREATMENT",
             Epoch::Washout(n) => match n {
                 1 => "WASHOUT 1",
                 2 => "WASHOUT 2",
@@ -228,6 +234,8 @@ pub struct TrialInfo {
     pub intervention_model: String,
     /// `HLTSUBJI`: whether the subjects are healthy volunteers.
     pub healthy_subjects: bool,
+    /// `INTTYPE` (CT), e.g. `DRUG` or `VACCINE`.
+    pub intervention_type: String,
     /// Inclusion and exclusion criteria: (`IETESTCD`, `IECAT`, `IETEST`).
     pub criteria: Vec<(String, String, String)>,
 }
@@ -281,6 +289,8 @@ pub struct Design {
     pub enrollment_days: i32,
     /// Data cutoff date.
     pub cutoff: Date,
+    /// The cutoff is an interim snapshot rather than the primary analysis.
+    pub interim: bool,
     /// Permuted block size (a multiple of the summed arm ratios).
     pub block_size: u32,
     /// Baseline distributions.
@@ -580,6 +590,7 @@ mod tests {
                     ratio: 2,
                     treatment: trt("A"),
                     periods: Vec::new(),
+                    switch_to: None,
                 },
                 Arm {
                     armcd: "P".into(),
@@ -587,6 +598,7 @@ mod tests {
                     ratio: 1,
                     treatment: trt("P"),
                     periods: Vec::new(),
+                    switch_to: None,
                 },
             ],
             sites: vec![
@@ -602,6 +614,7 @@ mod tests {
             first_randomization: Date::from_ymd(2024, 1, 1).unwrap(),
             enrollment_days: 365,
             cutoff: Date::from_ymd(2026, 1, 1).unwrap(),
+            interim: false,
             block_size: 6,
             population: Population {
                 age_mean: 60.0,
@@ -633,6 +646,7 @@ mod tests {
                 trial_types: vec!["EFFICACY".into()],
                 intervention_model: "PARALLEL".into(),
                 healthy_subjects: false,
+                intervention_type: "DRUG".into(),
                 criteria: vec![],
             },
         }
