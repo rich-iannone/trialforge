@@ -3,6 +3,7 @@
 //! - Trial design: TA, TE, TV, TI, TS ([`tdm`]).
 //! - Subject level: DM, SE, SV, EX, CM, AE (+SUPPAE), DS, MH, LB, VS ([`subject`]).
 //! - Oncology: TU, TR, RS ([`tumor`]).
+//! - Pharmacokinetics: PC, PP ([`pk`]).
 //!
 //! Conventions shared by every domain:
 //! - Records are sorted by `USUBJID` and the domain's natural key, then `--SEQ` is assigned.
@@ -10,6 +11,7 @@
 //! - `EPOCH` comes from the subject's elements ([`Timeline::epoch_of`]).
 //! - Datasets with no records are not emitted (DM always is).
 
+pub mod pk;
 pub mod subject;
 pub mod tdm;
 pub mod tumor;
@@ -58,6 +60,7 @@ pub fn emit(ctx: &Context<'_>) -> Result<Vec<Dataset>, MetadataError> {
     let mut out = tdm::emit(ctx)?;
     out.extend(subject::emit(ctx)?);
     out.extend(tumor::emit(ctx)?);
+    out.extend(pk::emit(ctx)?);
     Ok(out
         .into_iter()
         .filter(|d| d.n_rows() > 0 || d.name == "DM")
