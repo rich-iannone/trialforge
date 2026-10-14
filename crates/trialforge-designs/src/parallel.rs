@@ -314,12 +314,199 @@ fn preset(indication: &str) -> Option<Preset> {
                 ("EXCL01", "EXCLUSION", "Any other cause of dementia"),
             ],
         }),
+        // For ophthalmology: the endpoint is visual acuity (OE), not a lab or vital sign.
+        "neovascular_amd" => Some(Preset {
+            endpoint: "",
+            change: [0.0, 0.0],
+            onset_days: 21.0,
+            title: "A Randomized, Double-Masked, Active-Controlled Study of Intravitreal Drug A in Neovascular Age-Related Macular Degeneration",
+            disease: "Neovascular age-related macular degeneration",
+            area: "OPHTHALMOLOGY",
+            objective: "To show that intravitreal Drug A is non-inferior to the comparator in the change from baseline in best corrected visual acuity of the study eye at the end of treatment",
+            age: (77.0, 8.0),
+            bmi: (27.0, 4.5),
+            required_history: &["Neovascular age-related macular degeneration"],
+            background: &[],
+            overrides: vec![],
+            ae_risk: &[],
+            criteria: &[
+                (
+                    "INCL01",
+                    "INCLUSION",
+                    "Adults aged 50 or older with active choroidal neovascularisation secondary to age-related macular degeneration in the study eye",
+                ),
+                (
+                    "INCL02",
+                    "INCLUSION",
+                    "Best corrected visual acuity of 78 to 24 ETDRS letters in the study eye at screening",
+                ),
+                (
+                    "EXCL01",
+                    "EXCLUSION",
+                    "Prior anti-VEGF treatment of the study eye",
+                ),
+                (
+                    "EXCL02",
+                    "EXCLUSION",
+                    "Active intraocular or periocular infection in either eye",
+                ),
+            ],
+        }),
+        // For pediatric_growth: the endpoint is height velocity, from the growth layer.
+        "growth_hormone_deficiency" => Some(Preset {
+            endpoint: "",
+            change: [0.0, 0.0],
+            onset_days: 30.0,
+            title: "A Randomized, Open-Label, Active-Controlled Study of Once-Weekly Drug A Versus Daily Somatropin in Prepubertal Children with Growth Hormone Deficiency",
+            disease: "Growth hormone deficiency",
+            area: "ENDOCRINOLOGY",
+            objective: "To show that once-weekly Drug A is non-inferior to daily somatropin in annualized height velocity at the end of treatment",
+            age: (7.0, 2.3),
+            bmi: (16.5, 2.0),
+            required_history: &["Growth hormone deficiency"],
+            background: &[],
+            overrides: vec![
+                ov("SYSBP", Some((100.0, 102.0)), Some(8.0), None),
+                ov("DIABP", Some((62.0, 63.0)), Some(6.0), None),
+                ov("PULSE", Some((92.0, 90.0)), Some(10.0), None),
+                ov("RESP", Some((20.0, 20.0)), Some(2.5), None),
+            ],
+            ae_risk: &[],
+            criteria: &[
+                (
+                    "INCL01",
+                    "INCLUSION",
+                    "Prepubertal children aged 3 to 11 years with growth hormone deficiency confirmed by two stimulation tests",
+                ),
+                (
+                    "INCL02",
+                    "INCLUSION",
+                    "Height at least 2.0 standard deviations below the mean for age and sex (CDC 2000) at screening",
+                ),
+                (
+                    "EXCL01",
+                    "EXCLUSION",
+                    "Prior treatment with growth hormone or IGF-1",
+                ),
+                (
+                    "EXCL02",
+                    "EXCLUSION",
+                    "Chromosomal abnormalities or syndromes associated with short stature",
+                ),
+            ],
+        }),
+        // For respiratory_exacerbation: exacerbations (CE) and FEV1 (RE) come from their own layer.
+        "copd" => Some(Preset {
+            endpoint: "",
+            change: [0.0, 0.0],
+            onset_days: 14.0,
+            title: "A Randomized, Double-Blind, Placebo-Controlled Study of Drug A in Adults with Chronic Obstructive Pulmonary Disease and a History of Exacerbations",
+            disease: "Chronic obstructive pulmonary disease",
+            area: "RESPIRATORY",
+            objective: "To compare the annualized rate of moderate or severe COPD exacerbations between Drug A and placebo",
+            age: (65.0, 8.0),
+            bmi: (26.0, 5.0),
+            required_history: &["Chronic obstructive pulmonary disease"],
+            background: &[("Chronic obstructive pulmonary disease", "TIOTROPIUM", 0.9)],
+            overrides: vec![],
+            ae_risk: &[],
+            criteria: &[
+                (
+                    "INCL01",
+                    "INCLUSION",
+                    "Adults aged 40 to 85 years with COPD and a post-bronchodilator FEV1/FVC below 0.70",
+                ),
+                (
+                    "INCL02",
+                    "INCLUSION",
+                    "At least one moderate or severe COPD exacerbation in the 12 months before screening",
+                ),
+                ("EXCL01", "EXCLUSION", "A current diagnosis of asthma"),
+                (
+                    "EXCL02",
+                    "EXCLUSION",
+                    "A COPD exacerbation within 4 weeks before screening",
+                ),
+            ],
+        }),
+        // For vaccine: healthy adults; immunogenicity and reactogenicity come from their layer.
+        "vaccine" => Some(Preset {
+            endpoint: "",
+            change: [0.0, 0.0],
+            onset_days: 14.0,
+            title: "A Randomized, Observer-Blind, Placebo-Controlled Study of the Immunogenicity, Reactogenicity and Safety of Vaccine A in Healthy Adults",
+            disease: "Prevention of Virus X infection",
+            area: "VACCINES",
+            objective: "To compare the neutralizing antibody geometric mean titer 28 days after the last vaccination between Vaccine A and placebo",
+            age: (40.0, 12.0),
+            bmi: (26.0, 4.5),
+            required_history: &[],
+            background: &[],
+            overrides: vec![],
+            ae_risk: &[],
+            criteria: &[
+                (
+                    "INCL01",
+                    "INCLUSION",
+                    "Healthy adults, or adults with stable chronic conditions, within the protocol age range",
+                ),
+                (
+                    "EXCL01",
+                    "EXCLUSION",
+                    "Receipt of any vaccine within 28 days before the first vaccination",
+                ),
+                (
+                    "EXCL02",
+                    "EXCLUSION",
+                    "Known immunodeficiency or immunosuppressive therapy",
+                ),
+            ],
+        }),
+        // For dose_escalation: phase 1 in advanced solid tumours; DLTs come from their layer.
+        "advanced_solid_tumors" => Some(Preset {
+            endpoint: "",
+            change: [0.0, 0.0],
+            onset_days: 14.0,
+            title: "An Open-Label, Dose-Escalation Study of the Safety and Tolerability of Drug A in Adults with Advanced Solid Tumors",
+            disease: "Advanced solid tumors",
+            area: "ONCOLOGY",
+            objective: "To determine the maximum tolerated dose of Drug A from dose-limiting toxicities in the first 28-day cycle",
+            age: (60.0, 10.0),
+            bmi: (26.0, 4.5),
+            required_history: &["Neoplasm malignant"],
+            background: &[],
+            overrides: vec![],
+            ae_risk: &[],
+            criteria: &[
+                (
+                    "INCL01",
+                    "INCLUSION",
+                    "Adults with an advanced or metastatic solid tumor for which no standard therapy is available",
+                ),
+                ("INCL02", "INCLUSION", "ECOG performance status of 0 or 1"),
+                (
+                    "EXCL01",
+                    "EXCLUSION",
+                    "Anticancer therapy within 28 days before the first dose",
+                ),
+            ],
+        }),
         _ => None,
     }
 }
 
 pub(crate) fn validate(c: &Controls) -> Result<(), String> {
-    if preset(&c.indication).is_none() || c.indication == "alzheimers" {
+    if preset(&c.indication).is_none()
+        || [
+            "alzheimers",
+            "neovascular_amd",
+            "growth_hormone_deficiency",
+            "copd",
+            "vaccine",
+            "advanced_solid_tumors",
+        ]
+        .contains(&c.indication.as_str())
+    {
         return Err(format!(
             "unknown indication {:?}; available: type_2_diabetes, hypertension, obesity",
             c.indication
@@ -543,12 +730,14 @@ pub(crate) fn build(
                 ratio: a.ratio,
                 treatment: treatment(&a.treatment, a.dose),
                 periods: Vec::new(),
+                switch_to: None,
             })
             .collect(),
         sites,
         first_randomization: first,
         enrollment_days,
         cutoff: first.add_days(enrollment_days + (c.weeks * 7) as i32 + 120),
+        interim: false,
         block_size: arms.iter().map(|a| a.ratio).sum::<u32>() * 2,
         population: Population {
             age_mean: pre.age.0,
@@ -589,6 +778,7 @@ pub(crate) fn build(
             trial_types: vec!["EFFICACY".into()],
             intervention_model: "PARALLEL".into(),
             healthy_subjects: false,
+            intervention_type: "DRUG".into(),
             criteria: pre
                 .criteria
                 .iter()
@@ -618,6 +808,7 @@ pub(crate) fn build(
         .collect();
     let params = CourseParams {
         dosing_days: None,
+        extra_ae: Vec::new(),
         dropout_annual_rate: c.dropout_rate,
         dropout_reasons: vec![
             ("WITHDRAWAL BY SUBJECT".into(), 0.55),
