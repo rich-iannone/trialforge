@@ -17,7 +17,9 @@ data in both languages.
 import trialforge as tf
 
 trial = tf.study("parallel_continuous", n=300, seed=1, indication="hypertension", weeks=12)
-trial.adam["ADVS"]                       # polars by default
+advs = trial.adam["ADVS"]                # a Polars DataFrame
+dm = trial.sdtm["DM"]                    # SDTM datasets too
+# output="pandas" or output="pyarrow" in tf.study() returns those types instead
 trial.truth["endpoint"]                  # target vs realised treatment effect
 trial.write_submission("out/")           # sdtm/ and adam/: XPT + define.xml
 trial.verify(level=3)                    # + Pointblank's SDTMIG conformance rules
@@ -28,7 +30,8 @@ tf.controls("parallel_continuous")       # every control, with its default
 library(trialforge)
 
 trial <- study("parallel_continuous", n = 300, seed = 1, indication = "hypertension", weeks = 12)
-trial$adam$ADVS
+advs <- tibble::as_tibble(trial$adam$ADVS)  # a tibble (datasets are data frames with labels)
+dm <- tibble::as_tibble(trial$sdtm$DM)
 trial$truth$endpoint
 write_submission(trial, "out/")
 ```
