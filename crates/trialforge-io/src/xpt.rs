@@ -124,6 +124,9 @@ pub fn to_bytes(dataset: &Dataset, timestamp: Date) -> Result<Vec<u8>, XptError>
                 Values::Date(x) => {
                     out.extend_from_slice(&ibm(x[row].map(|d| f64::from(d.sas_days()))))
                 }
+                Values::DateTime(x) => {
+                    out.extend_from_slice(&ibm(x[row].map(|d| d.sas_seconds() as f64)))
+                }
             }
         }
     }
@@ -200,6 +203,7 @@ impl<'a> Layout<'a> {
                 }
                 Values::Num(_) | Values::Int(_) => (false, 8, None),
                 Values::Date(_) => (false, 8, Some(("DATE", 9))),
+                Values::DateTime(_) => (false, 8, Some(("DATETIME", 20))),
             };
             vars.push(Var {
                 name: &c.name,
