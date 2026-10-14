@@ -1,4 +1,4 @@
-//! ADAE (OCCDS) from AE and ADSL.
+//! ADAE (OCCDS) from AE and ADSL; `DLTFL` from the SUPPAE `AEDLT` qualifier when present.
 
 use std::collections::HashSet;
 
@@ -8,7 +8,11 @@ use trialforge_core::{Dataset, Values};
 use crate::{DeriveError, Frame, dt, index, rel_day};
 
 /// Derives ADAE.
-pub fn adae(ae: &Dataset, adsl: &Dataset) -> Result<Dataset, DeriveError> {
+pub fn adae(
+    ae: &Dataset,
+    suppae: Option<&Dataset>,
+    adsl: &Dataset,
+) -> Result<Dataset, DeriveError> {
     let ae = Frame::new(ae);
     let sl = Frame::new(adsl);
     let sl_idx = index(sl.chars("USUBJID")?);
@@ -136,6 +140,42 @@ pub fn adae(ae: &Dataset, adsl: &Dataset) -> Result<Dataset, DeriveError> {
         ("AOCCSFL", Values::Char(occ_soc.iter().map(y).collect())),
         ("AOCCPFL", Values::Char(occ_pt.iter().map(y).collect())),
     ];
+    // DLTFL (admiral derive_vars_merged() on SUPPAE AEDLT, as metatools::combine_supp()).
+    if let Some(sup) = suppae.map(Frame::new) {
+        let (su, qnam, idvarval, qval) = (
+            sup.chars("USUBJID")?,
+            sup.chars("QNAM")?,
+            sup.chars("IDVARVAL")?,
+            sup.chars("QVAL")?,
+        );
+        let mut dlt: std::collections::HashMap<(&str, i64), &str> =
+            std::collections::HashMap::new();
+        for i in 0..sup.n() {
+            if let (Some(x), Some("AEDLT"), Some(v), Some(q)) = (
+                su[i].as_deref(),
+                qnam[i].as_deref(),
+                idvarval[i].as_deref(),
+                qval[i].as_deref(),
+            ) {
+                if let Ok(seq) = v.parse::<i64>() {
+                    dlt.insert((x, seq), q);
+                }
+            }
+        }
+        if !dlt.is_empty() {
+            cols.push((
+                "DLTFL",
+                Values::Char(
+                    (0..n)
+                        .map(|i| {
+                            let x = usubjid[i].as_deref()?;
+                            dlt.get(&(x, aeseq[i]?)).map(|q| q.to_string())
+                        })
+                        .collect(),
+                ),
+            ));
+        }
+    }
     let periods = crate::Periods::new(adsl)?;
     let keys: Vec<(usize, Option<trialforge_core::Date>)> = row
         .iter()
