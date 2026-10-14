@@ -2,7 +2,7 @@
 
 use std::collections::HashMap;
 
-use trialforge_core::{Dataset, Date, Values};
+use trialforge_core::{Dataset, Date, DateTime, Values};
 
 /// A dataset with lookups that return `None` instead of failing (structure is L0's job).
 pub(crate) struct T<'a> {
@@ -37,6 +37,7 @@ impl<'a> T<'a> {
             Values::Num(v) => v.clone(),
             Values::Int(v) => v.iter().map(|x| x.map(|n| n as f64)).collect(),
             Values::Date(v) => v.iter().map(|x| x.map(|d| f64::from(d.days()))).collect(),
+            Values::DateTime(v) => v.iter().map(|x| x.map(|d| d.seconds() as f64)).collect(),
             Values::Char(_) => return None,
         })
     }
@@ -54,9 +55,10 @@ impl<'a> T<'a> {
     pub fn d(&self, var: &str) -> Option<Vec<Option<Date>>> {
         Some(match &self.ds.column(var)?.values {
             Values::Date(v) => v.clone(),
+            Values::DateTime(v) => v.iter().map(|x| x.map(DateTime::date)).collect(),
             Values::Char(v) => v
                 .iter()
-                .map(|x| x.as_deref().and_then(Date::parse_iso))
+                .map(|x| x.as_deref().and_then(parse_date))
                 .collect(),
             _ => return None,
         })
@@ -81,7 +83,13 @@ pub(crate) fn get<'a>(sets: &'a [Dataset], name: &str) -> Option<T<'a>> {
     sets.iter().find(|d| d.name == name).map(T::new)
 }
 
-/// Whether `s` is a valid ISO 8601 date or partial date (`YYYY`, `YYYY-MM`, `YYYY-MM-DD`).
+/// The date of a complete ISO 8601 date or date-time.
+pub(crate) fn parse_date(s: &str) -> Option<Date> {
+    Date::parse_iso(s).or_else(|| DateTime::parse_iso(s).map(DateTime::date))
+}
+
+/// Whether `s` is a valid ISO 8601 date, partial date (`YYYY`, `YYYY-MM`, `YYYY-MM-DD`) or
+/// date-time (`YYYY-MM-DDThh:mm[:ss]`).
 pub(crate) fn iso_ok(s: &str) -> bool {
     let b = s.as_bytes();
     let digits =
@@ -95,6 +103,7 @@ pub(crate) fn iso_ok(s: &str) -> bool {
                 && (1..=12).contains(&s[5..7].parse::<u32>().unwrap_or(0))
         }
         10 => Date::parse_iso(s).is_some(),
+        16 | 19 => DateTime::parse_iso(s).is_some(),
         _ => false,
     }
 }
