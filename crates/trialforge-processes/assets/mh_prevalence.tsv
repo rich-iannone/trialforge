@@ -30,3 +30,6 @@ Cholecystectomy	SURGICAL HISTORY	0.08	0.04	0.50	N	25
 Hysterectomy	SURGICAL HISTORY	0.12	0	0.80	N	25
 Knee arthroplasty	SURGICAL HISTORY	0.03	0.025	1.00	N	10
 Dementia Alzheimer's type	GENERAL MEDICAL HISTORY	0	0	0	Y	6
+Neovascular age-related macular degeneration	GENERAL MEDICAL HISTORY	0	0	0	Y	3
+Growth hormone deficiency	GENERAL MEDICAL HISTORY	0	0	0	Y	3
+Neoplasm malignant	GENERAL MEDICAL HISTORY	0	0	0	Y	3
