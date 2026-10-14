@@ -4,14 +4,22 @@
 //! Controls arrive as a JSON object (from Python keyword arguments, an R list, or a study-spec
 //! file) and are merged over the archetype's defaults; unknown names are an error.
 
+pub mod cns;
+pub mod crossover;
+pub mod cv;
+pub mod dose_ranging;
 pub mod oncology;
 pub mod parallel;
+pub mod phase1;
 
 use serde::Serialize;
 use serde_json::Value;
 use trialforge_model::Design;
+use trialforge_processes::adas::AdasParams;
 use trialforge_processes::fixed::CourseParams;
 use trialforge_processes::oncology::OncologyParams;
+use trialforge_processes::outcomes::OutcomesParams;
+use trialforge_processes::pk::PkParams;
 
 /// The archetypes this build knows, with one-line descriptions.
 pub const ARCHETYPES: &[(&str, &str)] = &[
@@ -21,7 +29,27 @@ pub const ARCHETYPES: &[(&str, &str)] = &[
     ),
     (
         "oncology_solid_tumor",
-        "Randomised solid-tumour study (SIMONC01-like): progression, death and disposition; no tumour data yet",
+        "Randomised solid-tumour study (SIMONC01-like): RECIST 1.1 tumour assessments, response, progression and survival",
+    ),
+    (
+        "cns_alzheimers",
+        "Placebo-controlled study in mild to moderate Alzheimer's disease with ADAS-Cog (11) items (FT) and LOCF analysis",
+    ),
+    (
+        "crossover_be",
+        "Crossover bioequivalence or food-effect study (2x2, 2x2x4 replicate or fed/fasted) with PK and NCA",
+    ),
+    (
+        "cv_outcomes",
+        "Event-driven cardiovascular outcomes trial: recurrent MI and stroke, CV and non-CV death, time to first MACE",
+    ),
+    (
+        "dose_ranging_ph2",
+        "Phase 2 dose-ranging study (placebo + several doses) with a sigmoid Emax dose-response",
+    ),
+    (
+        "phase1_sad_mad",
+        "First-in-human single or multiple ascending dose study in healthy volunteers, with intensive PK and NCA",
     ),
 ];
 
@@ -83,6 +111,15 @@ pub enum Course {
     Fixed(CourseParams),
     /// An event-driven oncology course, with the calibration that produced its parameters.
     Oncology(OncologyParams, trialforge_calibrate::oncology::Calibration),
+    /// A fixed-duration course with timed dosing and pharmacokinetics layered on it.
+    Pk(CourseParams, PkParams),
+    /// A crossover: the fixed-duration course split into periods (each period's dose study
+    /// day), with pharmacokinetics.
+    Crossover(CourseParams, PkParams, Vec<i32>),
+    /// A fixed-duration course with ADAS-Cog assessments layered on it.
+    Adas(CourseParams, AdasParams),
+    /// An event-driven outcomes course.
+    Outcomes(OutcomesParams),
 }
 
 /// A resolved study: design, course parameters and the controls actually used.
@@ -155,6 +192,20 @@ pub fn control_docs(archetype: &str) -> Result<Vec<ControlDoc>, ResolveError> {
             oncology::docs(),
             serde_json::to_value(oncology::Controls::default()),
         ),
+        "cns_alzheimers" => (cns::docs(), serde_json::to_value(cns::Controls::default())),
+        "cv_outcomes" => (cv::docs(), serde_json::to_value(cv::Controls::default())),
+        "dose_ranging_ph2" => (
+            dose_ranging::docs(),
+            serde_json::to_value(dose_ranging::Controls::default()),
+        ),
+        "crossover_be" => (
+            crossover::docs(),
+            serde_json::to_value(crossover::Controls::default()),
+        ),
+        "phase1_sad_mad" => (
+            phase1::docs(),
+            serde_json::to_value(phase1::Controls::default()),
+        ),
         other => return Err(unknown(other)),
     };
     let defaults = defaults.expect("controls serialize");
@@ -184,6 +235,56 @@ pub fn resolve(archetype: &str, opts: &StudyOptions) -> Result<Resolved, Resolve
             Ok(Resolved {
                 design,
                 course: Course::Oncology(params, calibration),
+                controls: json,
+            })
+        }
+        "cns_alzheimers" => {
+            let (c, json) = controls::<cns::Controls>(&opts.controls)?;
+            cns::validate(&c).map_err(ResolveError)?;
+            let (design, course, adas) = cns::resolve(opts, &c);
+            Ok(Resolved {
+                design,
+                course: Course::Adas(course, adas),
+                controls: json,
+            })
+        }
+        "cv_outcomes" => {
+            let (c, json) = controls::<cv::Controls>(&opts.controls)?;
+            cv::validate(&c).map_err(ResolveError)?;
+            let (design, params) = cv::resolve(opts, &c);
+            Ok(Resolved {
+                design,
+                course: Course::Outcomes(params),
+                controls: json,
+            })
+        }
+        "dose_ranging_ph2" => {
+            let (c, json) = controls::<dose_ranging::Controls>(&opts.controls)?;
+            dose_ranging::validate(&c).map_err(ResolveError)?;
+            let (design, params) = dose_ranging::resolve(opts, &c);
+            Ok(Resolved {
+                design,
+                course: Course::Fixed(params),
+                controls: json,
+            })
+        }
+        "crossover_be" => {
+            let (c, json) = controls::<crossover::Controls>(&opts.controls)?;
+            crossover::validate(&c).map_err(ResolveError)?;
+            let (design, course, pk) = crossover::resolve(opts, &c);
+            Ok(Resolved {
+                design,
+                course: Course::Crossover(course, pk, crossover::period_days(&c)),
+                controls: json,
+            })
+        }
+        "phase1_sad_mad" => {
+            let (c, json) = controls::<phase1::Controls>(&opts.controls)?;
+            phase1::validate(&c).map_err(ResolveError)?;
+            let (design, course, pk) = phase1::resolve(opts, &c);
+            Ok(Resolved {
+                design,
+                course: Course::Pk(course, pk),
                 controls: json,
             })
         }
