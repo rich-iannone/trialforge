@@ -103,7 +103,7 @@ r-check: r-build ## R CMD check --as-cran on the staged tarball (offline build f
 
 # admiral equivalence: admiral re-derives our ADaM from our SDTM; every compared value must match.
 # Runs in an isolated `ir` environment (nothing is installed into the user library).
-ADMIRAL_IR := ir run --isolated --r-version 4.6 --exclude-newer 2026-09-25 --with admiral --with admiralonco --with haven --with dplyr --with stringr --with tidyr
+ADMIRAL_IR := ir run --isolated --r-version 4.6 --exclude-newer 2026-09-25 --with admiral --with admiralonco --with admiralophtha --with admiralpeds --with admiralvaccine --with haven --with dplyr --with stringr --with tidyr
 PKNCA_IR := ir run --isolated --r-version 4.6 --exclude-newer 2026-09-25 --with PKNCA --with haven --with dplyr
 ADMIRAL_CASES := parallel_continuous:{} \
 	'parallel_continuous:{"indication":"hypertension","weeks":12,"dropout_rate":0.9}' \
@@ -120,7 +120,24 @@ ADMIRAL_CASES := parallel_continuous:{} \
 	cns_alzheimers:{} \
 	'cns_alzheimers:{"item_missing":0.15,"dropout_rate":2,"weeks":48}' \
 	cv_outcomes:{} \
-	'cv_outcomes:{"target_events":40,"withdrawal_rate":0.3,"discontinuation_rate":0.3,"components":[1,1,1]}'
+	'cv_outcomes:{"target_events":40,"withdrawal_rate":0.3,"discontinuation_rate":0.3,"components":[1,1,1]}' \
+	ophthalmology:{} \
+	'ophthalmology:{"interval_weeks":[4,16],"loading_doses":1,"weeks":24,"dropout_rate":2,"missed_visit":0.3}' \
+	pediatric_growth:{} \
+	'pediatric_growth:{"age_range":[3,15],"weeks":104,"dropout_rate":1,"height_velocity":[6,12]}' \
+	respiratory_exacerbation:{} \
+	'respiratory_exacerbation:{"exacerbation_rate":3,"dispersion":2,"severe_fraction":0.6,"weeks":24,"dropout_rate":2}' \
+	vaccine:{} \
+	'vaccine:{"doses":1,"reactogenicity":2.5,"fever_rate":0.5,"seropositive":0.5,"dropout_rate":2,"missed_visit":0.3}' \
+	'oncology_solid_tumor:{"crossover_prob":0.7}' \
+	'oncology_solid_tumor:{"interim_months":12}' \
+	'cv_outcomes:{"target_events":40,"interim_events":20}' \
+	heme_lymphoma:{} \
+	'heme_lymphoma:{"orr":[0.8,0.2],"cutoff_months":22,"withdrawal_prob":0.3,"os_pfs_correlation":0.9}' \
+	'heme_lymphoma:{"interim_months":9}' \
+	dose_escalation:{} \
+	'dose_escalation:{"method":"3+3","dropout_rate":2}' \
+	'dose_escalation:{"method":"mtpi2","cohort_size":2,"weeks":4}'
 
 .PHONY: r-admiral
 r-admiral: ## Compare our ADaM with admiral's derivations from our SDTM (needs `ir`)
