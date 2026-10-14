@@ -13,13 +13,19 @@ const TOL: f64 = 1e-6;
 
 /// (start, end) of a source record.
 type Span = (Option<Date>, Option<Date>);
-/// (value, date, reference low, reference high) of a source finding.
-type SourceFinding = (Option<f64>, Option<Date>, Option<f64>, Option<f64>);
+/// (value, date, reference low, reference high, test code) of a source finding.
+type SourceFinding<'a> = (
+    Option<f64>,
+    Option<Date>,
+    Option<f64>,
+    Option<f64>,
+    Option<&'a str>,
+);
 
 pub(crate) fn run(sdtm: &[Dataset], adam: &[Dataset], r: &mut Report) {
     adsl(sdtm, adam, r);
     adae(sdtm, adam, r);
-    for (bds, src) in [("ADLB", "LB"), ("ADVS", "VS")] {
+    for (bds, src) in [("ADLB", "LB"), ("ADVS", "VS"), ("ADRE", "RE")] {
         if let (Some(b), Some(s)) = (get(adam, bds), get(sdtm, src)) {
             basic(&b, &s, src, adam, r);
         }
@@ -29,6 +35,12 @@ pub(crate) fn run(sdtm: &[Dataset], adam: &[Dataset], r: &mut Report) {
     crate::periods::run(sdtm, adam, r);
     crate::adas::run(sdtm, adam, r);
     crate::outcomes::run(sdtm, adam, r);
+    crate::ophtha::run(sdtm, adam, r);
+    crate::growth::run(sdtm, adam, r);
+    crate::exacerbation::run(sdtm, adam, r);
+    crate::vaccine::run(sdtm, adam, r);
+    crate::escalation::run(sdtm, adam, r);
+    crate::switching::run(sdtm, adam, r);
 }
 
 fn adsl(sdtm: &[Dataset], adam: &[Dataset], r: &mut Report) {
@@ -280,7 +292,8 @@ fn basic(b: &T<'_>, s: &T<'_>, src: &str, adam: &[Dataset], r: &mut Report) {
     let sdt = sl.d("TRTSDT").unwrap_or_default();
 
     // Source records by (USUBJID, --SEQ).
-    let mut source: HashMap<(&str, i64), SourceFinding> = HashMap::new();
+    let mut source: HashMap<(&str, i64), SourceFinding<'_>> = HashMap::new();
+    let stest = s.c(&format!("{src}TESTCD")).unwrap_or_default();
     let (su, sseq, sval, sdtc) = (
         s.c("USUBJID").unwrap_or_default(),
         s.i(&format!("{src}SEQ")).unwrap_or_default(),
@@ -295,7 +308,10 @@ fn basic(b: &T<'_>, s: &T<'_>, src: &str, adam: &[Dataset], r: &mut Report) {
         .unwrap_or_else(|| vec![None; s.n()]);
     for i in 0..s.n() {
         if let (Some(u), Some(q)) = (su[i].as_deref(), sseq[i]) {
-            source.insert((u, q), (sval[i], sdtc[i], lo[i], hi[i]));
+            source.insert(
+                (u, q),
+                (sval[i], sdtc[i], lo[i], hi[i], stest[i].as_deref()),
+            );
         }
     }
 
@@ -328,7 +344,7 @@ fn basic(b: &T<'_>, s: &T<'_>, src: &str, adam: &[Dataset], r: &mut Report) {
             );
             continue;
         };
-        let Some((v, d, lo, hi)) = source.get(&(x, q)) else {
+        let Some((v, d, lo, hi, testcd)) = source.get(&(x, q)) else {
             r.add(
                 L,
                 "L2.TRACE",
@@ -339,7 +355,9 @@ fn basic(b: &T<'_>, s: &T<'_>, src: &str, adam: &[Dataset], r: &mut Report) {
             );
             continue;
         };
-        if aval[i] != *v || adt[i] != *d {
+        // Parameters derived from the record (growth indicators) are checked by `growth`.
+        let derived = pc[i].as_deref() != *testcd;
+        if (aval[i] != *v && !derived) || adt[i] != *d {
             r.add(
                 L,
                 "L2.BDS",
