@@ -109,6 +109,102 @@ impl fmt::Display for Date {
     }
 }
 
+/// A date and time of day, stored as seconds since 1970-01-01T00:00:00 (no time zone: the
+/// study clock is local time throughout, as in most SDTM data).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct DateTime(i64);
+
+/// Seconds per day.
+const DAY_SECONDS: i64 = 86_400;
+
+impl DateTime {
+    /// `date` at `hour:minute`.
+    ///
+    /// # Panics
+    /// If `hour` > 23 or `minute` > 59.
+    pub fn new(date: Date, hour: u32, minute: u32) -> Self {
+        assert!(hour < 24 && minute < 60, "invalid time of day");
+        Self(i64::from(date.days()) * DAY_SECONDS + i64::from(hour * 3600 + minute * 60))
+    }
+
+    /// The date-time `seconds` after 1970-01-01T00:00:00.
+    pub const fn from_seconds(seconds: i64) -> Self {
+        Self(seconds)
+    }
+
+    /// Seconds since 1970-01-01T00:00:00 (the Arrow timestamp and R `POSIXct` epoch).
+    pub const fn seconds(self) -> i64 {
+        self.0
+    }
+
+    /// Seconds since 1960-01-01T00:00:00, the value SAS stores for a datetime.
+    pub const fn sas_seconds(self) -> i64 {
+        self.0 + SAS_EPOCH_OFFSET as i64 * DAY_SECONDS
+    }
+
+    /// The calendar date.
+    pub fn date(self) -> Date {
+        Date::from_days(self.0.div_euclid(DAY_SECONDS) as i32)
+    }
+
+    /// Seconds since midnight.
+    pub fn time_seconds(self) -> i64 {
+        self.0.rem_euclid(DAY_SECONDS)
+    }
+
+    /// The date-time `minutes` later (or earlier, for negative `minutes`).
+    #[must_use]
+    pub const fn add_minutes(self, minutes: i64) -> Self {
+        Self(self.0 + minutes * 60)
+    }
+
+    /// Hours from `other` to `self`.
+    pub fn hours_since(self, other: Self) -> f64 {
+        (self.0 - other.0) as f64 / 3600.0
+    }
+
+    /// ISO 8601 with seconds, `YYYY-MM-DDThh:mm:ss`.
+    pub fn iso_seconds(self) -> String {
+        let t = self.time_seconds();
+        format!(
+            "{}T{:02}:{:02}:{:02}",
+            self.date(),
+            t / 3600,
+            t % 3600 / 60,
+            t % 60
+        )
+    }
+
+    /// Parses ISO 8601 `YYYY-MM-DDThh:mm` or `YYYY-MM-DDThh:mm:ss`.
+    pub fn parse_iso(s: &str) -> Option<Self> {
+        let (d, t) = s.split_once('T')?;
+        let date = Date::parse_iso(d)?;
+        let mut parts = t.split(':');
+        let h: u32 = parts.next()?.parse().ok()?;
+        let m: u32 = parts.next()?.parse().ok()?;
+        let sec: u32 = parts.next().map_or(Some(0), |x| x.parse().ok())?;
+        if parts.next().is_some() || h > 23 || m > 59 || sec > 59 || t.len() < 5 {
+            return None;
+        }
+        Some(Self(
+            i64::from(date.days()) * DAY_SECONDS + i64::from(h * 3600 + m * 60 + sec),
+        ))
+    }
+}
+
+impl fmt::Display for DateTime {
+    /// ISO 8601 `YYYY-MM-DDThh:mm`, with `:ss` only when the seconds are not zero.
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let t = self.time_seconds();
+        let (h, m, s) = (t / 3600, t % 3600 / 60, t % 60);
+        write!(f, "{}T{h:02}:{m:02}", self.date())?;
+        if s != 0 {
+            write!(f, ":{s:02}")?;
+        }
+        Ok(())
+    }
+}
+
 /// SDTM study day (`--DY`) of `date` relative to `reference` (usually RFSTDTC). There is no
 /// day 0: the reference date is day 1 and the day before it is day -1.
 pub fn study_day(date: Date, reference: Date) -> i32 {
@@ -132,6 +228,29 @@ fn days_in_month(year: i32, month: u32) -> u32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn datetimes() {
+        let d = Date::from_ymd(2024, 3, 5).unwrap();
+        let t = DateTime::new(d, 8, 30);
+        assert_eq!(t.to_string(), "2024-03-05T08:30");
+        assert_eq!(DateTime::parse_iso("2024-03-05T08:30"), Some(t));
+        assert_eq!(
+            DateTime::parse_iso("2024-03-05T08:30:15")
+                .unwrap()
+                .to_string(),
+            "2024-03-05T08:30:15"
+        );
+        assert_eq!(DateTime::parse_iso("2024-03-05"), None);
+        assert_eq!(t.add_minutes(16 * 60).date(), d.add_days(1));
+        assert_eq!(
+            DateTime::new(Date::from_ymd(1960, 1, 1).unwrap(), 0, 1).sas_seconds(),
+            60
+        );
+        assert_eq!(t.add_minutes(90).hours_since(t), 1.5);
+        let before = DateTime::from_seconds(-1);
+        assert_eq!(before.to_string(), "1969-12-31T23:59:59");
+    }
 
     #[test]
     fn epochs() {
