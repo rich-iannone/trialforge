@@ -34,9 +34,27 @@ KNOWN_POINTBLANK_DEFECTS: dict[str, tuple[frozenset[str] | None, str]] = {
         "requires VISITNUM in AE, which is only Permissible (Pointblank BUGS.md #34)",
     ),
     "SDTM-434": (
-        frozenset({f"TREATMENT {k}" for k in range(1, 5)} | {f"WASHOUT {k}" for k in range(1, 4)}),
+        frozenset(
+            {f"TREATMENT {k}" for k in range(1, 5)}
+            | {f"WASHOUT {k}" for k in range(1, 4)}
+            | {"CONTINUATION TREATMENT"}
+        ),
         "rejects sponsor extensions of the extensible EPOCH codelist that define.xml declares "
-        "(def:ExtendedValue) (Pointblank BUGS.md #37)",
+        "(def:ExtendedValue) (Pointblank BUGS.md #37), and CONTINUATION TREATMENT (C123452), "
+        "missing from its EPOCH list (BUGS.md #40)",
+    ),
+    "SDTM-066": (
+        frozenset({"EVERY WEEK", "EVERY 8 WEEKS", "EVERY 12 WEEKS", "EVERY 16 WEEKS"}),
+        "Pointblank's FREQ codelist lacks these CDISC CT (C71113) values (Pointblank BUGS.md #38)",
+    ),
+    "SDTM-435": (
+        frozenset({"EVERY WEEK", "EVERY 8 WEEKS", "EVERY 12 WEEKS", "EVERY 16 WEEKS"}),
+        "Pointblank's FREQ codelist lacks these CDISC CT (C71113) values (Pointblank BUGS.md #38)",
+    ),
+    "SDTM-335": (
+        None,
+        "requires VISITNUM in every VS record; it is Expected, so null for diary temperatures "
+        "(Pointblank BUGS.md #39)",
     ),
     "SDTM-170": (None, "requires LBORNRLO to be numeric; SDTMIG defines it as Char (BUGS.md #35)"),
     "SDTM-171": (None, "requires LBORNRHI to be numeric; SDTMIG defines it as Char (BUGS.md #35)"),
