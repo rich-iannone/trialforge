@@ -27,6 +27,17 @@ pub struct Treatment {
     pub cycle_days: i32,
 }
 
+/// A treatment period of a crossover sequence.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Period {
+    /// `ETCD` of the period's element (one per treatment, shared across sequences).
+    pub etcd: String,
+    /// `ELEMENT` of the period's element, e.g. `TFX-101 100 mg tablet (test)`.
+    pub element: String,
+    /// The treatment given in the period.
+    pub treatment: Treatment,
+}
+
 /// A study arm.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Arm {
@@ -36,8 +47,10 @@ pub struct Arm {
     pub arm: String,
     /// Allocation ratio weight (e.g. 1 for 1:1).
     pub ratio: u32,
-    /// The treatment given in this arm.
+    /// The treatment given in this arm (the first period's, for a crossover sequence).
     pub treatment: Treatment,
+    /// Treatment periods, in order, when the arm is a crossover sequence; empty otherwise.
+    pub periods: Vec<Period>,
 }
 
 /// A site with its country (ISO 3166-1 alpha-3).
@@ -100,6 +113,10 @@ pub enum Epoch {
     Treatment,
     /// Follow-up.
     FollowUp,
+    /// Treatment period `n` (1-based) of a crossover.
+    Period(u8),
+    /// The washout after period `n` of a crossover (`n = 0` when there is a single washout).
+    Washout(u8),
 }
 
 impl Epoch {
@@ -109,6 +126,19 @@ impl Epoch {
             Epoch::Screening => "SCREENING",
             Epoch::Treatment => "TREATMENT",
             Epoch::FollowUp => "FOLLOW-UP",
+            Epoch::Period(n) => match n {
+                1 => "TREATMENT 1",
+                2 => "TREATMENT 2",
+                3 => "TREATMENT 3",
+                4 => "TREATMENT 4",
+                _ => "TREATMENT",
+            },
+            Epoch::Washout(n) => match n {
+                1 => "WASHOUT 1",
+                2 => "WASHOUT 2",
+                3 => "WASHOUT 3",
+                _ => "WASHOUT",
+            },
         }
     }
 }
@@ -192,8 +222,33 @@ pub struct TrialInfo {
     pub control: String,
     /// `ADDON`: added on to existing treatment.
     pub add_on: bool,
+    /// `TTYPE` values (CT), e.g. `EFFICACY`, or `SAFETY` and `PHARMACOKINETIC`.
+    pub trial_types: Vec<String>,
+    /// `INTMODEL` (CT), e.g. `PARALLEL` or `SEQUENTIAL`.
+    pub intervention_model: String,
+    /// `HLTSUBJI`: whether the subjects are healthy volunteers.
+    pub healthy_subjects: bool,
     /// Inclusion and exclusion criteria: (`IETESTCD`, `IECAT`, `IETEST`).
     pub criteria: Vec<(String, String, String)>,
+}
+
+/// A sequential enrollment cohort (e.g. a dose level of a phase 1 study): its subjects are
+/// randomised within the cohort to fixed numbers per arm.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Cohort {
+    /// (arm index, number of subjects) in the cohort.
+    pub arms: Vec<(usize, u32)>,
+    /// First possible randomisation, in days after [`Design::first_randomization`].
+    pub start_day: i32,
+    /// Length of the cohort's enrollment window in days.
+    pub enrollment_days: i32,
+}
+
+impl Cohort {
+    /// Subjects in the cohort.
+    pub fn size(&self) -> usize {
+        self.arms.iter().map(|(_, k)| *k as usize).sum()
+    }
 }
 
 /// Day offsets around randomisation, each drawn uniformly from an inclusive range.
@@ -234,6 +289,9 @@ pub struct Design {
     pub timing: Timing,
     /// Visit schedule; `None` for event-driven designs without fixed visits.
     pub schedule: Option<Schedule>,
+    /// Sequential cohorts; when non-empty they replace permuted-block randomisation and their
+    /// sizes add up to `n`.
+    pub cohorts: Vec<Cohort>,
     /// Trial-level descriptors.
     pub info: TrialInfo,
 }
@@ -259,7 +317,24 @@ impl Design {
             return err("every arm needs a positive ratio".into());
         }
         let ratio_sum: u32 = self.arms.iter().map(|a| a.ratio).sum();
-        if self.block_size == 0 || self.block_size % ratio_sum != 0 {
+        if !self.cohorts.is_empty() {
+            let total: usize = self.cohorts.iter().map(Cohort::size).sum();
+            if total != self.n {
+                return err(format!(
+                    "cohort sizes add up to {total}, not n = {}",
+                    self.n
+                ));
+            }
+            if self.cohorts.iter().any(|c| {
+                c.enrollment_days < 1
+                    || c.start_day < 0
+                    || c.arms.iter().any(|(a, _)| *a >= self.arms.len())
+            }) {
+                return err(
+                    "every cohort needs valid arms and a positive enrollment window".into(),
+                );
+            }
+        } else if self.block_size == 0 || self.block_size % ratio_sum != 0 {
             return err(format!(
                 "block size {} is not a multiple of the summed arm ratios ({ratio_sum})",
                 self.block_size
@@ -375,6 +450,11 @@ pub fn enroll(design: &Design) -> Result<Vec<Subject>, DesignError> {
             let ethnic = pop.ethnic.draw(&mut d);
             let stratum = pop.strata.draw(&mut d);
             let rand_offset = d.below(design.enrollment_days as u64) as i32;
+            // In a cohort design the subject's cohort sets the window (an independent draw on
+            // the same stream position would shift every later draw, so reuse the uniform).
+            let rand_offset = cohort_of(design, i).map_or(rand_offset, |c| {
+                c.start_day + (rand_offset as i64 % i64::from(c.enrollment_days)) as i32
+            });
             let t = &design.timing;
             let scan_lead = d.int_range(t.screening_lead.0, t.screening_lead.1) as i32;
             let consent_lead = d.int_range(t.consent_lead.0, t.consent_lead.1) as i32;
@@ -414,8 +494,43 @@ pub fn enroll(design: &Design) -> Result<Vec<Subject>, DesignError> {
     Ok(subjects)
 }
 
-/// Stratified permuted-block randomisation, in enrollment order.
+/// The cohort of subject stream `i` (cohorts take consecutive stream indices).
+fn cohort_of(design: &Design, i: usize) -> Option<&Cohort> {
+    let mut start = 0;
+    for c in &design.cohorts {
+        if i < start + c.size() {
+            return Some(c);
+        }
+        start += c.size();
+    }
+    None
+}
+
+/// Stratified permuted-block randomisation, in enrollment order; or, for cohort designs, a
+/// shuffle of each cohort's fixed allocation.
 fn randomize(design: &Design, subjects: &mut [Subject]) {
+    if !design.cohorts.is_empty() {
+        let stream = design.stream().label("randomization").label("cohort");
+        let mut start = 0;
+        for (k, c) in design.cohorts.iter().enumerate() {
+            let mut slots: Vec<usize> = c
+                .arms
+                .iter()
+                .flat_map(|(a, n)| std::iter::repeat_n(*a, *n as usize))
+                .collect();
+            Draws::new(stream.index(k as u64)).shuffle(&mut slots);
+            let mut members: Vec<&mut Subject> = subjects
+                .iter_mut()
+                .filter(|s| s.index >= start && s.index < start + c.size())
+                .collect();
+            members.sort_by_key(|s| (s.randomization, s.index));
+            for (s, arm) in members.into_iter().zip(slots) {
+                s.arm = arm;
+            }
+            start += c.size();
+        }
+        return;
+    }
     let ratio_sum: u32 = design.arms.iter().map(|a| a.ratio).sum();
     let reps = design.block_size / ratio_sum;
     let template: Vec<usize> = design
@@ -464,12 +579,14 @@ mod tests {
                     arm: "Drug A".into(),
                     ratio: 2,
                     treatment: trt("A"),
+                    periods: Vec::new(),
                 },
                 Arm {
                     armcd: "P".into(),
                     arm: "Placebo".into(),
                     ratio: 1,
                     treatment: trt("P"),
+                    periods: Vec::new(),
                 },
             ],
             sites: vec![
@@ -502,6 +619,7 @@ mod tests {
                 dose_lag: (0, 3),
             },
             schedule: None,
+            cohorts: Vec::new(),
             info: TrialInfo {
                 title: "Test".into(),
                 phase: "PHASE III TRIAL".into(),
@@ -512,6 +630,9 @@ mod tests {
                 blinding: "DOUBLE BLIND".into(),
                 control: "PLACEBO".into(),
                 add_on: false,
+                trial_types: vec!["EFFICACY".into()],
+                intervention_model: "PARALLEL".into(),
+                healthy_subjects: false,
                 criteria: vec![],
             },
         }
@@ -559,6 +680,33 @@ mod tests {
             assert_eq!(
                 (s.age, s.sex, s.stratum, s.randomization),
                 (t.age, t.sex, t.stratum, t.randomization)
+            );
+        }
+    }
+
+    #[test]
+    fn cohorts_enrol_in_sequence_with_fixed_allocation() {
+        let mut d = design(16);
+        d.cohorts = vec![
+            Cohort {
+                arms: vec![(0, 6), (1, 2)],
+                start_day: 0,
+                enrollment_days: 7,
+            },
+            Cohort {
+                arms: vec![(0, 6), (1, 2)],
+                start_day: 28,
+                enrollment_days: 7,
+            },
+        ];
+        let s = enroll(&d).unwrap();
+        for (k, c) in s.chunks(8).enumerate() {
+            assert_eq!(c.iter().filter(|x| x.arm == 0).count(), 6);
+            assert!(c.iter().all(|x| x.index / 8 == k));
+            let lo = d.first_randomization.add_days(28 * k as i32);
+            assert!(
+                c.iter()
+                    .all(|x| x.randomization >= lo && x.randomization < lo.add_days(7))
             );
         }
     }
