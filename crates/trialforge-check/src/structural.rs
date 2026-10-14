@@ -63,6 +63,7 @@ fn dataset(ds: &Dataset, is_sdtm: bool, r: &mut Report) {
                     Values::Num(x) => x.iter().filter(|v| v.is_none()).count(),
                     Values::Int(x) => x.iter().filter(|v| v.is_none()).count(),
                     Values::Date(x) => x.iter().filter(|v| v.is_none()).count(),
+                    Values::DateTime(x) => x.iter().filter(|v| v.is_none()).count(),
                 };
                 if nulls > 0 {
                     r.add(
@@ -194,6 +195,7 @@ fn dataset(ds: &Dataset, is_sdtm: bool, r: &mut Report) {
                     Values::Num(v) => v[i].map(|x| x.to_string()).unwrap_or_default(),
                     Values::Int(v) => v[i].map(|x| x.to_string()).unwrap_or_default(),
                     Values::Date(v) => v[i].map(|x| x.to_string()).unwrap_or_default(),
+                    Values::DateTime(v) => v[i].map(|x| x.to_string()).unwrap_or_default(),
                 })
                 .collect::<Vec<_>>()
                 .join("|")
