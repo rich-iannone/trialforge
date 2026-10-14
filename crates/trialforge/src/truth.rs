@@ -44,6 +44,14 @@ pub(crate) fn manifest(r: &Resolved, archetype: &str, sdtm: &[Dataset], adam: &[
         "arms": arms,
     });
     let adsl = find("ADSL");
+    // An interim snapshot (multiple cuts): subjects randomised after the cutoff are absent, so
+    // the estimates below describe the snapshot, not the final analysis.
+    if r.design.interim {
+        out["interim"] = json!({
+            "data_cutoff": r.design.cutoff.to_string(),
+            "n_randomised": adsl.map_or(0, |d| d.n_rows()),
+        });
+    }
     let by_arm = |values: Vec<(String, f64)>| -> BTreeMap<String, Vec<f64>> {
         let mut m: BTreeMap<String, Vec<f64>> = BTreeMap::new();
         for (a, v) in values {
@@ -58,6 +66,21 @@ pub(crate) fn manifest(r: &Resolved, archetype: &str, sdtm: &[Dataset], adam: &[
         }
         Course::Adas(_, adas) => {
             out["adas_cog"] = adas_truth(r, adas, adam);
+        }
+        Course::Ophtha(_, op) => {
+            out["bcva"] = ophtha_truth(r, op, adam);
+        }
+        Course::Growth(_, g) => {
+            out["height_velocity"] = growth_truth(r, g, adam);
+        }
+        Course::Exacerbation(_, ex) => {
+            out["exacerbations"] = exacerbation_truth(r, ex, adam);
+        }
+        Course::Vaccine(_, vx) => {
+            out["vaccine"] = vaccine_truth(r, vx, adam);
+        }
+        Course::Escalation(_, esc, trace) => {
+            out["escalation"] = escalation_truth(r, esc, trace, adam);
         }
         Course::Outcomes(p) => {
             out["outcomes"] = outcomes_truth(r, p, adam);
@@ -131,7 +154,7 @@ pub(crate) fn manifest(r: &Resolved, archetype: &str, sdtm: &[Dataset], adam: &[
                 out["dose_response"] = dose_response(r, &groups);
             }
             if let Some(margin) = r.controls.get("ni_margin").and_then(Value::as_f64) {
-                out["non_inferiority"] = non_inferiority(&arms, &groups, margin);
+                out["non_inferiority"] = non_inferiority(&arms, &groups, margin, false);
             }
             out["endpoint"] = json!({
                 "paramcd": endpoint.testcd,
@@ -193,17 +216,24 @@ pub(crate) fn manifest(r: &Resolved, archetype: &str, sdtm: &[Dataset], adam: &[
                 out["teae_incidence"] = json!(inc);
             }
         }
-        Course::Oncology(_, cal) => {
+        Course::Oncology(params, cal) => {
             let c = &r.controls;
+            // Lugano needs no confirmation: its ORR is the best overall response (BOR).
+            let lugano = params.criteria == trialforge_processes::oncology::Criteria::Lugano;
+            let (orr_key, orr_param) = if lugano {
+                ("orr", "BOR")
+            } else {
+                ("confirmed_orr", "CBOR")
+            };
             out["targets"] = json!({
                 "os_median_months_control": c["os_median_months"],
                 "os_hr": c["os_hr"],
                 "pfs_median_months_control": c["pfs_median_months"],
                 "pfs_hr": c["pfs_hr"],
-                "confirmed_orr": arms.iter().zip(c["orr"].as_array().into_iter().flatten()).map(|(a, v)| (a.clone(), v.clone())).collect::<BTreeMap<_, _>>(),
+                orr_key: arms.iter().zip(c["orr"].as_array().into_iter().flatten()).map(|(a, v)| (a.clone(), v.clone())).collect::<BTreeMap<_, _>>(),
             });
             out["calibration"] = json!({
-                "confirmed_orr_on_calibration_cohort": arms.iter().zip(&cal.achieved_orr).map(|(a, v)| (a.clone(), round4(*v))).collect::<BTreeMap<_, _>>(),
+                format!("{orr_key}_on_calibration_cohort"): arms.iter().zip(&cal.achieved_orr).map(|(a, v)| (a.clone(), round4(*v))).collect::<BTreeMap<_, _>>(),
                 "orr_targets_reachable": cal.orr_reachable,
             });
             if let Some(tte) = find("ADTTE") {
@@ -217,7 +247,28 @@ pub(crate) fn manifest(r: &Resolved, archetype: &str, sdtm: &[Dataset], adam: &[
                 }
             }
             if let Some(rs) = find("ADRS") {
-                out["confirmed_orr"] = orr_summary(rs, &arms);
+                out[orr_key] = orr_summary(rs, &arms, orr_param);
+            }
+            if let (Some((prob, hr)), Some(sl)) = (params.crossover, adsl) {
+                // Crossover on progression: how many control subjects switched; the OS HR above
+                // is the intention-to-treat estimate, diluted by the switch.
+                let (trt, fl) = (chars(sl, "TRT01P"), chars(sl, "CROSSFL"));
+                if let (Some(trt), Some(fl), Some(control)) = (trt, fl, arms.last()) {
+                    let rows: Vec<usize> = (0..sl.n_rows())
+                        .filter(|&i| trt[i].as_deref() == Some(control))
+                        .collect();
+                    let k = rows
+                        .iter()
+                        .filter(|&&i| fl[i].as_deref() == Some("Y"))
+                        .count();
+                    out["crossover"] = json!({
+                        "arm": control,
+                        "probability_after_progression": prob,
+                        "os_hr_after_switch": hr,
+                        "subjects": rows.len(),
+                        "crossed_over": k,
+                    });
+                }
             }
         }
     }
@@ -288,7 +339,7 @@ fn tte_summary(tte: &Dataset, param: &str, arms: &[String]) -> Option<Value> {
 }
 
 /// Confirmed ORR by arm from ADRS (`CBOR` in CR/PR), over the ITT population.
-fn orr_summary(rs: &Dataset, arms: &[String]) -> Value {
+fn orr_summary(rs: &Dataset, arms: &[String], paramcd: &str) -> Value {
     let (Some(pc), Some(trt), Some(av)) = (
         chars(rs, "PARAMCD"),
         chars(rs, "TRT01P"),
@@ -299,7 +350,7 @@ fn orr_summary(rs: &Dataset, arms: &[String]) -> Value {
     let mut out = BTreeMap::new();
     for arm in arms {
         let rows: Vec<usize> = (0..rs.n_rows())
-            .filter(|&i| pc[i].as_deref() == Some("CBOR") && trt[i].as_deref() == Some(arm))
+            .filter(|&i| pc[i].as_deref() == Some(paramcd) && trt[i].as_deref() == Some(arm))
             .collect();
         let resp = rows
             .iter()
@@ -643,9 +694,15 @@ fn dose_response(r: &Resolved, groups: &BTreeMap<String, Vec<f64>>) -> Value {
     out
 }
 
-/// Non-inferiority of the last arm against the first (lower is better): the 95% CI of the
-/// difference in mean change (pooled variance) against the margin.
-fn non_inferiority(arms: &[String], groups: &BTreeMap<String, Vec<f64>>, margin: f64) -> Value {
+/// Non-inferiority of the last arm against the first: the 95% CI of the difference in mean
+/// change (pooled variance) against the margin. With `higher_is_better` the lower bound must
+/// exceed `-margin`; otherwise the upper bound must stay below `margin`.
+fn non_inferiority(
+    arms: &[String],
+    groups: &BTreeMap<String, Vec<f64>>,
+    margin: f64,
+    higher_is_better: bool,
+) -> Value {
     use trialforge_core::math;
     let (Some(ctrl), Some(test)) = (
         arms.first().and_then(|a| groups.get(a)),
@@ -672,7 +729,7 @@ fn non_inferiority(arms: &[String], groups: &BTreeMap<String, Vec<f64>>, margin:
         "margin": margin,
         "difference": round4(diff),
         "ci95": [round4(lo), round4(hi)],
-        "non_inferior": hi < margin,
+        "non_inferior": if higher_is_better { lo > -margin } else { hi < margin },
     })
 }
 
@@ -787,4 +844,456 @@ fn outcomes_truth(
         }
     }
     out
+}
+
+/// Ophthalmology: the study-eye BCVA change at the end of treatment by arm (ADBCVA), the
+/// share gaining at least 15 letters, and non-inferiority against the margin (higher is
+/// better).
+fn ophtha_truth(
+    r: &Resolved,
+    p: &trialforge_processes::ophtha::OphthaParams,
+    adam: &[Dataset],
+) -> Value {
+    let arms: Vec<String> = r.design.arms.iter().map(|a| a.arm.clone()).collect();
+    let target: BTreeMap<&String, f64> = arms
+        .iter()
+        .zip(&p.bcva_change_by_arm)
+        .map(|(a, c)| (a, *c))
+        .collect();
+    let mut out = json!({"paramcd": "SBCVA", "target_mean_change": target});
+    let Some(d) = adam.iter().find(|d| d.name == "ADBCVA") else {
+        return out;
+    };
+    let eot = r
+        .design
+        .schedule
+        .as_ref()
+        .and_then(|s| {
+            s.visits
+                .iter()
+                .find(|v| v.kind == trialforge_model::VisitKind::EndOfTreatment)
+        })
+        .map(|v| v.visitnum as f64);
+    let (Some(pc), Some(trt), Some(anl), Some(avn), Some(chg)) = (
+        chars(d, "PARAMCD"),
+        chars(d, "TRTP"),
+        chars(d, "ANL01FL"),
+        nums(d, "AVISITN"),
+        nums(d, "CHG"),
+    ) else {
+        return out;
+    };
+    let mut groups: BTreeMap<String, Vec<f64>> = BTreeMap::new();
+    for i in 0..d.n_rows() {
+        if pc[i].as_deref() == Some("SBCVA") && anl[i].as_deref() == Some("Y") && avn[i] == eot {
+            if let (Some(a), Some(c)) = (&trt[i], chg[i]) {
+                groups.entry(a.clone()).or_default().push(c);
+            }
+        }
+    }
+    let realised: BTreeMap<&String, Value> = groups
+        .iter()
+        .map(|(a, xs)| {
+            let gain15 = xs.iter().filter(|x| **x >= 15.0).count() as f64 / xs.len() as f64;
+            (a, json!({"mean_change": mean(xs).map(round4), "gained_15_letters": round4(gain15), "n": xs.len()}))
+        })
+        .collect();
+    out["realised"] = json!(realised);
+    if let Some(margin) = r.controls.get("ni_margin").and_then(Value::as_f64) {
+        out["non_inferiority"] = non_inferiority(&arms, &groups, margin, true);
+    }
+    out
+}
+
+/// Paediatric growth: the annualized height velocity at the end of treatment by arm (ADVS
+/// `HTVEL`), the change in height-for-age z-score, and non-inferiority against the margin
+/// (higher is better).
+fn growth_truth(
+    r: &Resolved,
+    g: &trialforge_processes::growth::GrowthParams,
+    adam: &[Dataset],
+) -> Value {
+    let arms: Vec<String> = r.design.arms.iter().map(|a| a.arm.clone()).collect();
+    let target: BTreeMap<&String, f64> = arms
+        .iter()
+        .zip(&g.velocity_by_arm)
+        .map(|(a, v)| (a, *v))
+        .collect();
+    let mut out = json!({"paramcd": "HTVEL", "unit": "cm/yr", "target_mean": target});
+    let Some(d) = adam.iter().find(|d| d.name == "ADVS") else {
+        return out;
+    };
+    let eot = r
+        .design
+        .schedule
+        .as_ref()
+        .and_then(|s| {
+            s.visits
+                .iter()
+                .find(|v| v.kind == trialforge_model::VisitKind::EndOfTreatment)
+        })
+        .map(|v| v.visitnum as f64);
+    let (Some(pc), Some(trt), Some(anl), Some(avn), Some(aval), Some(chg)) = (
+        chars(d, "PARAMCD"),
+        chars(d, "TRTP"),
+        chars(d, "ANL01FL"),
+        nums(d, "AVISITN"),
+        nums(d, "AVAL"),
+        nums(d, "CHG"),
+    ) else {
+        return out;
+    };
+    let collect = |param: &str, values: &[Option<f64>]| {
+        let mut groups: BTreeMap<String, Vec<f64>> = BTreeMap::new();
+        for i in 0..d.n_rows() {
+            if pc[i].as_deref() == Some(param) && anl[i].as_deref() == Some("Y") && avn[i] == eot {
+                if let (Some(a), Some(v)) = (&trt[i], values[i]) {
+                    groups.entry(a.clone()).or_default().push(v);
+                }
+            }
+        }
+        groups
+    };
+    let velocity = collect("HTVEL", &aval);
+    let sds = collect("HGTSDS", &chg);
+    let realised: BTreeMap<&String, Value> = velocity
+        .iter()
+        .map(|(a, xs)| {
+            let dz = sds.get(a).and_then(|z| mean(z)).map(round4);
+            (
+                a,
+                json!({"mean": mean(xs).map(round4), "mean_change_height_sds": dz, "n": xs.len()}),
+            )
+        })
+        .collect();
+    out["realised"] = json!(realised);
+    if let Some(margin) = r.controls.get("ni_margin").and_then(Value::as_f64) {
+        out["non_inferiority"] = non_inferiority(&arms, &velocity, margin, true);
+    }
+    out
+}
+
+/// Respiratory: exacerbation counts and observation years by arm (ADEXAC), crude annualized
+/// rates, the rate ratio (last arm vs the first) with a 95% CI from a Poisson model with
+/// robust (sandwich) variance, the moment estimate of the overdispersion, and the FEV1 change
+/// at the end of treatment (ADRE).
+fn exacerbation_truth(
+    r: &Resolved,
+    p: &trialforge_processes::exacerbation::ExacerbationParams,
+    adam: &[Dataset],
+) -> Value {
+    use trialforge_core::math;
+    let arms: Vec<String> = r.design.arms.iter().map(|a| a.arm.clone()).collect();
+    let c = &r.controls;
+    let mut out = json!({
+        "target": {
+            "rate_placebo_one_prior": c["exacerbation_rate"],
+            "rate_ratio": c["rate_ratio"],
+            "dispersion": c["dispersion"],
+            "fev1_change": arms.iter().zip(&p.fev1_change_by_arm).map(|(a, v)| (a.clone(), *v)).collect::<BTreeMap<_, _>>(),
+        },
+    });
+    if let Some(d) = adam.iter().find(|d| d.name == "ADEXAC") {
+        let (Some(u), Some(pc), Some(trt), Some(aval)) = (
+            chars(d, "USUBJID"),
+            chars(d, "PARAMCD"),
+            chars(d, "TRTP"),
+            nums(d, "AVAL"),
+        ) else {
+            return out;
+        };
+        // Per subject: (arm, count, years).
+        let mut subj: BTreeMap<&str, (String, f64, f64)> = BTreeMap::new();
+        for i in 0..d.n_rows() {
+            let (Some(x), Some(a), Some(v)) = (u[i].as_deref(), &trt[i], aval[i]) else {
+                continue;
+            };
+            let e = subj.entry(x).or_insert((a.clone(), 0.0, 0.0));
+            match pc[i].as_deref() {
+                Some("EXACN") => e.1 = v,
+                Some("FUPYR") => e.2 = v,
+                _ => {}
+            }
+        }
+        let mut per: BTreeMap<String, Value> = BTreeMap::new();
+        // Per arm: (events, years, per-subject (events, years)).
+        type Totals = (f64, f64, Vec<(f64, f64)>);
+        let mut totals: BTreeMap<&String, Totals> = BTreeMap::new();
+        for (arm, n, y) in subj.values() {
+            let t = totals.entry(arm).or_insert((0.0, 0.0, Vec::new()));
+            t.0 += n;
+            t.1 += y;
+            t.2.push((*n, *y));
+        }
+        for (arm, (n, y, xs)) in &totals {
+            per.insert((*arm).clone(), json!({"subjects": xs.len(), "events": n, "years": round4(*y), "rate": round4(n / y)}));
+        }
+        out["realised"] = json!(per);
+        // Rate ratio of the last arm vs the first: Poisson score equations with a log link give
+        // the crude rates; the sandwich variance of log(rate) is Σ (n_i − λ y_i)² / (Σ n_i)².
+        let var_log = |xs: &[(f64, f64)], rate: f64, n: f64| {
+            xs.iter()
+                .map(|(k, y)| (k - rate * y) * (k - rate * y))
+                .sum::<f64>()
+                / (n * n)
+        };
+        if let (Some(a), Some(b)) = (
+            arms.first().and_then(|a| totals.get(a)),
+            arms.last().and_then(|a| totals.get(a)),
+        ) {
+            if a.0 > 0.0 && b.0 > 0.0 && arms.len() > 1 {
+                let (ra, rb) = (a.0 / a.1, b.0 / b.1);
+                let rr = rb / ra;
+                let se = math::sqrt(var_log(&a.2, ra, a.0) + var_log(&b.2, rb, b.0));
+                out["rate_ratio"] = json!({
+                    "comparison": format!("{} vs {}", arms.last().expect("checked"), arms.first().expect("checked")),
+                    "estimate": round4(rr),
+                    "ci95": [round4(rr * math::exp(-1.96 * se)), round4(rr * math::exp(1.96 * se))],
+                    "method": "Poisson model with robust variance",
+                });
+            }
+            // Moment estimate of theta within the placebo arm: Var(n_i / y_i) vs the mean.
+            let xs = &a.2;
+            if xs.len() > 2 {
+                let rates: Vec<f64> = xs.iter().map(|(n, y)| n / y).collect();
+                let m = rates.iter().sum::<f64>() / rates.len() as f64;
+                let v =
+                    rates.iter().map(|x| (x - m) * (x - m)).sum::<f64>() / (rates.len() - 1) as f64;
+                let mean_y = xs.iter().map(|x| x.1).sum::<f64>() / xs.len() as f64;
+                if m > 0.0 {
+                    out["dispersion_moment_estimate"] =
+                        json!(round4(((v - m / mean_y) / (m * m)).max(0.0)));
+                }
+            }
+        }
+    }
+    if let Some(d) = adam.iter().find(|d| d.name == "ADRE") {
+        let eot = r
+            .design
+            .schedule
+            .as_ref()
+            .and_then(|s| {
+                s.visits
+                    .iter()
+                    .find(|v| v.kind == trialforge_model::VisitKind::EndOfTreatment)
+            })
+            .map(|v| v.visitnum as f64);
+        if let (Some(pc), Some(trt), Some(anl), Some(avn), Some(chg)) = (
+            chars(d, "PARAMCD"),
+            chars(d, "TRTP"),
+            chars(d, "ANL01FL"),
+            nums(d, "AVISITN"),
+            nums(d, "CHG"),
+        ) {
+            let mut groups: BTreeMap<String, Vec<f64>> = BTreeMap::new();
+            for i in 0..d.n_rows() {
+                if pc[i].as_deref() == Some("FEV1")
+                    && anl[i].as_deref() == Some("Y")
+                    && avn[i] == eot
+                {
+                    if let (Some(a), Some(v)) = (&trt[i], chg[i]) {
+                        groups.entry(a.clone()).or_default().push(v);
+                    }
+                }
+            }
+            out["fev1_change"] = json!(
+                groups
+                    .iter()
+                    .map(|(a, xs)| (
+                        a.clone(),
+                        json!({"mean": mean(xs).map(round4), "n": xs.len()})
+                    ))
+                    .collect::<BTreeMap<_, _>>()
+            );
+        }
+    }
+    out
+}
+
+/// Vaccine: immunogenicity 28 days after the last dose by arm (ADIS: geometric mean titre,
+/// seroconversion as a 4-fold rise), the GMT ratio (last arm vs the first) with a 95% CI, and
+/// the share of vaccinated subjects with any local or systemic reaction after each vaccination
+/// (ADFACE `EVENTFL`).
+fn vaccine_truth(
+    r: &Resolved,
+    p: &trialforge_processes::vaccine::VaccineParams,
+    adam: &[Dataset],
+) -> Value {
+    use trialforge_core::math;
+    let arms: Vec<String> = r.design.arms.iter().map(|a| a.arm.clone()).collect();
+    let mut out = json!({
+        "target": {
+            "gmt": arms.iter().zip(&p.gmt_by_arm).zip(&p.responds).map(|((a, g), resp)| (a.clone(), if *resp { json!(g) } else { json!("baseline") })).collect::<BTreeMap<_, _>>(),
+            "seropositive_at_baseline": p.seropositive,
+        },
+    });
+    let eot = r
+        .design
+        .schedule
+        .as_ref()
+        .and_then(|s| {
+            s.visits
+                .iter()
+                .find(|v| v.kind == trialforge_model::VisitKind::EndOfTreatment)
+        })
+        .map(|v| v.visitnum as f64);
+    if let Some(d) = adam.iter().find(|d| d.name == "ADIS") {
+        if let (Some(pn), Some(trt), Some(avn), Some(aval), Some(ratio)) = (
+            nums(d, "PARAMN"),
+            chars(d, "TRTP"),
+            nums(d, "AVISITN"),
+            nums(d, "AVAL"),
+            nums(d, "R2BASE"),
+        ) {
+            let mut logs: BTreeMap<String, Vec<f64>> = BTreeMap::new();
+            let mut conv: BTreeMap<String, Vec<f64>> = BTreeMap::new();
+            for i in 0..d.n_rows() {
+                let (Some(a), true) = (&trt[i], avn[i] == eot) else {
+                    continue;
+                };
+                match (pn[i], aval[i], ratio[i]) {
+                    (Some(1.0), Some(v), _) if v > 0.0 => {
+                        logs.entry(a.clone()).or_default().push(math::ln(v))
+                    }
+                    (Some(21.0), _, Some(q)) => conv
+                        .entry(a.clone())
+                        .or_default()
+                        .push(f64::from(u8::from(q >= 4.0))),
+                    _ => {}
+                }
+            }
+            out["realised"] = json!(arms
+                .iter()
+                .filter_map(|a| {
+                    let l = logs.get(a)?;
+                    let c = conv.get(a).map(|c| mean(c).map(round4)).unwrap_or(None);
+                    Some((a.clone(), json!({"gmt": mean(l).map(|m| round4(math::exp(m))), "seroconversion": c, "n": l.len()})))
+                })
+                .collect::<BTreeMap<_, _>>());
+            if let (Some(a), Some(b)) = (
+                arms.first().and_then(|a| logs.get(a)),
+                arms.last().and_then(|a| logs.get(a)),
+            ) {
+                if a.len() > 1 && b.len() > 1 {
+                    let stats = |xs: &[f64]| {
+                        let n = xs.len() as f64;
+                        let m = xs.iter().sum::<f64>() / n;
+                        (n, m, xs.iter().map(|x| (x - m) * (x - m)).sum::<f64>())
+                    };
+                    let ((n1, m1, s1), (n2, m2, s2)) = (stats(a), stats(b));
+                    let df = n1 + n2 - 2.0;
+                    let se = math::sqrt((s1 + s2) / df * (1.0 / n1 + 1.0 / n2));
+                    let t = t_quantile(0.975, df);
+                    out["gmt_ratio"] = json!({
+                        "comparison": format!("{} / {}", arms.last().expect("checked"), arms.first().expect("checked")),
+                        "estimate": round4(math::exp(m2 - m1)),
+                        "ci95": [round4(math::exp(m2 - m1 - t * se)), round4(math::exp(m2 - m1 + t * se))],
+                    });
+                }
+            }
+        }
+    }
+    if let Some(d) = adam.iter().find(|d| d.name == "ADFACE") {
+        if let (Some(u), Some(trt), Some(cat), Some(rf), Some(ev)) = (
+            chars(d, "USUBJID"),
+            chars(d, "TRTP"),
+            chars(d, "PARCAT2"),
+            chars(d, "ATPTREF"),
+            chars(d, "EVENTFL"),
+        ) {
+            // (arm, vaccination, category) → subject → any event.
+            let mut any: BTreeMap<(String, String, String), BTreeMap<String, bool>> =
+                BTreeMap::new();
+            for i in 0..d.n_rows() {
+                let (Some(x), Some(a), Some(c), Some(v)) = (&u[i], &trt[i], &cat[i], &rf[i]) else {
+                    continue;
+                };
+                let e = any
+                    .entry((a.clone(), v.clone(), c.to_ascii_lowercase()))
+                    .or_default()
+                    .entry(x.clone())
+                    .or_insert(false);
+                *e |= ev[i].as_deref() == Some("Y");
+            }
+            let mut rates: BTreeMap<String, BTreeMap<String, BTreeMap<String, Value>>> =
+                BTreeMap::new();
+            for ((a, v, c), subj) in any {
+                let k = subj.values().filter(|x| **x).count();
+                rates.entry(a).or_default().entry(v).or_default().insert(
+                    c,
+                    json!({"subjects": subj.len(), "with_reaction": k, "proportion": round4(k as f64 / subj.len() as f64)}),
+                );
+            }
+            out["reactogenicity"] = json!(rates);
+        }
+    }
+    out
+}
+
+/// Dose escalation: the cohorts treated and the selected MTD (protocol decisions), subjects
+/// and DLTs per dose from ADaM (ADSL treatment, ADAE `DLTFL`), the true MTD (the level whose DLT
+/// rate is closest to the target), and the design's operating characteristics over 1,000
+/// simulated trials with the same true rates.
+fn escalation_truth(
+    r: &Resolved,
+    p: &trialforge_processes::escalation::EscalationParams,
+    trace: &trialforge_processes::escalation::Trace,
+    adam: &[Dataset],
+) -> Value {
+    use trialforge_processes::escalation::operating_characteristics;
+    let arms: Vec<String> = r.design.arms.iter().map(|a| a.arm.clone()).collect();
+    let true_mtd = p
+        .dlt_rates
+        .iter()
+        .enumerate()
+        .min_by(|a, b| (a.1 - p.target).abs().total_cmp(&(b.1 - p.target).abs()))
+        .map(|(k, _)| arms[k].clone());
+    let mut per: BTreeMap<String, (usize, usize, usize)> = BTreeMap::new(); // (treated, evaluable, with DLT)
+    if let Some(sl) = adam.iter().find(|d| d.name == "ADSL") {
+        if let (Some(u), Some(trt), Some(ev)) = (
+            chars(sl, "USUBJID"),
+            chars(sl, "TRT01A"),
+            chars(sl, "DLTEVLFL"),
+        ) {
+            let mut dlt: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+            if let Some(ae) = adam.iter().find(|d| d.name == "ADAE") {
+                if let (Some(au), Some(fl)) = (chars(ae, "USUBJID"), chars(ae, "DLTFL")) {
+                    for i in 0..ae.n_rows() {
+                        if fl[i].as_deref() == Some("Y") {
+                            if let Some(x) = &au[i] {
+                                dlt.insert(x.clone());
+                            }
+                        }
+                    }
+                }
+            }
+            for i in 0..sl.n_rows() {
+                let (Some(x), Some(a)) = (&u[i], &trt[i]) else {
+                    continue;
+                };
+                let e = per.entry(a.clone()).or_default();
+                e.0 += 1;
+                e.1 += usize::from(ev[i].as_deref() == Some("Y"));
+                e.2 += usize::from(dlt.contains(x));
+            }
+        }
+    }
+    let mut d = trialforge_core::Draws::new(r.design.stream().label("operating-characteristics"));
+    let (pick, mean_n) = operating_characteristics(p, 1000, &mut d);
+    let mut oc: BTreeMap<String, f64> = arms
+        .iter()
+        .zip(&pick)
+        .map(|(a, v)| (a.clone(), round4(*v)))
+        .collect();
+    oc.insert("no MTD".into(), round4(*pick.last().unwrap_or(&0.0)));
+    json!({
+        "method": r.controls["method"],
+        "target": p.target,
+        "true_dlt_rates": arms.iter().zip(&p.dlt_rates).map(|(a, v)| (a.clone(), *v)).collect::<BTreeMap<_, _>>(),
+        "true_mtd": true_mtd,
+        "cohorts": trace.cohorts.iter().map(|(l, n)| json!({"dose": arms[*l], "subjects": n})).collect::<Vec<_>>(),
+        "selected_mtd": trace.mtd.map(|l| arms[l].clone()),
+        "realised": per.iter().map(|(a, (n, e, x))| (a.clone(), json!({"treated": n, "dlt_evaluable": e, "with_dlt": x}))).collect::<BTreeMap<_, _>>(),
+        "operating_characteristics": {"selection_probability": oc, "mean_sample_size": round4(mean_n), "trials": 1000},
+    })
 }
