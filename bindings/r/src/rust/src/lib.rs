@@ -251,7 +251,8 @@ impl RStudy {
     }
 }
 
-/// A dataset as a data.frame. Character missing is `NA`; dates are `Date`; whole numbers are
+/// A dataset as a data.frame. Character missing is `NA`; dates are `Date`; date-times are
+/// `POSIXct` in UTC (the study clock has no time zone; UTC keeps the clock time); whole numbers are
 /// integer; every column and the frame carry a `label` attribute.
 fn data_frame(ds: &trialforge::Dataset) -> Result<Robj> {
     let mut names = Vec::with_capacity(ds.columns().len());
@@ -279,6 +280,16 @@ fn data_frame(ds: &trialforge::Dataset) -> Result<Robj> {
                 )
                 .into();
                 d.set_class(["Date"])?;
+                d
+            }
+            trialforge::Values::DateTime(v) => {
+                let mut d: Robj = Doubles::from_values(
+                    v.iter()
+                        .map(|x| x.map_or_else(Rfloat::na, |d| Rfloat::from(d.seconds() as f64))),
+                )
+                .into();
+                d.set_class(["POSIXct", "POSIXt"])?;
+                d.set_attrib("tzone", "UTC")?;
                 d
             }
         };
