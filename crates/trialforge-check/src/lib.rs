@@ -4,15 +4,19 @@
 //!   ISO 8601.
 //! - **L1 referential & temporal** ([`referential`]): subjects, dates, visits, epochs,
 //!   exposure, disposition and supplemental-qualifier links agree across domains; RS responses
-//!   follow RECIST 1.1 from TR ([`onco`]).
+//!   follow RECIST 1.1 from TR ([`onco`]); PC is consistent with EX ([`pk`]).
 //! - **L2 derivational** ([`derivational`]): ADaM is recomputed from SDTM by an independent
 //!   implementation (this crate does not depend on `trialforge-adam`) and compared, including
 //!   admiralonco's response and time-to-event derivations.
 //!
 //! Every finding is an error: trialforge promises its output passes all three levels.
 
+mod adas;
 mod derivational;
 mod onco;
+mod outcomes;
+mod periods;
+mod pk;
 mod referential;
 mod structural;
 mod table;
