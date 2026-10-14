@@ -19,6 +19,15 @@ pub struct Exposure {
     pub time: Option<DateTime>,
     /// The crossover period (1-based) the administration belongs to.
     pub period: Option<u8>,
+    /// Site of administration (`EXLOC`, `EXLAT`), e.g. an injection into one eye or arm.
+    pub location: Option<(&'static str, &'static str)>,
+    /// Link group (`EXLNKGRP`), e.g. `VACCINATION 1`.
+    pub group: Option<String>,
+    /// The visit of the administration (`VISITNUM`), when recorded.
+    pub visitnum: Option<i64>,
+    /// Whether this is the arm's switch treatment (crossover on progression) rather than its
+    /// own.
+    pub switched: bool,
 }
 
 /// A span of one trial element (one SE record).
@@ -123,6 +132,9 @@ pub struct AdverseEvent {
     pub outcome: &'static str,
     /// Whether a concomitant medication was started for it.
     pub treated: bool,
+    /// In a dose-escalation study, whether the AE is a dose-limiting toxicity (`None` outside
+    /// the DLT observation window, or in other studies).
+    pub dlt: Option<bool>,
 }
 
 /// A medication start or end that may be a partial ISO 8601 date (e.g. `2019-04`).
@@ -163,9 +175,16 @@ pub enum FindingDomain {
     Vs,
     /// Functional tests (e.g. ADAS-Cog items); a NaN value is an item not done.
     Ft,
+    /// Ophthalmic examinations (e.g. visual acuity), one per eye.
+    Oe,
+    /// Respiratory system findings (e.g. FEV1).
+    Re,
+    /// Immunogenicity specimen assessments (e.g. antibody titres); the value is the measured
+    /// titre, reported as below or above the limits of quantitation outside them.
+    Is,
 }
 
-/// One measurement (one LB or VS record).
+/// One measurement (one LB, VS, FT or OE record).
 #[derive(Clone, Debug, PartialEq)]
 pub struct Finding {
     /// Domain.
@@ -178,6 +197,10 @@ pub struct Finding {
     pub date: Date,
     /// Value in standard units, unrounded.
     pub value: f64,
+    /// Laterality (`--LAT`, e.g. `LEFT`) of a finding on a paired organ.
+    pub laterality: Option<&'static str>,
+    /// Decimals reported, overriding the test's default.
+    pub dp: Option<u32>,
 }
 
 /// What a lesion is, in RECIST 1.1 terms (`TUSTRESC`).
@@ -236,17 +259,74 @@ pub struct TumorAssessment {
     pub non_target: Vec<(String, String)>,
     /// New lesions first seen at this assessment.
     pub new_lesions: Vec<String>,
-    /// RECIST 1.1 responses (target, non-target, overall); `None` at baseline.
+    /// Responses; `None` at baseline. RECIST 1.1: (target, non-target, overall). Lugano 2014:
+    /// (CT-based, `None`, PET-CT-based).
     pub response: Option<(String, Option<String>, String)>,
+    /// Lugano: target lesion perpendicular diameters in mm (`LPERP`), as `target` holds the
+    /// longest diameters; empty under RECIST.
+    pub perpendicular: Vec<(String, Option<f64>)>,
+    /// Lugano: the FDG-PET Deauville five-point score (`None` if not done or under RECIST).
+    pub deauville: Option<u8>,
 }
 
-/// An adjudicated clinical event (one CE record).
+/// A clinical event (one CE record): an adjudicated endpoint event or a disease exacerbation.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ClinicalEvent {
-    /// Preferred Term (`CEDECOD`; also the reported term).
+    /// Preferred Term (`CEDECOD`).
     pub pt: String,
+    /// Reported term (`CETERM`).
+    pub term: String,
+    /// `CECAT`.
+    pub category: &'static str,
     /// Date of onset.
     pub date: Date,
+    /// Date of resolution; `None` if not recorded or ongoing.
+    pub end: Option<Date>,
+    /// Severity (`CESEV`), if graded.
+    pub severity: Option<Severity>,
+}
+
+/// One day of a solicited reaction in a post-vaccination diary.
+#[derive(Clone, Debug, PartialEq)]
+pub struct DiaryDay {
+    /// Date.
+    pub date: Date,
+    /// Whether the reaction was present.
+    pub occurred: bool,
+    /// Graded severity (graded reactions, when present).
+    pub severity: Option<Severity>,
+    /// Largest diameter in cm (redness and swelling, when present).
+    pub diameter: Option<f64>,
+}
+
+/// A solicited reaction followed in a post-vaccination diary (FACE; summarised in CE).
+#[derive(Clone, Debug, PartialEq)]
+pub struct Reaction {
+    /// Reported term (`CETERM`, `FAOBJ`), e.g. `REDNESS`.
+    pub term: &'static str,
+    /// Preferred Term (`CEDECOD`).
+    pub pt: &'static str,
+    /// Administration-site reaction (else systemic).
+    pub site: bool,
+    /// Measured by diameter (redness, swelling) rather than graded.
+    pub measured: bool,
+    /// One entry per diary day.
+    pub days: Vec<DiaryDay>,
+}
+
+/// The reactogenicity diary after one vaccination.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Diary {
+    /// The vaccination (1-based).
+    pub vaccination: u8,
+    /// Vaccination time (`--RFTDTC`).
+    pub reference: DateTime,
+    /// Injection site (`--LOC`, `--LAT`).
+    pub location: (&'static str, &'static str),
+    /// Solicited reactions, fever excluded.
+    pub reactions: Vec<Reaction>,
+    /// Daily body temperature (°C), for fever.
+    pub temperatures: Vec<(Date, f64)>,
 }
 
 /// A pharmacokinetic sample (one PC record).
@@ -303,6 +383,12 @@ pub struct Timeline {
     pub pk: Vec<PkSample>,
     /// Adjudicated clinical events in date order.
     pub clinical_events: Vec<ClinicalEvent>,
+    /// The study eye (`LEFT` or `RIGHT`) of an ophthalmology study: the treated eye.
+    pub study_eye: Option<&'static str>,
+    /// Date of birth (`BRTHDTC`), recorded in paediatric studies.
+    pub birth_date: Option<Date>,
+    /// Reactogenicity diaries, one per vaccination.
+    pub diaries: Vec<Diary>,
 }
 
 impl Timeline {
@@ -320,6 +406,25 @@ impl Timeline {
     /// treatment (for a crossover, the last period or washout element starting on or before
     /// the date); after → follow-up.
     pub fn epoch_of(&self, date: Date) -> Epoch {
+        // After a switch: the element containing the date (the treatment element includes its
+        // last day; later elements start on their first).
+        if self.elements.iter().any(|e| e.epoch == Epoch::Continuation) {
+            if date < self.first_dose() {
+                return Epoch::Screening;
+            }
+            let n = self.elements.len();
+            return self
+                .elements
+                .iter()
+                .enumerate()
+                .filter(|(_, e)| e.epoch != Epoch::Screening)
+                .find(|(k, e)| {
+                    e.start <= date
+                        && (date < e.end
+                            || (date == e.end && (e.epoch == Epoch::Treatment || k + 1 == n)))
+                })
+                .map_or(Epoch::FollowUp, |(_, e)| e.epoch);
+        }
         if self
             .elements
             .iter()
