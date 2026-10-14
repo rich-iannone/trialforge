@@ -14,6 +14,12 @@ CASES: list[tuple[str, dict[str, Any]]] = [
     ("parallel_continuous", {"indication": "hypertension", "weeks": 12}),
     ("parallel_continuous", {"indication": "obesity", "dropout_rate": 0.8}),
     ("oncology_solid_tumor", {}),
+    ("phase1_sad_mad", {}),
+    ("phase1_sad_mad", {"part": "mad", "doses": [50, 100, 200]}),
+    ("crossover_be", {"design": "2x2x4"}),
+    ("cns_alzheimers", {}),
+    ("dose_ranging_ph2", {}),
+    ("cv_outcomes", {"target_events": 30}),
 ]
 
 
