@@ -4,7 +4,7 @@
 //! small: the crates that emit and derive data build `Dataset`s, and the writers and language
 //! bindings convert them to XPT, Arrow, R data frames and so on.
 
-use crate::date::Date;
+use crate::date::{Date, DateTime};
 
 /// The values of one column. `None` is a missing value.
 #[derive(Clone, Debug, PartialEq)]
@@ -17,6 +17,8 @@ pub enum Values {
     Int(Vec<Option<i64>>),
     /// Calendar dates, such as ADaM `*DT` variables (SAS `Num` with a `DATE9.` format).
     Date(Vec<Option<Date>>),
+    /// Date-times, such as ADaM `*DTM` variables (SAS `Num` with a `DATETIME20.` format).
+    DateTime(Vec<Option<DateTime>>),
 }
 
 impl Values {
@@ -27,6 +29,7 @@ impl Values {
             Values::Num(v) => v.len(),
             Values::Int(v) => v.len(),
             Values::Date(v) => v.len(),
+            Values::DateTime(v) => v.len(),
         }
     }
 
