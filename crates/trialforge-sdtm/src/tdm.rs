@@ -25,6 +25,9 @@ pub fn arm_elements(ctx: &Context<'_>, arm: usize) -> Vec<(Epoch, String, String
     if a.periods.is_empty() {
         let etcd: String = a.armcd.chars().take(8).collect();
         out.push((Epoch::Treatment, etcd, treatment_element(&a.treatment)));
+        if let Some((_, element)) = &a.switch_to {
+            out.push((Epoch::Continuation, "XOVER".into(), element.clone()));
+        }
     } else {
         let n = a.periods.len();
         for (k, p) in a.periods.iter().enumerate() {
@@ -138,6 +141,12 @@ fn te(ctx: &Context<'_>) -> Result<Dataset, MetadataError> {
                     element,
                     "Dose of the period's treatment",
                     "End of the treatment period",
+                )),
+                Epoch::Continuation => rows.push((
+                    etcd,
+                    element,
+                    "First dose after switching on progression",
+                    "End of the switch treatment",
                 )),
                 Epoch::Washout(_) => washout = true,
                 _ => {}
@@ -264,7 +273,7 @@ fn ts(ctx: &Context<'_>) -> Result<Dataset, MetadataError> {
             info.intervention_model.clone(),
             Some("CDISC CT"),
         ),
-        ("INTTYPE", "DRUG".into(), Some("CDISC CT")),
+        ("INTTYPE", info.intervention_type.clone(), Some("CDISC CT")),
         ("RANDOM", "Y".into(), Some("CDISC CT")),
         ("TBLIND", info.blinding.clone(), Some("CDISC CT")),
         ("TCNTRL", info.control.clone(), Some("CDISC CT")),
@@ -286,7 +295,7 @@ fn ts(ctx: &Context<'_>) -> Result<Dataset, MetadataError> {
             Some("ISO 8601"),
         ),
         ("SEXPOP", "BOTH".into(), Some("CDISC CT")),
-        ("PLANSUB", n.to_string(), None),
+        ("PLANSUB", d.n.to_string(), None),
         ("ACTSUB", n.to_string(), None),
         ("NARMS", d.arms.len().to_string(), None),
         ("SDTIGVER", "3.4".into(), None),
@@ -302,13 +311,20 @@ fn ts(ctx: &Context<'_>) -> Result<Dataset, MetadataError> {
     if let Some(dc) = first_consent {
         params.push(("SSTDTC", dc.to_string(), Some("ISO 8601")));
     }
-    if d.schedule.is_some() {
-        if let Some(lc) = last_contact {
-            params.push(("SENDTC", lc.to_string(), Some("ISO 8601")));
-        }
-    } else {
+    if d.schedule.is_some()
+        && let Some(lc) = last_contact
+    {
+        params.push(("SENDTC", lc.to_string(), Some("ISO 8601")));
+    }
+    // Event-driven studies have a data cutoff; an interim snapshot reports its own.
+    if d.schedule.is_none() || d.interim {
         params.push(("DCUTDTC", d.cutoff.to_string(), Some("ISO 8601")));
-        params.push(("DCUTDESC", "PRIMARY ANALYSIS".into(), None));
+        let desc = if d.interim {
+            "INTERIM ANALYSIS"
+        } else {
+            "PRIMARY ANALYSIS"
+        };
+        params.push(("DCUTDESC", desc.into(), None));
     }
     for c in &countries {
         params.push(("FCNTRY", (*c).to_string(), Some("ISO 3166-1 alpha-3")));
