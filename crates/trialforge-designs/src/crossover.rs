@@ -312,6 +312,7 @@ pub(crate) fn resolve(opts: &StudyOptions, c: &Controls) -> (Design, CourseParam
                 ratio: 1,
                 treatment: periods[0].treatment.clone(),
                 periods,
+                switch_to: None,
             }
         })
         .collect();
@@ -330,6 +331,7 @@ pub(crate) fn resolve(opts: &StudyOptions, c: &Controls) -> (Design, CourseParam
         first_randomization: first,
         enrollment_days,
         cutoff: first.add_days(enrollment_days + sch.treatment_days + sch.followup_days + 30),
+        interim: false,
         block_size: 4,
         population: Population {
             age_mean: 33.0,
@@ -385,6 +387,7 @@ pub(crate) fn resolve(opts: &StudyOptions, c: &Controls) -> (Design, CourseParam
             trial_types: vec!["PHARMACOKINETIC".into()],
             intervention_model: "CROSSOVER".into(),
             healthy_subjects: true,
+            intervention_type: "DRUG".into(),
             criteria: vec![
                 (
                     "INCL01".into(),
@@ -423,6 +426,7 @@ pub(crate) fn resolve(opts: &StudyOptions, c: &Controls) -> (Design, CourseParam
         endpoints: Vec::new(),
         bmi: (24.5, 3.0),
         dosing_days: None,
+        extra_ae: Vec::new(),
     };
     // The Test (or fed) element's relative F and absorption rate.
     let test = codes[0].0.to_string();
