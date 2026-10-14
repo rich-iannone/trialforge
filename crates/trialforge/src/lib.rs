@@ -111,22 +111,23 @@ pub fn study(archetype: &str, opts: &StudyOptions) -> Result<Study, Error> {
             "`seed` must be at most 2^53 ({MAX_SEED})"
         )));
     }
-    let resolved = designs::resolve(archetype, opts).map_err(|e| Error::Invalid(e.to_string()))?;
+    let mut resolved =
+        designs::resolve(archetype, opts).map_err(|e| Error::Invalid(e.to_string()))?;
     let design = &resolved.design;
-    let subjects = model::enroll(design).map_err(|e| Error::Invalid(e.to_string()))?;
+    let mut subjects = model::enroll(design).map_err(|e| Error::Invalid(e.to_string()))?;
     let internal = |e: &dyn std::fmt::Display| Error::Internal(e.to_string());
 
-    let (timelines, strata, cutoff) = match &resolved.course {
+    let (timelines, strata, cutoff, interim) = match &resolved.course {
         designs::Course::Fixed(p) => {
             let t = processes::fixed::simulate(design, p, &subjects)
                 .map_err(|e| Error::Invalid(e.to_string()))?;
-            (t, HashMap::new(), None)
+            (t, HashMap::new(), None, false)
         }
         designs::Course::Pk(p, pk) => {
             let mut t = processes::fixed::simulate(design, p, &subjects)
                 .map_err(|e| Error::Invalid(e.to_string()))?;
             processes::pk::simulate(design, pk, &subjects, &mut t);
-            (t, HashMap::new(), None)
+            (t, HashMap::new(), None, false)
         }
         designs::Course::Crossover(p, pk, days) => {
             let mut t = processes::fixed::simulate(design, p, &subjects)
@@ -135,41 +136,81 @@ pub fn study(archetype: &str, opts: &StudyOptions) -> Result<Study, Error> {
                 processes::crossover::apply(x, days, designs::crossover::IN_HOUSE_DAYS);
             }
             processes::pk::simulate(design, pk, &subjects, &mut t);
-            (t, HashMap::new(), None)
+            (t, HashMap::new(), None, false)
         }
         designs::Course::Adas(p, adas) => {
             let mut t = processes::fixed::simulate(design, p, &subjects)
                 .map_err(|e| Error::Invalid(e.to_string()))?;
             processes::adas::simulate(design, adas, &subjects, &mut t);
-            (t, HashMap::new(), None)
+            (t, HashMap::new(), None, false)
+        }
+        designs::Course::Ophtha(p, ophtha) => {
+            let mut t = processes::fixed::simulate(design, p, &subjects)
+                .map_err(|e| Error::Invalid(e.to_string()))?;
+            processes::ophtha::simulate(design, ophtha, &subjects, &mut t);
+            (t, HashMap::new(), None, false)
+        }
+        designs::Course::Growth(p, growth) => {
+            let mut t = processes::fixed::simulate(design, p, &subjects)
+                .map_err(|e| Error::Invalid(e.to_string()))?;
+            processes::growth::simulate(design, growth, &subjects, &mut t);
+            (t, HashMap::new(), None, false)
+        }
+        designs::Course::Exacerbation(p, ex) => {
+            let mut t = processes::fixed::simulate(design, p, &subjects)
+                .map_err(|e| Error::Invalid(e.to_string()))?;
+            processes::exacerbation::simulate(design, ex, &subjects, &mut t);
+            (t, strata_of(design, &subjects), None, false)
+        }
+        designs::Course::Vaccine(p, vx) => {
+            let mut t = processes::fixed::simulate(design, p, &subjects)
+                .map_err(|e| Error::Invalid(e.to_string()))?;
+            processes::vaccine::simulate(design, vx, &subjects, &mut t);
+            (t, HashMap::new(), None, false)
+        }
+        designs::Course::Escalation(p, esc, _) => {
+            let mut t = processes::fixed::simulate(design, p, &subjects)
+                .map_err(|e| Error::Invalid(e.to_string()))?;
+            processes::escalation::simulate(design, esc, &subjects, &mut t);
+            (t, HashMap::new(), None, false)
         }
         designs::Course::Outcomes(p) => {
             let (t, cut) = processes::outcomes::simulate(design, p, &subjects);
-            let strata = subjects
-                .iter()
-                .map(|s| {
-                    (
-                        s.usubjid.clone(),
-                        design.population.strata.levels[s.stratum].0.clone(),
-                    )
-                })
-                .collect();
-            (t, strata, Some(cut))
+            let interim = p.interim_events.is_some();
+            (t, strata_of(design, &subjects), Some(cut), interim)
         }
         designs::Course::Oncology(p, _) => {
             let t = processes::oncology::simulate(design, p, &subjects);
-            let strata = subjects
-                .iter()
-                .map(|s| {
-                    (
-                        s.usubjid.clone(),
-                        design.population.strata.levels[s.stratum].0.clone(),
-                    )
-                })
-                .collect();
-            (t, strata, Some(design.cutoff))
+            let cut = p.data_cutoff.unwrap_or(design.cutoff);
+            (
+                t,
+                strata_of(design, &subjects),
+                Some(cut),
+                p.data_cutoff.is_some(),
+            )
         }
     };
+    // An interim snapshot reports its own cutoff (TS DCUTDTC, DCUTDESC).
+    if let (true, Some(cut)) = (interim, cutoff) {
+        resolved.design.cutoff = cut;
+        resolved.design.interim = true;
+    }
+    let design = &resolved.design;
+    // A data cutoff excludes subjects randomised after it (an interim snapshot can fall during
+    // enrollment); subject IDs are those of the full study.
+    let mut timelines = timelines;
+    if let Some(cut) = cutoff {
+        let keep: Vec<bool> = subjects.iter().map(|s| s.randomization <= cut).collect();
+        if !keep.iter().any(|k| *k) {
+            return Err(Error::Invalid(format!(
+                "no subject is randomised by the data cutoff {cut}"
+            )));
+        }
+        let mut k = keep.iter();
+        subjects.retain(|_| *k.next().expect("one flag per subject"));
+        let mut k = keep.iter();
+        timelines.retain(|_| *k.next().expect("one flag per timeline"));
+    }
     let ctx = sdtm::Context::new(design, &subjects, &timelines);
     let sdtm = sdtm::emit(&ctx).map_err(|e| internal(&e))?;
     let adam =
@@ -200,6 +241,19 @@ pub fn study(archetype: &str, opts: &StudyOptions) -> Result<Study, Error> {
         adam,
         truth,
     })
+}
+
+/// `USUBJID` → randomised stratum, as the randomisation system records it.
+fn strata_of(design: &model::Design, subjects: &[model::Subject]) -> HashMap<String, String> {
+    subjects
+        .iter()
+        .map(|s| {
+            (
+                s.usubjid.clone(),
+                design.population.strata.levels[s.stratum].0.clone(),
+            )
+        })
+        .collect()
 }
 
 /// Re-runs verification levels 0–2 on a study (for example after user post-processing).
