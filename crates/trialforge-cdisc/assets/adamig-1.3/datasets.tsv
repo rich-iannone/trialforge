@@ -6,3 +6,6 @@ ADVS	Vital Signs Analysis Dataset	BASIC DATA STRUCTURE	One record per parameter 
 ADRS	Response Analysis Dataset	BASIC DATA STRUCTURE	One record per subject per parameter per analysis date	STUDYID,USUBJID,ASEQ
 ADTTE	Time-to-Event Analysis Dataset	BASIC DATA STRUCTURE	One record per subject per parameter	STUDYID,USUBJID,PARAMCD
 ADTR	Tumor Results Analysis Dataset	BASIC DATA STRUCTURE	One record per subject per parameter per analysis visit	STUDYID,USUBJID,PARAMCD,AVISITN
+ADPC	Pharmacokinetic Concentrations Analysis	BASIC DATA STRUCTURE	One record per subject per sample or dose per analysis type	STUDYID,USUBJID,ASEQ
+ADPP	Pharmacokinetic Parameters Analysis	BASIC DATA STRUCTURE	One record per subject per parameter per profile	STUDYID,USUBJID,PARAMCD,AVISITN
+ADADAS	ADAS-Cog Analysis Dataset	BASIC DATA STRUCTURE	One record per subject per parameter per analysis visit per analysis date	STUDYID,USUBJID,PARAMCD,AVISITN,ADT,DTYPE

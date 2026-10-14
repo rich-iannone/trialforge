@@ -18,10 +18,32 @@ ADSL	ARMCD	Planned Arm Code	Char	Perm		Predecessor	DM.ARMCD
 ADSL	ARM	Description of Planned Arm	Char	Req		Predecessor	DM.ARM	
 ADSL	ACTARMCD	Actual Arm Code	Char	Perm		Predecessor	DM.ACTARMCD	
 ADSL	ACTARM	Description of Actual Arm	Char	Req		Predecessor	DM.ACTARM	
-ADSL	TRT01P	Planned Treatment for Period 01	Char	Req		Predecessor	DM.ARM	
-ADSL	TRT01PN	Planned Treatment for Period 01 (N)	Num	Perm		Derived		Position of ARMCD among the arms in TA (order of first appearance).
-ADSL	TRT01A	Actual Treatment for Period 01	Char	Req		Predecessor	DM.ACTARM	
-ADSL	TRT01AN	Actual Treatment for Period 01 (N)	Num	Perm		Derived		Position of ACTARMCD among the arms in TA (order of first appearance).
+ADSL	TRT01P	Planned Treatment for Period 01	Char	Req		Derived		For a crossover, the ELEMENT (TA) of the subject's arm in treatment period 1; otherwise DM.ARM.
+ADSL	TRT01PN	Planned Treatment for Period 01 (N)	Num	Perm		Derived		Position of the treatment among the treatment elements in TA (crossover), or of the arm among the arms in TA (order of first appearance).
+ADSL	TRT01A	Actual Treatment for Period 01	Char	Req		Derived		For a crossover, the ELEMENT (TA) of the subject's arm in treatment period 1; otherwise DM.ACTARM.
+ADSL	TRT01AN	Actual Treatment for Period 01 (N)	Num	Perm		Derived		Position of the treatment among the treatment elements in TA (crossover), or of the arm among the arms in TA (order of first appearance).
+ADSL	TRT02P	Planned Treatment for Period 02	Char	Cond		Derived		ELEMENT (TA) of the subject's ARMCD in epoch TREATMENT 2.
+ADSL	TRT02PN	Planned Treatment for Period 02 (N)	Num	Perm		Derived		Position of the treatment among the treatment elements in TA.
+ADSL	TRT02A	Actual Treatment for Period 02	Char	Cond		Derived		ELEMENT (TA) of the subject's ACTARMCD in epoch TREATMENT 2, if the subject entered it (SE).
+ADSL	TRT02AN	Actual Treatment for Period 02 (N)	Num	Perm		Derived		Position of the treatment among the treatment elements in TA.
+ADSL	TRT03P	Planned Treatment for Period 03	Char	Cond		Derived		ELEMENT (TA) of the subject's ARMCD in epoch TREATMENT 3.
+ADSL	TRT03PN	Planned Treatment for Period 03 (N)	Num	Perm		Derived		Position of the treatment among the treatment elements in TA.
+ADSL	TRT03A	Actual Treatment for Period 03	Char	Cond		Derived		ELEMENT (TA) of the subject's ACTARMCD in epoch TREATMENT 3, if the subject entered it (SE).
+ADSL	TRT03AN	Actual Treatment for Period 03 (N)	Num	Perm		Derived		Position of the treatment among the treatment elements in TA.
+ADSL	TRT04P	Planned Treatment for Period 04	Char	Cond		Derived		ELEMENT (TA) of the subject's ARMCD in epoch TREATMENT 4.
+ADSL	TRT04PN	Planned Treatment for Period 04 (N)	Num	Perm		Derived		Position of the treatment among the treatment elements in TA.
+ADSL	TRT04A	Actual Treatment for Period 04	Char	Cond		Derived		ELEMENT (TA) of the subject's ACTARMCD in epoch TREATMENT 4, if the subject entered it (SE).
+ADSL	TRT04AN	Actual Treatment for Period 04 (N)	Num	Perm		Derived		Position of the treatment among the treatment elements in TA.
+ADSL	TRTSEQP	Planned Sequence of Treatments	Char	Cond		Predecessor	DM.ARM	
+ADSL	TRTSEQA	Actual Sequence of Treatments	Char	Cond		Predecessor	DM.ACTARM	
+ADSL	AP01SDT	Period 01 Start Date	Num	Cond		Derived		SESTDTC of the subject's SE element in epoch TREATMENT 1.
+ADSL	AP01EDT	Period 01 End Date	Num	Cond		Derived		SEENDTC of the subject's SE element in epoch TREATMENT 1.
+ADSL	AP02SDT	Period 02 Start Date	Num	Cond		Derived		SESTDTC of the subject's SE element in epoch TREATMENT 2.
+ADSL	AP02EDT	Period 02 End Date	Num	Cond		Derived		SEENDTC of the subject's SE element in epoch TREATMENT 2.
+ADSL	AP03SDT	Period 03 Start Date	Num	Cond		Derived		SESTDTC of the subject's SE element in epoch TREATMENT 3.
+ADSL	AP03EDT	Period 03 End Date	Num	Cond		Derived		SEENDTC of the subject's SE element in epoch TREATMENT 3.
+ADSL	AP04SDT	Period 04 Start Date	Num	Cond		Derived		SESTDTC of the subject's SE element in epoch TREATMENT 4.
+ADSL	AP04EDT	Period 04 End Date	Num	Cond		Derived		SEENDTC of the subject's SE element in epoch TREATMENT 4.
 ADSL	STRAT1R	Stratification Factor 1 (Randomized)	Char	Perm		Assigned	Sponsor	Stratum recorded by the randomization system.
 ADSL	ITTFL	Intent-To-Treat Population Flag	Char	Cond	NY	Derived		'Y' if DS has a record with DSDECOD = 'RANDOMIZED', else 'N'.
 ADSL	SAFFL	Safety Population Flag	Char	Cond	NY	Derived		'Y' if the subject has any EX record, else 'N'.
@@ -49,6 +71,7 @@ ADAE	RACE	Race	Char	Perm	RACE	Predecessor	ADSL.RACE
 ADAE	SAFFL	Safety Population Flag	Char	Perm	NY	Predecessor	ADSL.SAFFL	
 ADAE	TRTA	Actual Treatment	Char	Req		Predecessor	ADSL.TRT01A	
 ADAE	TRTAN	Actual Treatment (N)	Num	Perm		Predecessor	ADSL.TRT01AN	
+ADAE	APERIOD	Period	Num	Cond		Derived		For a crossover, k where ADSL.APkkSDT <= the record's date <= APkkEDT (ASTDT for ADAE); TRTP/TRTA then follow the latest period started on or before that date (the first period before any).
 ADAE	TRTSDT	Date of First Exposure to Treatment	Num	Perm		Predecessor	ADSL.TRTSDT	
 ADAE	TRTEDT	Date of Last Exposure to Treatment	Num	Perm		Predecessor	ADSL.TRTEDT	
 ADAE	AESEQ	Sequence Number	Num	Req		Predecessor	AE.AESEQ	
@@ -86,6 +109,7 @@ ADLB	TRTP	Planned Treatment	Char	Req		Predecessor	ADSL.TRT01P
 ADLB	TRTPN	Planned Treatment (N)	Num	Perm		Predecessor	ADSL.TRT01PN	
 ADLB	TRTA	Actual Treatment	Char	Cond		Predecessor	ADSL.TRT01A	
 ADLB	TRTAN	Actual Treatment (N)	Num	Perm		Predecessor	ADSL.TRT01AN	
+ADLB	APERIOD	Period	Num	Cond		Derived		For a crossover, k where ADSL.APkkSDT <= the record's date <= APkkEDT (ASTDT for ADAE); TRTP/TRTA then follow the latest period started on or before that date (the first period before any).
 ADLB	PARAMCD	Parameter Code	Char	Req		Predecessor	LB.LBTESTCD	
 ADLB	PARAM	Parameter	Char	Req		Derived		LBTEST followed by the standard unit in parentheses: LBTEST || ' (' || LBSTRESU || ')'.
 ADLB	PARAMN	Parameter (N)	Num	Perm		Derived		Order of first appearance of PARAMCD.
@@ -121,6 +145,7 @@ ADVS	TRTP	Planned Treatment	Char	Req		Predecessor	ADSL.TRT01P
 ADVS	TRTPN	Planned Treatment (N)	Num	Perm		Predecessor	ADSL.TRT01PN	
 ADVS	TRTA	Actual Treatment	Char	Cond		Predecessor	ADSL.TRT01A	
 ADVS	TRTAN	Actual Treatment (N)	Num	Perm		Predecessor	ADSL.TRT01AN	
+ADVS	APERIOD	Period	Num	Cond		Derived		For a crossover, k where ADSL.APkkSDT <= the record's date <= APkkEDT (ASTDT for ADAE); TRTP/TRTA then follow the latest period started on or before that date (the first period before any).
 ADVS	PARAMCD	Parameter Code	Char	Req		Predecessor	VS.VSTESTCD	
 ADVS	PARAM	Parameter	Char	Req		Derived		VSTEST followed by the standard unit in parentheses: VSTEST || ' (' || VSSTRESU || ')'.
 ADVS	PARAMN	Parameter (N)	Num	Perm		Derived		Order of first appearance of PARAMCD.
@@ -229,3 +254,101 @@ ADTR	ANL04FL	Analysis Flag 04	Char	Perm	NY	Derived		SDIAM: 'Y' if ANL01FL or PDF
 ADTR	SRCDOM	Source Data	Char	Perm		Assigned	Sponsor	
 ADTR	SRCVAR	Source Variable	Char	Perm		Assigned	Sponsor	
 ADTR	SRCSEQ	Source Sequence Number	Num	Perm		Predecessor	TR.TRSEQ	
+ADPC	STUDYID	Study Identifier	Char	Req		Predecessor	ADSL.STUDYID	
+ADPC	USUBJID	Unique Subject Identifier	Char	Req		Predecessor	ADSL.USUBJID	
+ADPC	SUBJID	Subject Identifier for the Study	Char	Perm		Predecessor	ADSL.SUBJID	
+ADPC	SITEID	Study Site Identifier	Char	Perm		Predecessor	ADSL.SITEID	
+ADPC	TRT01P	Planned Treatment for Period 01	Char	Perm		Predecessor	ADSL.TRT01P	
+ADPC	TRT01A	Actual Treatment for Period 01	Char	Perm		Predecessor	ADSL.TRT01A	
+ADPC	TRTP	Planned Treatment	Char	Perm		Derived		ADSL.TRTkkP of APERIOD, or TRT01P outside a crossover.
+ADPC	TRTA	Actual Treatment	Char	Perm		Derived		ADSL.TRTkkA of APERIOD, or TRT01A outside a crossover.
+ADPC	APERIOD	Period	Num	Cond		Derived		For a crossover, k where ADSL.APkkSDT <= ADT <= APkkEDT.
+ADPC	ASEQ	Analysis Sequence Number	Num	Req		Derived		Sequence within subject by ADTM, BASETYPE, dose before sample, AVISITN, ATPTN, PARCAT1 and DTYPE (admiral ad_adpc.R).
+ADPC	PARAMCD	Parameter Code	Char	Req		Derived		PC.PCTESTCD; DOSE for administrations.
+ADPC	PARAM	Parameter	Char	Req		Assigned	Sponsor	
+ADPC	PARCAT1	Parameter Category 1	Char	Perm		Predecessor	PC.PCSPEC	
+ADPC	AVAL	Analysis Value	Num	Cond		Derived		PC.PCSTRESN; EX.EXDOSE for doses; ALLOQ / 2 for DTYPE HALFLLOQ.
+ADPC	AVALU	Analysis Value Unit	Char	Perm		Derived		PC.PCSTRESU; EX.EXDOSU for doses.
+ADPC	AVALCAT1	Analysis Value Category 1	Char	Perm		Derived		<BLQ, or AVAL to 3 significant digits.
+ADPC	BASETYPE	Baseline Type	Char	Cond		Derived		ATPTREF followed by ' Baseline'.
+ADPC	BASE	Baseline Value	Num	Cond		Derived		AVAL of the ABLFL = 'Y' record of the same subject, parameter, PARCAT1 and BASETYPE.
+ADPC	CHG	Change from Baseline	Num	Cond		Derived		AVAL - BASE.
+ADPC	DTYPE	Derivation Type	Char	Cond		Derived		HALFLLOQ: a BLQ value imputed as ALLOQ / 2; COPY: a sample at the next dose's nominal time copied as that dose's pre-dose record.
+ADPC	ABLFL	Baseline Record Flag	Char	Cond	NY	Derived		'Y' on pre-dose records with a non-missing AVAL taken before their reference dose (ARRLT <= 0).
+ADPC	ANL01FL	Analysis Flag 01	Char	Cond	NY	Derived		'Y' on every record.
+ADPC	ANL02FL	Analysis Flag 02	Char	Cond	NY	Derived		'Y' on records that are not derived (DTYPE missing).
+ADPC	ADTM	Analysis Datetime	Num	Cond		Derived		PC.PCDTC (EX.EXSTDTC for doses) as a datetime.
+ADPC	ADT	Analysis Date	Num	Cond		Derived		Date part of ADTM.
+ADPC	ADY	Analysis Relative Day	Num	Perm		Derived		ADT - TRTSDT + 1 if ADT >= TRTSDT, else ADT - TRTSDT.
+ADPC	AVISIT	Analysis Visit	Char	Perm		Derived		'Day ' and AVISITN.
+ADPC	AVISITN	Analysis Visit (N)	Num	Perm		Derived		NFRLT %/% 24 + 1.
+ADPC	ATPT	Analysis Timepoint	Char	Perm		Derived		PC.PCTPT; 'Dose' for doses; 'Pre-dose' for COPY records.
+ADPC	ATPTN	Analysis Timepoint (N)	Num	Perm		Derived		PC.PCTPTNUM; 0 for doses; -0.5 for COPY records.
+ADPC	ATPTREF	Analysis Timepoint Reference	Char	Perm		Derived		AVISIT of the previous dose (the next for samples before the first dose).
+ADPC	NFRLT	Nom. Rel. Time from Analyte First Dose	Num	Perm		Derived		(VISITDY - 1) * 24 + the hours of PCTPT (admiral derive_var_nfrlt()).
+ADPC	AFRLT	Act. Rel. Time from Analyte First Dose	Num	Perm		Derived		Hours from the first dose (FANLDTM) to ADTM.
+ADPC	NRRLT	Nominal Rel. Time from Ref. Dose	Num	Perm		Derived		NFRLT minus the NFRLT of the previous dose.
+ADPC	ARRLT	Actual Rel. Time from Ref. Dose	Num	Perm		Derived		Hours from the previous dose (the next, negative, before the first dose) to ADTM.
+ADPC	MRRLT	Modified Rel. Time from Ref. Dose	Num	Perm		Derived		ARRLT, with negative values set to 0.
+ADPC	FRLTU	Rel. Time from First Dose Unit	Char	Perm		Assigned	Sponsor	
+ADPC	RRLTU	Rel. Time from Ref. Dose Unit	Char	Perm		Assigned	Sponsor	
+ADPC	ALLOQ	Analysis Lower Limit of Quantitation	Num	Perm		Predecessor	PC.PCLLOQ	
+ADPC	DOSEA	Actual Dose	Num	Perm		Derived		EXDOSE of the reference dose.
+ADPC	DOSEU	Dose Units	Char	Perm		Assigned	Sponsor	
+ADPC	PCRFTDTM	Date/Time of Reference Dose	Num	Perm		Derived		ADTM of the reference dose.
+ADPC	FANLDTM	First Datetime of Dose for Analyte	Num	Perm		Derived		ADTM of the first dose with EXDOSE > 0.
+ADPC	SRCDOM	Source Data	Char	Perm		Assigned	Sponsor	
+ADPC	SRCVAR	Source Variable	Char	Perm		Assigned	Sponsor	
+ADPC	SRCSEQ	Source Sequence Number	Num	Perm		Derived		PC.PCSEQ, or EX.EXSEQ for doses.
+ADPP	STUDYID	Study Identifier	Char	Req		Predecessor	ADSL.STUDYID	
+ADPP	USUBJID	Unique Subject Identifier	Char	Req		Predecessor	ADSL.USUBJID	
+ADPP	SUBJID	Subject Identifier for the Study	Char	Perm		Predecessor	ADSL.SUBJID	
+ADPP	SITEID	Study Site Identifier	Char	Perm		Predecessor	ADSL.SITEID	
+ADPP	TRT01P	Planned Treatment for Period 01	Char	Perm		Predecessor	ADSL.TRT01P	
+ADPP	TRT01A	Actual Treatment for Period 01	Char	Perm		Predecessor	ADSL.TRT01A	
+ADPP	TRTP	Planned Treatment	Char	Perm		Predecessor	ADSL.TRT01P	
+ADPP	TRTA	Actual Treatment	Char	Perm		Predecessor	ADSL.TRT01A	
+ADPP	APERIOD	Period	Num	Cond		Derived		For a crossover, k where ADSL.APkkSDT <= the record's date <= APkkEDT (ASTDT for ADAE); TRTP/TRTA then follow the latest period started on or before that date (the first period before any).
+ADPP	PARAMCD	Parameter Code	Char	Req		Predecessor	PP.PPTESTCD	
+ADPP	PARAM	Parameter	Char	Req		Predecessor	PP.PPTEST	
+ADPP	PARCAT1	Parameter Category 1	Char	Perm		Predecessor	PP.PPCAT	
+ADPP	AVAL	Analysis Value	Num	Cond		Predecessor	PP.PPSTRESN	
+ADPP	AVALU	Analysis Value Unit	Char	Perm		Predecessor	PP.PPSTRESU	
+ADPP	ADT	Analysis Date	Num	Cond		Derived		Date part of PP.PPRFTDTC.
+ADPP	ADY	Analysis Relative Day	Num	Perm		Derived		ADT - TRTSDT + 1 if ADT >= TRTSDT, else ADT - TRTSDT.
+ADPP	AVISIT	Analysis Visit	Char	Perm		Derived		'Day ' and ADY.
+ADPP	AVISITN	Analysis Visit (N)	Num	Perm		Derived		ADY.
+ADPP	PPSTINT	Planned Start of Assessment Interval	Char	Perm		Predecessor	PP.PPSTINT	
+ADPP	PPENINT	Planned End of Assessment Interval	Char	Perm		Predecessor	PP.PPENINT	
+ADPP	SRCDOM	Source Data	Char	Perm		Assigned	Sponsor	
+ADPP	SRCVAR	Source Variable	Char	Perm		Assigned	Sponsor	
+ADPP	SRCSEQ	Source Sequence Number	Num	Perm		Predecessor	PP.PPSEQ	
+ADADAS	STUDYID	Study Identifier	Char	Req		Predecessor	ADSL.STUDYID	
+ADADAS	USUBJID	Unique Subject Identifier	Char	Req		Predecessor	ADSL.USUBJID	
+ADADAS	SUBJID	Subject Identifier for the Study	Char	Perm		Predecessor	ADSL.SUBJID	
+ADADAS	SITEID	Study Site Identifier	Char	Perm		Predecessor	ADSL.SITEID	
+ADADAS	AGE	Age	Num	Perm		Predecessor	ADSL.AGE	
+ADADAS	SEX	Sex	Char	Perm	SEX	Predecessor	ADSL.SEX	
+ADADAS	RACE	Race	Char	Perm	RACE	Predecessor	ADSL.RACE	
+ADADAS	SAFFL	Safety Population Flag	Char	Perm	NY	Predecessor	ADSL.SAFFL	
+ADADAS	ITTFL	Intent-To-Treat Population Flag	Char	Perm	NY	Predecessor	ADSL.ITTFL	
+ADADAS	TRTP	Planned Treatment	Char	Req		Predecessor	ADSL.TRT01P	
+ADADAS	TRTPN	Planned Treatment (N)	Num	Perm		Predecessor	ADSL.TRT01PN	
+ADADAS	TRTA	Actual Treatment	Char	Cond		Predecessor	ADSL.TRT01A	
+ADADAS	TRTAN	Actual Treatment (N)	Num	Perm		Predecessor	ADSL.TRT01AN	
+ADADAS	PARAMCD	Parameter Code	Char	Req		Derived		FT.FTTESTCD for items; ACTOT for the total.
+ADADAS	PARAM	Parameter	Char	Req		Derived		FT.FTTEST for items; 'ADAS-Cog(11) Subscore' for the total.
+ADADAS	PARAMN	Parameter (N)	Num	Perm		Derived		Item order 1-11; 12 for the total.
+ADADAS	AVAL	Analysis Value	Num	Cond		Derived		Items: FT.FTSTRESN. ACTOT: the sum of the 11 items at the visit, prorated as sum x 11 / n when 8 to 10 items are present (missing with fewer). LOCF records: the AVAL carried forward.
+ADADAS	BASE	Baseline Value	Num	Cond		Derived		AVAL of the ABLFL = 'Y' record of the parameter.
+ADADAS	CHG	Change from Baseline	Num	Cond		Derived		AVAL - BASE for post-baseline records.
+ADADAS	ADT	Analysis Date	Num	Cond		Derived		FT.FTDTC as a date; missing for LOCF records.
+ADADAS	ADY	Analysis Relative Day	Num	Perm		Derived		ADT - TRTSDT + 1 if ADT >= TRTSDT, else ADT - TRTSDT.
+ADADAS	AVISIT	Analysis Visit	Char	Cond		Derived		'Baseline' for ADY <= 1; otherwise 'Week w' of the planned assessment whose window (midpoints between planned days) contains ADY.
+ADADAS	AVISITN	Analysis Visit (N)	Num	Perm		Derived		0 for Baseline; otherwise the week.
+ADADAS	ABLFL	Baseline Record Flag	Char	Cond	NY	Derived		'Y' on the last record with ADY <= 1 per parameter.
+ADADAS	ANL01FL	Analysis Flag 01	Char	Cond	NY	Derived		'Y' on the baseline record, the record closest to the planned day in each window (the earlier on ties), and LOCF records.
+ADADAS	DTYPE	Derivation Type	Char	Cond		Derived		LOCF: for ACTOT, a planned visit with no ANL01FL record takes the last earlier ANL01FL value (admiral derive_locf_records()).
+ADADAS	SRCDOM	Source Data	Char	Perm		Assigned	Sponsor	
+ADADAS	SRCVAR	Source Variable	Char	Perm		Assigned	Sponsor	
+ADADAS	SRCSEQ	Source Sequence Number	Num	Perm		Predecessor	FT.FTSEQ	
