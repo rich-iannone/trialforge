@@ -3,7 +3,7 @@
 //! Every process engine produces a [`Timeline`] per subject; the SDTM emitters read only
 //! timelines (plus the design), so all archetypes share one observation layer.
 
-use trialforge_core::Date;
+use trialforge_core::{Date, DateTime};
 use trialforge_model::Epoch;
 
 /// A constant-dose interval of study treatment (one EX record).
@@ -15,6 +15,10 @@ pub struct Exposure {
     pub end: Date,
     /// Dose per administration.
     pub dose: f64,
+    /// Time of a single administration (`start == end`), when the study records dosing times.
+    pub time: Option<DateTime>,
+    /// The crossover period (1-based) the administration belongs to.
+    pub period: Option<u8>,
 }
 
 /// A span of one trial element (one SE record).
@@ -35,6 +39,8 @@ pub struct VisitOccurrence {
     pub visitnum: i64,
     /// Visit date.
     pub date: Date,
+    /// Last date of a visit that spans days (e.g. an in-house PK profile); `None` = `date`.
+    pub end: Option<Date>,
 }
 
 /// Which disposition a DS record describes.
@@ -155,6 +161,8 @@ pub enum FindingDomain {
     Lb,
     /// Vital signs.
     Vs,
+    /// Functional tests (e.g. ADAS-Cog items); a NaN value is an item not done.
+    Ft,
 }
 
 /// One measurement (one LB or VS record).
@@ -232,6 +240,36 @@ pub struct TumorAssessment {
     pub response: Option<(String, Option<String>, String)>,
 }
 
+/// An adjudicated clinical event (one CE record).
+#[derive(Clone, Debug, PartialEq)]
+pub struct ClinicalEvent {
+    /// Preferred Term (`CEDECOD`; also the reported term).
+    pub pt: String,
+    /// Date of onset.
+    pub date: Date,
+}
+
+/// A pharmacokinetic sample (one PC record).
+#[derive(Clone, Debug, PartialEq)]
+pub struct PkSample {
+    /// Analyte name (`PCTEST`; also the treatment name, `EXTRT`).
+    pub analyte: String,
+    /// The visit of the reference dose (`VISITNUM`).
+    pub visitnum: i64,
+    /// Planned time point (`PCTPT`), e.g. `Pre-dose` or `2h Post-dose`.
+    pub tpt: String,
+    /// Planned hours after the reference dose (`PCTPTNUM`); -0.5 before the first dose.
+    pub tptnum: f64,
+    /// Reference dose time (`PCRFTDTC`).
+    pub reference: DateTime,
+    /// Actual sampling time (`PCDTC`).
+    pub time: DateTime,
+    /// Measured concentration (standard units); `None` below the limit of quantitation.
+    pub conc: Option<f64>,
+    /// Lower limit of quantitation (standard units).
+    pub lloq: f64,
+}
+
 /// A subject's whole observed course.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Timeline {
@@ -261,6 +299,10 @@ pub struct Timeline {
     pub lesions: Vec<Lesion>,
     /// Tumour assessments in date order, baseline first (oncology).
     pub tumor: Vec<TumorAssessment>,
+    /// Pharmacokinetic samples in time order.
+    pub pk: Vec<PkSample>,
+    /// Adjudicated clinical events in date order.
+    pub clinical_events: Vec<ClinicalEvent>,
 }
 
 impl Timeline {
@@ -275,8 +317,28 @@ impl Timeline {
     }
 
     /// The epoch a date falls in: before first dose → screening; up to the end of treatment →
-    /// treatment; after → follow-up.
+    /// treatment (for a crossover, the last period or washout element starting on or before
+    /// the date); after → follow-up.
     pub fn epoch_of(&self, date: Date) -> Epoch {
+        if self
+            .elements
+            .iter()
+            .any(|e| matches!(e.epoch, Epoch::Period(_)))
+        {
+            if date < self.first_dose() {
+                return Epoch::Screening;
+            }
+            if date > self.treatment_end {
+                return Epoch::FollowUp;
+            }
+            return self
+                .elements
+                .iter()
+                .filter(|e| matches!(e.epoch, Epoch::Period(_) | Epoch::Washout(_)))
+                .rev()
+                .find(|e| e.start <= date)
+                .map_or(Epoch::Screening, |e| e.epoch);
+        }
         if date < self.first_dose() {
             Epoch::Screening
         } else if date <= self.treatment_end {
