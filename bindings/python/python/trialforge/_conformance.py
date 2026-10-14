@@ -2,6 +2,9 @@
 
 Rules that fail because of known Pointblank defects (not the data) are waived, each with the
 reason and its entry in Pointblank's BUGS.md, so a real problem is never hidden behind them.
+
+posit-dev/pointblank#455 fixes every defect below except #41 (sponsor EPOCH extensions). Its
+waivers stay until trialforge requires a Pointblank release with that PR; then remove them.
 """
 
 from __future__ import annotations
@@ -19,19 +22,23 @@ if TYPE_CHECKING:
 KNOWN_POINTBLANK_DEFECTS: dict[str, tuple[frozenset[str] | None, str]] = {
     "SDTM-089": (
         frozenset({"DRUG INTERRUPTED", "DRUG WITHDRAWN"}),
-        "Pointblank's ACN codelist lacks these CDISC CT (C66767) values (Pointblank BUGS.md #29)",
+        "Pointblank's ACN codelist lacks these CDISC CT (C66767) values (Pointblank BUGS.md #29; "
+        "fixed in #455)",
     ),
     "SDTM-161": (
         None,
-        "requires IEINCLCR in TI, not an SDTMIG TI variable (Pointblank BUGS.md #33)",
+        "requires IEINCLCR in TI, not an SDTMIG TI variable (Pointblank BUGS.md #33; "
+        "fixed in #455)",
     ),
     "SDTM-240": (
         None,
-        "requires IEINCLCR in TI, not an SDTMIG TI variable (Pointblank BUGS.md #33)",
+        "requires IEINCLCR in TI, not an SDTMIG TI variable (Pointblank BUGS.md #33; "
+        "fixed in #455)",
     ),
     "SDTM-162": (
         None,
-        "requires VISITNUM in AE, which is only Permissible (Pointblank BUGS.md #34)",
+        "requires VISITNUM in AE, which is only Permissible (Pointblank BUGS.md #34; "
+        "fixed in #455)",
     ),
     "SDTM-434": (
         frozenset(
@@ -40,24 +47,32 @@ KNOWN_POINTBLANK_DEFECTS: dict[str, tuple[frozenset[str] | None, str]] = {
             | {"CONTINUATION TREATMENT"}
         ),
         "rejects sponsor extensions of the extensible EPOCH codelist that define.xml declares "
-        "(def:ExtendedValue) (Pointblank BUGS.md #37), and CONTINUATION TREATMENT (C123452), "
-        "missing from its EPOCH list (BUGS.md #40)",
+        "(def:ExtendedValue) (Pointblank BUGS.md #41, open), and CONTINUATION TREATMENT "
+        "(C123452), missing from its EPOCH list (BUGS.md #44; fixed in #455)",
     ),
     "SDTM-066": (
         frozenset({"EVERY WEEK", "EVERY 8 WEEKS", "EVERY 12 WEEKS", "EVERY 16 WEEKS"}),
-        "Pointblank's FREQ codelist lacks these CDISC CT (C71113) values (Pointblank BUGS.md #38)",
+        "Pointblank's FREQ codelist lacks these CDISC CT (C71113) values (Pointblank BUGS.md #42; "
+        "fixed in #455)",
     ),
     "SDTM-435": (
         frozenset({"EVERY WEEK", "EVERY 8 WEEKS", "EVERY 12 WEEKS", "EVERY 16 WEEKS"}),
-        "Pointblank's FREQ codelist lacks these CDISC CT (C71113) values (Pointblank BUGS.md #38)",
+        "Pointblank's FREQ codelist lacks these CDISC CT (C71113) values (Pointblank BUGS.md #42; "
+        "fixed in #455)",
     ),
     "SDTM-335": (
         None,
         "requires VISITNUM in every VS record; it is Expected, so null for diary temperatures "
-        "(Pointblank BUGS.md #39)",
+        "(Pointblank BUGS.md #43; fixed in #455)",
     ),
-    "SDTM-170": (None, "requires LBORNRLO to be numeric; SDTMIG defines it as Char (BUGS.md #35)"),
-    "SDTM-171": (None, "requires LBORNRHI to be numeric; SDTMIG defines it as Char (BUGS.md #35)"),
+    "SDTM-170": (
+        None,
+        "requires LBORNRLO to be numeric; SDTMIG defines it as Char (BUGS.md #35; fixed in #455)",
+    ),
+    "SDTM-171": (
+        None,
+        "requires LBORNRHI to be numeric; SDTMIG defines it as Char (BUGS.md #35; fixed in #455)",
+    ),
 }
 
 
