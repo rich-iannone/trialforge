@@ -1,0 +1,15 @@
+# ADAS-Cog (11-item CDISC version) items: CDISC FT test code (ADCTC, NCI EVS C100132) and name
+# (ADCTN, C100131), the item's maximum error score, and the typical share of that maximum in
+# mild-to-moderate Alzheimer's disease (relative difficulty; calibrated to the target total).
+testcd	test	max	baseline_fraction
+ADCRL	Word Recall	10	0.58
+ADCCMD	Commands	5	0.14
+ADCCP	Constructional Praxis	5	0.22
+ADCOF	Naming Objects and Fingers	5	0.15
+ADCIP	Ideational Praxis	5	0.18
+ADCOR	Orientation	8	0.34
+ADCRG	Word Recognition	12	0.50
+ADCRI	Remembering Test Instructions	5	0.17
+ADCSL	Spoken Language Ability	5	0.13
+ADCDIF	Word Finding Difficulty in Spont Speech	5	0.18
+ADCCMP	Comprehension	5	0.13
