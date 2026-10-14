@@ -22,8 +22,21 @@ def onc() -> tf.Study:
     return tf.study("oncology_solid_tumor", n=60, seed=3)
 
 
+@pytest.fixture(scope="module")
+def pk() -> tf.Study:
+    return tf.study("phase1_sad_mad", n=24, seed=3, part="mad", doses=[50, 100, 200], mad_days=4)
+
+
 def test_archetypes_and_controls() -> None:
-    assert set(tf.archetypes()) == {"parallel_continuous", "oncology_solid_tumor"}
+    assert set(tf.archetypes()) == {
+        "parallel_continuous",
+        "oncology_solid_tumor",
+        "phase1_sad_mad",
+        "crossover_be",
+        "dose_ranging_ph2",
+        "cns_alzheimers",
+        "cv_outcomes",
+    }
     names = {c.name: c.default for c in tf.controls("parallel_continuous")}
     assert names["indication"] == "type_2_diabetes"
     assert names["weeks"] == 24
@@ -55,6 +68,68 @@ def test_oncology_study_shape(onc: tf.Study) -> None:
     assert onc.truth["targets"]["os_hr"] == 0.75
     assert "stratified_cox_hr" in onc.truth["overall_survival"]
     assert "confirmed_orr" in onc.truth
+
+
+def test_phase1_study_shape(pk: tf.Study) -> None:
+    assert pk.studyid == "SIMPK01"
+    assert {"PC", "PP"} <= set(pk.sdtm)
+    assert {"ADPC", "ADPP"} <= set(pk.adam)
+    assert pk.adam["ADPC"].schema["ADTM"] == pl.Datetime("ms")
+    ex = pk.sdtm["EX"]
+    assert ex["EXSTDTC"].str.len_chars().min() == 16  # dosing times
+    assert set(pk.sdtm["PP"]["PPTESTCD"]) >= {"CMAX", "AUCTAU", "ARAUC"}
+    assert pk.truth["pk"]["model"]["compartments"] == 1
+    assert pk.verify().passed
+
+
+def test_dose_ranging_and_non_inferiority() -> None:
+    dr = tf.study("dose_ranging_ph2", n=60, seed=2, doses=[0, 5, 20])
+    assert dr.adam["ADSL"]["TRT01P"].n_unique() == 3
+    assert dr.truth["dose_response"]["target"]["ed50"] == 7.5
+    ni = tf.study("parallel_continuous", n=40, seed=2, comparator="active", ni_margin=0.3)
+    assert ni.truth["non_inferiority"]["margin"] == 0.3
+    assert "Comparator 10 mg" in set(ni.adam["ADSL"]["TRT01P"])
+
+
+def test_cns_study_shape() -> None:
+    s = tf.study("cns_alzheimers", n=40, seed=3)
+    ft = s.sdtm["FT"]
+    assert set(ft["FTCAT"]) == {"ADAS-COG"}
+    assert ft["FTTESTCD"].n_unique() == 11
+    adas = s.adam["ADADAS"]
+    assert "ACTOT" in set(adas["PARAMCD"])
+    assert "adas_cog" in s.truth
+    assert s.verify().passed
+
+
+def test_cv_outcomes_study_shape() -> None:
+    s = tf.study("cv_outcomes", n=500, seed=3, target_events=40)
+    assert set(s.sdtm["CE"]["CECAT"]) == {"ADJUDICATED ENDPOINT EVENT"}
+    assert set(s.adam["ADTTE"]["PARAMCD"]) == {"MACE", "CVDEATH", "MI", "STROKE", "DEATH"}
+    assert s.truth["outcomes"]["realised_first_mace_events"] >= 40
+    assert s.verify().passed
+
+
+def test_crossover_study_shape() -> None:
+    s = tf.study("crossover_be", n=24, seed=4, design="2x2x4")
+    ta = s.sdtm["TA"]
+    assert ta.filter(pl.col("ARMCD") == "TRTR")["EPOCH"].to_list() == [
+        "SCREENING",
+        "TREATMENT 1",
+        "WASHOUT 1",
+        "TREATMENT 2",
+        "WASHOUT 2",
+        "TREATMENT 3",
+        "WASHOUT 3",
+        "TREATMENT 4",
+        "FOLLOW-UP",
+    ]
+    adsl = s.adam["ADSL"]
+    assert {"TRT04P", "AP04SDT", "TRTSEQP"} <= set(adsl.columns)
+    assert "APERIOD" in s.adam["ADPP"].columns
+    be = s.truth["bioequivalence"]
+    assert be["target"]["gmr_auc"] == 0.95 and "AUCIFO" in be
+    assert s.verify().passed
 
 
 def test_oncology_controls() -> None:
@@ -118,7 +193,7 @@ def _expected(values: list[Any], dtype: Any) -> list[Any]:
     return values
 
 
-@pytest.mark.parametrize("which", ["par", "onc"])
+@pytest.mark.parametrize("which", ["par", "onc", "pk"])
 def test_xpt_round_trip(which: str, request: pytest.FixtureRequest, tmp_path: Path) -> None:
     study: tf.Study = request.getfixturevalue(which)
     paths = [p for p in study.write(tmp_path) if p.suffix == ".xpt"]
@@ -135,17 +210,22 @@ def test_xpt_round_trip(which: str, request: pytest.FixtureRequest, tmp_path: Pa
         for col in mem.columns:
             expected = _expected(mem[col].to_list(), mem[col].dtype)
             got = back[col].tolist()
-            if mem[col].dtype == pl.Date:
+            if mem[col].dtype in (pl.Date, pl.Datetime("ms")):
                 got = [None if v is None or v != v else v for v in got]
             elif mem[col].dtype != pl.String:
                 got = [None if isinstance(v, float) and math.isnan(v) else v for v in got]
             assert got == expected, f"{name}.{col}"
 
 
-def test_parquet_and_csv_round_trip(par: tf.Study, tmp_path: Path) -> None:
-    par.write(tmp_path, ["parquet", "csv"])
-    for name, mem in {**par.sdtm, **par.adam}.items():
-        assert pl.read_parquet(tmp_path / f"{name.lower()}.parquet").equals(mem), name
+@pytest.mark.parametrize("which", ["par", "pk"])
+def test_parquet_and_csv_round_trip(
+    which: str, request: pytest.FixtureRequest, tmp_path: Path
+) -> None:
+    study: tf.Study = request.getfixturevalue(which)
+    study.write(tmp_path, ["parquet", "csv"])
+    for name, mem in {**study.sdtm, **study.adam}.items():
+        parquet = pl.read_parquet(tmp_path / f"{name.lower()}.parquet")
+        assert parquet.with_columns(pl.col(pl.Datetime).cast(pl.Datetime("ms"))).equals(mem), name
         back = pl.read_csv(tmp_path / f"{name.lower()}.csv", schema=mem.schema)
         expected = mem.with_columns(pl.col(pl.String).fill_null(""))
         assert back.with_columns(pl.col(pl.String).fill_null("")).equals(expected), name
@@ -164,7 +244,9 @@ def test_write_submission_layout(tmp_path: Path) -> None:
         study.define_xml("send")  # pyright: ignore[reportArgumentType]
 
 
-@pytest.mark.parametrize("archetype", ["parallel_continuous", "oncology_solid_tumor"])
+@pytest.mark.parametrize(
+    "archetype", ["parallel_continuous", "oncology_solid_tumor", "phase1_sad_mad", "crossover_be"]
+)
 @pytest.mark.parametrize("standard", ["sdtm", "adam"])
 def test_define_xml_is_schema_valid(archetype: str, standard: str) -> None:
     xmlschema = pytest.importorskip("xmlschema")
@@ -176,11 +258,15 @@ def test_define_xml_is_schema_valid(archetype: str, standard: str) -> None:
     assert not errors, errors[:5]
 
 
-def test_dataset_json_round_trip(par: tf.Study, tmp_path: Path) -> None:
+@pytest.mark.parametrize("which", ["par", "pk"])
+def test_dataset_json_round_trip(
+    which: str, request: pytest.FixtureRequest, tmp_path: Path
+) -> None:
     import json
 
-    par.write(tmp_path, ["dataset-json"])
-    for name, mem in {**par.sdtm, **par.adam}.items():
+    study: tf.Study = request.getfixturevalue(which)
+    study.write(tmp_path, ["dataset-json"])
+    for name, mem in {**study.sdtm, **study.adam}.items():
         doc = json.loads((tmp_path / f"{name.lower()}.json").read_text())
         assert doc["datasetJSONVersion"] == "1.1.0"
         assert doc["itemGroupOID"] == f"IG.{name}"
@@ -191,6 +277,10 @@ def test_dataset_json_round_trip(par: tf.Study, tmp_path: Path) -> None:
             expected = mem[col].to_list()
             if mem[col].dtype == pl.Date:
                 expected = [None if v is None else v.isoformat() for v in expected]
+            elif mem[col].dtype == pl.Datetime("ms"):
+                expected = [
+                    None if v is None else v.isoformat(timespec="seconds") for v in expected
+                ]
             assert got == expected, f"{name}.{col}"
 
 
