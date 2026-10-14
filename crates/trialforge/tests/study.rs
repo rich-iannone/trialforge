@@ -33,7 +33,11 @@ fn chars<'a>(d: &'a Dataset, v: &str) -> &'a [Option<String>] {
 
 #[test]
 fn generation_is_deterministic() {
-    for archetype in ["parallel_continuous", "oncology_solid_tumor"] {
+    for archetype in [
+        "parallel_continuous",
+        "oncology_solid_tumor",
+        "phase1_sad_mad",
+    ] {
         let a = study(archetype, &opts(120, 1, json!(null))).unwrap();
         let b = study(archetype, &opts(120, 1, json!(null))).unwrap();
         let c = study(archetype, &opts(120, 2, json!(null))).unwrap();
@@ -243,7 +247,8 @@ fn controls_are_documented() {
         let docs = trialforge::controls(name).unwrap();
         for d in docs.as_array().unwrap() {
             assert!(!d["description"].as_str().unwrap().is_empty());
-            assert!(!d["default"].is_null() || d["name"] == "change");
+            let nullable = ["change", "ni_margin", "placebo_change", "emax"];
+            assert!(!d["default"].is_null() || nullable.iter().any(|n| d["name"] == *n));
         }
     }
 }
@@ -258,11 +263,273 @@ prop_compose! {
         dropout in 0.0f64..2.0,
         ae in 0.0f64..6.0,
         missed in 0.0f64..0.5,
+        active in any::<bool>(),
+        margin in prop::option::of(0.01f64..5.0),
     ) -> serde_json::Value {
         json!({
+            "comparator": if active { "active" } else { "placebo" }, "ni_margin": margin,
             "indication": indication, "weeks": weeks, "change": change.map(|(a, b)| [a, b]),
             "ratio": [ratio.0, ratio.1], "dose": dose, "dropout_rate": dropout,
             "ae_rate_multiplier": ae, "missed_visit": missed,
+        })
+    }
+}
+
+#[test]
+fn phase1_pk_is_verified_against_an_independent_nca() {
+    let base = study("phase1_sad_mad", &opts(16, 2, json!({"doses": [10, 100]}))).unwrap();
+    assert!(trialforge::verify(&base).passed());
+    let rules = |s: &trialforge::Study| {
+        trialforge::verify(s)
+            .counts
+            .keys()
+            .copied()
+            .collect::<Vec<_>>()
+    };
+    let pp = base.sdtm.iter().find(|d| d.name == "PP").unwrap();
+    let cd = chars(pp, "PPTESTCD");
+    assert!(cd.iter().any(|c| c.as_deref() == Some("AUCIFO")));
+    // A wrong PP value.
+    let mut s = base.clone();
+    edit(&mut s.sdtm, "PP", "PPSTRESN", |v| {
+        let Values::Num(v) = v else {
+            panic!("PPSTRESN is numeric")
+        };
+        v[0] = v[0].map(|x| x * 1.01);
+    });
+    assert!(rules(&s).contains(&"L2.PP"), "{:?}", rules(&s));
+    // A concentration reported both as BLQ and as a number.
+    let mut s = base.clone();
+    corrupt(&mut s.sdtm, "PC", "PCSTRESC", "<BLQ", "1.5");
+    assert!(rules(&s).contains(&"L1.PK"), "{:?}", rules(&s));
+    // The multiple-dose part has steady-state parameters and accumulation ratios.
+    let mad = study(
+        "phase1_sad_mad",
+        &opts(16, 2, json!({"part": "mad", "doses": [50, 100]})),
+    )
+    .unwrap();
+    let pp = mad.sdtm.iter().find(|d| d.name == "PP").unwrap();
+    let cd = chars(pp, "PPTESTCD");
+    for want in ["AUCTAU", "CLFTAU", "ARAUC"] {
+        assert!(cd.iter().any(|c| c.as_deref() == Some(want)), "{want}");
+    }
+    let slope = &base.truth["pk"]["power_model"];
+    assert!(slope.get("CMAX").is_some());
+}
+
+#[test]
+fn crossover_periods_are_verified_and_be_is_recovered() {
+    let base = study("crossover_be", &opts(48, 2, json!({"design": "2x2x4"}))).unwrap();
+    assert!(trialforge::verify(&base).passed());
+    let rules = |s: &trialforge::Study| {
+        trialforge::verify(s)
+            .counts
+            .keys()
+            .copied()
+            .collect::<Vec<_>>()
+    };
+    let ta = base.sdtm.iter().find(|d| d.name == "TA").unwrap();
+    assert!(
+        chars(ta, "EPOCH")
+            .iter()
+            .any(|e| e.as_deref() == Some("TREATMENT 4"))
+    );
+    // A period treatment swapped in ADSL.
+    let mut s = base.clone();
+    edit(&mut s.adam, "ADSL", "TRT02A", |v| {
+        let Values::Char(v) = v else {
+            panic!("TRT02A is character")
+        };
+        let other = v
+            .iter()
+            .flatten()
+            .find(|x| Some(*x) != v[0].as_ref())
+            .cloned();
+        v[0] = other;
+    });
+    assert!(rules(&s).contains(&"L2.PERIOD"), "{:?}", rules(&s));
+    // A large study recovers the GMR within its CI.
+    let big = study("crossover_be", &opts(240, 3, json!({"gmr": 0.9}))).unwrap();
+    let auc = &big.truth["bioequivalence"]["AUCIFO"];
+    let ci = auc["ci90"].as_array().unwrap();
+    let (lo, hi) = (ci[0].as_f64().unwrap(), ci[1].as_f64().unwrap());
+    assert!(lo < 0.9 && 0.9 < hi, "GMR CI [{lo}, {hi}] should cover 0.9");
+}
+
+#[test]
+fn dose_response_and_non_inferiority_are_recovered() {
+    let s = study("dose_ranging_ph2", &opts(600, 1, json!(null))).unwrap();
+    let fit = &s.truth["dose_response"]["fitted"];
+    let ed50 = fit["ed50"].as_f64().unwrap();
+    assert!(
+        (3.0..20.0).contains(&ed50),
+        "ED50 {ed50} should be near 7.5"
+    );
+    let ni = study(
+        "parallel_continuous",
+        &opts(300, 1, json!({"comparator": "active", "ni_margin": 0.3})),
+    )
+    .unwrap();
+    assert_eq!(ni.truth["non_inferiority"]["non_inferior"], json!(true));
+    let ta = ni.sdtm.iter().find(|d| d.name == "TS").unwrap();
+    let vals = chars(ta, "TSVAL");
+    assert!(vals.iter().any(|v| v.as_deref() == Some("ACTIVE")));
+}
+
+#[test]
+fn adas_cog_totals_are_verified() {
+    let base = study("cns_alzheimers", &opts(60, 3, json!({"item_missing": 0.1}))).unwrap();
+    assert!(trialforge::verify(&base).passed());
+    let rules = |s: &trialforge::Study| {
+        trialforge::verify(s)
+            .counts
+            .keys()
+            .copied()
+            .collect::<Vec<_>>()
+    };
+    let mut s = base.clone();
+    edit(&mut s.adam, "ADADAS", "AVAL", |v| {
+        let Values::Num(v) = v else {
+            panic!("AVAL is numeric")
+        };
+        let x = v.iter_mut().flatten().last().unwrap();
+        *x += 1.0;
+    });
+    assert!(rules(&s).contains(&"L2.ADADAS"), "{:?}", rules(&s));
+    let ft = base.sdtm.iter().find(|d| d.name == "FT").unwrap();
+    assert!(
+        chars(ft, "FTSTAT")
+            .iter()
+            .any(|x| x.as_deref() == Some("NOT DONE"))
+    );
+}
+
+#[test]
+fn cv_outcomes_are_event_driven_and_verified() {
+    let base = study("cv_outcomes", &opts(800, 2, json!({"target_events": 60}))).unwrap();
+    assert!(trialforge::verify(&base).passed());
+    let events = base.truth["outcomes"]["realised_first_mace_events"]
+        .as_u64()
+        .unwrap();
+    assert!(
+        (60..=75).contains(&events),
+        "{events} first MACE events for a target of 60"
+    );
+    let rules = |s: &trialforge::Study| {
+        trialforge::verify(s)
+            .counts
+            .keys()
+            .copied()
+            .collect::<Vec<_>>()
+    };
+    let mut s = base.clone();
+    edit(&mut s.adam, "ADTTE", "CNSR", |v| {
+        let Values::Int(v) = v else {
+            panic!("CNSR is integer")
+        };
+        let x = v.iter_mut().find(|x| **x == Some(0)).unwrap();
+        *x = Some(1);
+    });
+    assert!(rules(&s).contains(&"L2.ADTTE"), "{:?}", rules(&s));
+}
+
+prop_compose! {
+    fn cv_controls()(
+        target in 1usize..200,
+        rate in 0.005f64..0.5,
+        hr in 0.3f64..2.0,
+        components in (0.0f64..1.0, 0.0f64..1.0, 0.01f64..1.0),
+        ncv in 0.0f64..0.2,
+        frailty in 0.0f64..1.5,
+        enrollment in 1.0f64..36.0,
+        extra in 1.0f64..60.0,
+        stop in 0.0f64..1.0,
+        withdraw in 0.0f64..1.0,
+    ) -> serde_json::Value {
+        json!({
+            "target_events": target, "mace_rate": rate, "hr": hr,
+            "components": [components.0, components.1, components.2], "non_cv_death_rate": ncv,
+            "frailty_sd": frailty, "enrollment_months": enrollment, "max_months": enrollment + extra,
+            "discontinuation_rate": stop, "withdrawal_rate": withdraw,
+        })
+    }
+}
+
+prop_compose! {
+    fn cns_controls()(
+        weeks in prop::sample::select(vec![8u32, 16, 24, 48]),
+        doses in prop::collection::vec(1.0f64..100.0, 1..4),
+        baseline in 10.0f64..45.0,
+        missing in 0.0f64..0.3,
+        decline in 0.0f64..10.0,
+        dropout in 0.0f64..3.0,
+        seed_change in -5.0f64..8.0,
+    ) -> serde_json::Value {
+        let change: Vec<f64> = (0..=doses.len()).map(|k| seed_change - k as f64).collect();
+        json!({
+            "weeks": weeks, "doses": doses, "baseline_mean": baseline, "change": change,
+            "item_missing": missing, "decline_sd": decline, "dropout_rate": dropout,
+        })
+    }
+}
+
+prop_compose! {
+    fn dose_ranging_controls()(
+        indication in prop::sample::select(vec!["type_2_diabetes", "hypertension", "obesity"]),
+        weeks in 4u32..=52,
+        doses in prop::collection::btree_set(1u32..500, 1..6),
+        ed50 in 0.5f64..200.0,
+        hill in 0.3f64..4.0,
+        emax in prop::option::of(-20.0f64..5.0),
+        dropout in 0.0f64..2.0,
+    ) -> serde_json::Value {
+        let mut d: Vec<f64> = vec![0.0];
+        d.extend(doses.into_iter().map(f64::from));
+        json!({
+            "indication": indication, "weeks": weeks, "doses": d, "ed50": ed50, "hill": hill,
+            "emax": emax, "dropout_rate": dropout,
+        })
+    }
+}
+
+prop_compose! {
+    fn crossover_controls()(
+        design in prop::sample::select(vec!["2x2", "2x2x4", "food_effect"]),
+        dose in 1.0f64..1000.0,
+        gmr in 0.5f64..2.0,
+        ka_ratio in 0.3f64..3.0,
+        intra in 0.0f64..0.6,
+        inter in 0.0f64..0.8,
+        days in 5u32..20,
+        lloq in 0.01f64..5.0,
+        dropout in 0.0f64..5.0,
+    ) -> serde_json::Value {
+        json!({
+            "design": design, "dose": dose, "gmr": gmr, "ka_ratio": ka_ratio,
+            "intra_cv": intra, "inter_cv": inter, "days_between_doses": days, "lloq": lloq,
+            "dropout_rate": dropout,
+        })
+    }
+}
+
+prop_compose! {
+    fn phase1_controls()(
+        mad in any::<bool>(),
+        doses in prop::collection::vec(1.0f64..1000.0, 1..5),
+        placebo in 0.0f64..0.5,
+        days in 2u32..10,
+        compartments in 1u8..=2,
+        cl in 1.0f64..50.0,
+        v in 10.0f64..300.0,
+        ka in 0.2f64..5.0,
+        cv in (0.0f64..0.8, 0.0f64..0.8, 0.0f64..0.8),
+        beta in 0.5f64..1.5,
+        lloq in 0.01f64..5.0,
+    ) -> serde_json::Value {
+        json!({
+            "part": if mad { "mad" } else { "sad" }, "doses": doses, "placebo_fraction": placebo,
+            "mad_days": days, "compartments": compartments, "cl": cl, "v": v, "ka": ka,
+            "cv": [cv.0, cv.1, cv.2], "proportionality": beta, "lloq": lloq,
         })
     }
 }
@@ -296,6 +563,36 @@ proptest! {
     #[test]
     fn random_parallel_specs_verify(c in parallel_controls(), n in 1usize..60, seed in 0u64..=trialforge::MAX_SEED) {
         let s = study("parallel_continuous", &opts(n, seed, c.clone()));
+        prop_assert!(s.is_ok(), "{c}: {}", s.err().map(|e| e.to_string()).unwrap_or_default());
+    }
+
+    #[test]
+    fn random_cv_specs_verify(c in cv_controls(), n in 1usize..300, seed in 0u64..=trialforge::MAX_SEED) {
+        let s = study("cv_outcomes", &opts(n, seed, c.clone()));
+        prop_assert!(s.is_ok(), "{c}: {}", s.err().map(|e| e.to_string()).unwrap_or_default());
+    }
+
+    #[test]
+    fn random_cns_specs_verify(c in cns_controls(), n in 1usize..60, seed in 0u64..=trialforge::MAX_SEED) {
+        let s = study("cns_alzheimers", &opts(n, seed, c.clone()));
+        prop_assert!(s.is_ok(), "{c}: {}", s.err().map(|e| e.to_string()).unwrap_or_default());
+    }
+
+    #[test]
+    fn random_dose_ranging_specs_verify(c in dose_ranging_controls(), n in 1usize..60, seed in 0u64..=trialforge::MAX_SEED) {
+        let s = study("dose_ranging_ph2", &opts(n, seed, c.clone()));
+        prop_assert!(s.is_ok(), "{c}: {}", s.err().map(|e| e.to_string()).unwrap_or_default());
+    }
+
+    #[test]
+    fn random_crossover_specs_verify(c in crossover_controls(), n in 1usize..60, seed in 0u64..=trialforge::MAX_SEED) {
+        let s = study("crossover_be", &opts(n, seed, c.clone()));
+        prop_assert!(s.is_ok(), "{c}: {}", s.err().map(|e| e.to_string()).unwrap_or_default());
+    }
+
+    #[test]
+    fn random_phase1_specs_verify(c in phase1_controls(), n in 1usize..60, seed in 0u64..=trialforge::MAX_SEED) {
+        let s = study("phase1_sad_mad", &opts(n, seed, c.clone()));
         prop_assert!(s.is_ok(), "{c}: {}", s.err().map(|e| e.to_string()).unwrap_or_default());
     }
 
