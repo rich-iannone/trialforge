@@ -103,12 +103,24 @@ r-check: r-build ## R CMD check --as-cran on the staged tarball (offline build f
 
 # admiral equivalence: admiral re-derives our ADaM from our SDTM; every compared value must match.
 # Runs in an isolated `ir` environment (nothing is installed into the user library).
-ADMIRAL_IR := ir run --isolated --r-version 4.6 --exclude-newer 2026-09-25 --with admiral --with admiralonco --with haven --with dplyr --with stringr
+ADMIRAL_IR := ir run --isolated --r-version 4.6 --exclude-newer 2026-09-25 --with admiral --with admiralonco --with haven --with dplyr --with stringr --with tidyr
+PKNCA_IR := ir run --isolated --r-version 4.6 --exclude-newer 2026-09-25 --with PKNCA --with haven --with dplyr
 ADMIRAL_CASES := parallel_continuous:{} \
 	'parallel_continuous:{"indication":"hypertension","weeks":12,"dropout_rate":0.9}' \
 	'parallel_continuous:{"indication":"obesity","ae_rate_multiplier":4}' \
 	oncology_solid_tumor:{} \
-	'oncology_solid_tumor:{"orr":[0.6,0.3],"cutoff_months":22,"withdrawal_prob":0.3,"os_pfs_correlation":0.9}'
+	'oncology_solid_tumor:{"orr":[0.6,0.3],"cutoff_months":22,"withdrawal_prob":0.3,"os_pfs_correlation":0.9}' \
+	phase1_sad_mad:{} \
+	'phase1_sad_mad:{"part":"mad","doses":[50,100,200,400],"compartments":2}' \
+	crossover_be:{} \
+	'crossover_be:{"design":"2x2x4","dropout_rate":3}' \
+	'crossover_be:{"design":"food_effect","gmr":1.3,"ka_ratio":0.5}' \
+	dose_ranging_ph2:{} \
+	'parallel_continuous:{"comparator":"active","ni_margin":0.3,"indication":"obesity"}' \
+	cns_alzheimers:{} \
+	'cns_alzheimers:{"item_missing":0.15,"dropout_rate":2,"weeks":48}' \
+	cv_outcomes:{} \
+	'cv_outcomes:{"target_events":40,"withdrawal_rate":0.3,"discontinuation_rate":0.3,"components":[1,1,1]}'
 
 .PHONY: r-admiral
 r-admiral: ## Compare our ADaM with admiral's derivations from our SDTM (needs `ir`)
@@ -117,6 +129,7 @@ r-admiral: ## Compare our ADaM with admiral's derivations from our SDTM (needs `
 		rm -rf $$out && $(PYTHON) -c "import json, sys, trialforge as tf; tf.study(sys.argv[1], n=300, seed=21, **json.loads(sys.argv[2])).write_submission(sys.argv[3])" "$$archetype" "$$controls" $$out && \
 		echo "== $$archetype $$controls" && \
 		$(ADMIRAL_IR) scripts/admiral_equivalence.R $$out 2>&1 | grep -E "admiral [0-9]|differs|rows" || exit 1; \
+		if [ -f $$out/sdtm/pp.xpt ]; then $(PKNCA_IR) scripts/pknca_equivalence.R $$out 2>&1 | grep -E "PKNCA [0-9]|differ" || exit 1; fi; \
 	done
 
 .PHONY: r-install
