@@ -253,6 +253,10 @@ fn simulate_one(design: &Design, p: &PkParams, s: &Subject, t: &mut Timeline) {
             dose: *amount,
             time: Some(*time),
             period,
+            location: None,
+            group: None,
+            visitnum: None,
+            switched: false,
         })
         .collect();
     let periodic = p.dose_days.is_some();
