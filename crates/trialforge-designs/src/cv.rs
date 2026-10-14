@@ -39,6 +39,9 @@ pub struct Controls {
     pub discontinuation_rate: f64,
     /// Annual hazard of withdrawing from follow-up.
     pub withdrawal_rate: f64,
+    /// An interim snapshot at this many first MACE events (multiple cuts: same seed and
+    /// controls, earlier data cutoff), or `null` for the final analysis.
+    pub interim_events: Option<usize>,
 }
 
 impl Default for Controls {
@@ -55,6 +58,7 @@ impl Default for Controls {
             max_months: 60.0,
             discontinuation_rate: 0.06,
             withdrawal_rate: 0.02,
+            interim_events: None,
         }
     }
 }
@@ -99,6 +103,10 @@ pub(crate) fn docs() -> Vec<ControlDoc> {
             "withdrawal_rate",
             "Annual hazard of withdrawing from follow-up",
         ),
+        ControlDoc::new(
+            "interim_events",
+            "Interim snapshot at this many first MACE events (multiple cuts of the same study); null for the final analysis",
+        ),
     ]
 }
 
@@ -138,6 +146,11 @@ pub(crate) fn validate(c: &Controls) -> Result<(), String> {
     }
     if !(0.0..=2.0).contains(&c.frailty_sd) {
         return Err("`frailty_sd` must be between 0 and 2".into());
+    }
+    if c.interim_events
+        .is_some_and(|k| k == 0 || k >= c.target_events)
+    {
+        return Err("`interim_events` must be between 1 and `target_events` - 1".into());
     }
     if c.max_months <= c.enrollment_months || c.max_months > 180.0 {
         return Err("`max_months` must exceed `enrollment_months` and be at most 180".into());
@@ -221,13 +234,14 @@ pub(crate) fn resolve(opts: &StudyOptions, c: &Controls) -> (Design, OutcomesPar
         seed: opts.seed,
         n: opts.n,
         arms: vec![
-            Arm { armcd: "DRUGA".into(), arm: "Drug A".into(), ratio: 1, treatment: treatment("DRUG A", 20.0), periods: Vec::new() },
-            Arm { armcd: "PBO".into(), arm: "Placebo".into(), ratio: 1, treatment: treatment("PLACEBO", 0.0), periods: Vec::new() },
+            Arm { armcd: "DRUGA".into(), arm: "Drug A".into(), ratio: 1, treatment: treatment("DRUG A", 20.0), periods: Vec::new(), switch_to: None },
+            Arm { armcd: "PBO".into(), arm: "Placebo".into(), ratio: 1, treatment: treatment("PLACEBO", 0.0), periods: Vec::new(), switch_to: None },
         ],
         sites,
         first_randomization: first,
         enrollment_days: month(c.enrollment_months),
         cutoff: first.add_days(month(c.max_months)),
+        interim: false,
         block_size: 4,
         population: Population {
             age_mean: 66.0,
@@ -260,6 +274,7 @@ pub(crate) fn resolve(opts: &StudyOptions, c: &Controls) -> (Design, OutcomesPar
             trial_types: vec!["EFFICACY".into(), "SAFETY".into()],
             intervention_model: "PARALLEL".into(),
             healthy_subjects: false,
+            intervention_type: "DRUG".into(),
             criteria: vec![
                 ("INCL01".into(), "INCLUSION".into(), "Adults aged 45 or older with established atherosclerotic cardiovascular disease".into()),
                 ("EXCL01".into(), "EXCLUSION".into(), "Myocardial infarction or stroke within 30 days before randomization".into()),
@@ -292,6 +307,7 @@ pub(crate) fn resolve(opts: &StudyOptions, c: &Controls) -> (Design, OutcomesPar
         discontinuation_rate: c.discontinuation_rate,
         visit_interval: 120,
         target_events: c.target_events,
+        interim_events: c.interim_events,
         max_days: month(c.max_months),
     };
     (design, params)
