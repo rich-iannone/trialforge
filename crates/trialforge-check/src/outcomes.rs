@@ -31,12 +31,20 @@ pub(crate) fn run(sdtm: &[Dataset], adam: &[Dataset], r: &mut Report) {
     else {
         return;
     };
-    let (Some(u), Some(decod), Some(dtc)) = (ce.c("USUBJID"), ce.c("CEDECOD"), ce.d("CESTDTC"))
-    else {
+    let (Some(u), Some(decod), Some(dtc), Some(cat)) = (
+        ce.c("USUBJID"),
+        ce.c("CEDECOD"),
+        ce.d("CESTDTC"),
+        ce.c("CECAT"),
+    ) else {
         return;
     };
+    let adjudicated = |i: usize| cat[i].as_deref() == Some("ADJUDICATED ENDPOINT EVENT");
+    if !(0..ce.n()).any(adjudicated) {
+        return;
+    }
     let mut first: HashMap<(&str, &str), Date> = HashMap::new();
-    for i in 0..ce.n() {
+    for i in (0..ce.n()).filter(|&i| adjudicated(i)) {
         if let (Some(x), Some(pt), Some(d)) = (u[i].as_deref(), decod[i].as_deref(), dtc[i]) {
             let e = first.entry((x, pt)).or_insert(d);
             *e = (*e).min(d);
