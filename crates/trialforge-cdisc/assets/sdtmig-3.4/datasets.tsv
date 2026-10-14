@@ -18,3 +18,7 @@ SUPPAE	Supplemental Qualifiers for AE	RELATIONSHIP	One record per IDVAR, IDVARVA
 TU	Tumor/Lesion Identification	FINDINGS	One record per identified tumor per subject per assessor	STUDYID,USUBJID,TULNKID,TUEVAL
 TR	Tumor/Lesion Results	FINDINGS	One record per tumor measurement/assessment per visit per subject per assessor	STUDYID,USUBJID,TRTESTCD,TRLNKID,VISITNUM
 RS	Disease Response and Clin Classification	FINDINGS	One record per response assessment per visit per subject per assessor	STUDYID,USUBJID,RSTESTCD,VISITNUM
+PC	Pharmacokinetics Concentrations	FINDINGS	One record per sample characteristic or time-point concentration per reference time point or per analyte per subject	STUDYID,USUBJID,PCTESTCD,PCRFTDTC,PCTPTNUM
+PP	Pharmacokinetics Parameters	FINDINGS	One record per PK parameter per time-concentration profile per subject	STUDYID,USUBJID,PPTESTCD,PPRFTDTC,PPENINT
+FT	Functional Tests	FINDINGS	One record per Functional Test finding per time point per visit per subject	STUDYID,USUBJID,FTTESTCD,VISITNUM
+CE	Clinical Events	EVENTS	One record per event per subject	STUDYID,USUBJID,CEDECOD,CESTDTC
