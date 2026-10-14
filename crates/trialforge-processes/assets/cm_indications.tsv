@@ -21,6 +21,7 @@ Osteoporosis	chronic	0.50	ALENDRONATE;CHOLECALCIFEROL	1;1
 Vitamin D deficiency	chronic	0.80	CHOLECALCIFEROL	1
 Glaucoma	chronic	0.90	LATANOPROST	1
 Back pain	chronic	0.40	IBUPROFEN;CYCLOBENZAPRINE;ACETAMINOPHEN	2;1;2
+Dementia Alzheimer's type	chronic	0.0	DONEPEZIL	1
 Headache	acute	0.50	ACETAMINOPHEN;IBUPROFEN	1;1
 Nausea	acute	0.30	ONDANSETRON	1
 Vomiting	acute	0.40	ONDANSETRON	1
