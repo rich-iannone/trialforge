@@ -340,5 +340,9 @@ fn bds(
             ),
         ]);
     }
+    let periods = crate::Periods::new(adsl)?;
+    let keys: Vec<(usize, Option<Date>)> =
+        recs.iter().map(|r| (r.sl.unwrap_or(0), r.adt)).collect();
+    crate::by_period(&mut cols, &periods, &keys);
     Ok(build(name, cols)?)
 }
