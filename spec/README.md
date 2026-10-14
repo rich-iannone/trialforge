@@ -51,4 +51,5 @@ here.
 | `Study.write()` | `write_study()` | `write()` would mask `base::write()` |
 | `Study.verify(level=3)` | not available (`verify(trial, level = 3)` errors) | Level 3 runs Pointblank's CDISC conformance engine, which only exists in the Python package; the R `pointblank` package has no SDTMIG rules |
 | `Study.write(formats=["parquet"])` | not available | The Parquet writer is compiled only into the Python build, to keep the R package's vendored crates small |
+| Date-times (e.g. ADPC `ADTM`) are naive timestamps (no time zone) | `POSIXct` with `tzone = "UTC"` | The study clock has no time zone; R needs one, and UTC keeps the clock time unchanged |
 
