@@ -15,6 +15,7 @@ pub mod pk;
 pub mod subject;
 pub mod tdm;
 pub mod tumor;
+pub mod vaccine;
 
 use trialforge_cdisc::MetadataError;
 use trialforge_core::{Dataset, Date, Values, study_day};
