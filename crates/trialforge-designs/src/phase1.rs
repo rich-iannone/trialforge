@@ -293,6 +293,7 @@ pub(crate) fn resolve(opts: &StudyOptions, c: &Controls) -> (Design, CourseParam
             ratio: 1,
             treatment: treatment(DRUG, *d),
             periods: Vec::new(),
+            switch_to: None,
         })
         .collect();
     let placebo = arms.len();
@@ -302,6 +303,7 @@ pub(crate) fn resolve(opts: &StudyOptions, c: &Controls) -> (Design, CourseParam
         ratio: 1,
         treatment: treatment("PLACEBO", 0.0),
         periods: Vec::new(),
+        switch_to: None,
     });
     let spacing = if mad { 35 } else { 21 };
     let cohorts: Vec<Cohort> = cohort_sizes(opts.n, c.doses.len())
@@ -338,6 +340,7 @@ pub(crate) fn resolve(opts: &StudyOptions, c: &Controls) -> (Design, CourseParam
         first_randomization: first,
         enrollment_days,
         cutoff: first.add_days(enrollment_days + study_days),
+        interim: false,
         block_size: (c.doses.len() + 1) as u32,
         population: Population {
             age_mean: 32.0,
@@ -383,6 +386,7 @@ pub(crate) fn resolve(opts: &StudyOptions, c: &Controls) -> (Design, CourseParam
             trial_types: vec!["SAFETY".into(), "PHARMACOKINETIC".into()],
             intervention_model: "SEQUENTIAL".into(),
             healthy_subjects: true,
+            intervention_type: "DRUG".into(),
             criteria: vec![
                 (
                     "INCL01".into(),
@@ -444,6 +448,7 @@ pub(crate) fn resolve(opts: &StudyOptions, c: &Controls) -> (Design, CourseParam
         endpoints: Vec::new(),
         bmi: (24.5, 3.0),
         dosing_days: Some(planned_doses(c) as i32),
+        extra_ae: Vec::new(),
     };
     let pk = PkParams {
         analyte: DRUG.into(),
