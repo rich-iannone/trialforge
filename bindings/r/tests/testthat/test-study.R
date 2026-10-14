@@ -2,7 +2,7 @@ par <- study("parallel_continuous", n = 80, seed = 3)
 onc <- study("oncology_solid_tumor", n = 60, seed = 3)
 
 test_that("archetypes(), controls() and formats() describe the build", {
-  expect_setequal(names(archetypes()), c("parallel_continuous", "oncology_solid_tumor"))
+  expect_setequal(names(archetypes()), c("parallel_continuous", "oncology_solid_tumor", "phase1_sad_mad", "crossover_be", "dose_ranging_ph2", "cns_alzheimers", "cv_outcomes"))
   ctl <- controls("parallel_continuous")
   expect_true(all(c("indication", "weeks") %in% ctl$name))
   expect_identical(ctl$default[[which(ctl$name == "weeks")]], 24L)
@@ -123,4 +123,45 @@ test_that("verify() levels", {
   expect_true(verify(par, level = 2)$passed)
   expect_error(verify(par, level = 3), "only in the Python")
   expect_error(verify(par, level = 1), "must be 2")
+})
+
+test_that("a phase 1 study has PK data with date-times", {
+  pk <- study("phase1_sad_mad", n = 16, seed = 3, part = "mad", doses = c(50, 200), mad_days = 4)
+  expect_true(all(c("PC", "PP") %in% names(pk$sdtm)))
+  expect_true(all(c("ADPC", "ADPP") %in% names(pk$adam)))
+  expect_s3_class(pk$adam$ADPC$ADTM, "POSIXct")
+  expect_identical(attr(pk$adam$ADPC$ADTM, "tzone"), "UTC")
+  expect_identical(format(pk$adam$ADPC$ADTM[1], "%H:%M"), substr(pk$sdtm$PC$PCDTC[1], 12, 16))
+  expect_true(all(c("AUCTAU", "ARAUC") %in% pk$sdtm$PP$PPTESTCD))
+  expect_true(verify(pk)$passed)
+})
+
+test_that("a crossover study has periods", {
+  be <- study("crossover_be", n = 16, seed = 4, design = "food_effect", gmr = 1.3)
+  expect_true(all(c("TRT01P", "TRT02P", "AP02SDT", "TRTSEQP") %in% names(be$adam$ADSL)))
+  expect_true("APERIOD" %in% names(be$adam$ADPP))
+  expect_identical(be$truth$bioequivalence$target$gmr_auc, 1.3)
+  expect_true(verify(be)$passed)
+})
+
+test_that("dose-ranging and non-inferiority studies report their analyses", {
+  dr <- study("dose_ranging_ph2", n = 60, seed = 2, doses = c(0, 5, 20))
+  expect_length(unique(dr$adam$ADSL$TRT01P), 3)
+  expect_identical(dr$truth$dose_response$target$ed50, 7.5)
+  ni <- study("parallel_continuous", n = 40, seed = 2, comparator = "active", ni_margin = 0.3)
+  expect_identical(ni$truth$non_inferiority$margin, 0.3)
+})
+
+test_that("an Alzheimer's study has ADAS-Cog items and totals", {
+  cns <- study("cns_alzheimers", n = 30, seed = 3)
+  expect_true(all(cns$sdtm$FT$FTCAT == "ADAS-COG"))
+  expect_true("ACTOT" %in% cns$adam$ADADAS$PARAMCD)
+  expect_true(verify(cns)$passed)
+})
+
+test_that("a cardiovascular outcomes study is event-driven", {
+  cv <- study("cv_outcomes", n = 400, seed = 3, target_events = 30)
+  expect_setequal(unique(cv$adam$ADTTE$PARAMCD), c("MACE", "CVDEATH", "MI", "STROKE", "DEATH"))
+  expect_gte(cv$truth$outcomes$realised_first_mace_events, 30)
+  expect_true(verify(cv)$passed)
 })
