@@ -51,6 +51,9 @@ pub struct OutcomesParams {
     pub visit_interval: i32,
     /// First MACE events that trigger the cutoff.
     pub target_events: usize,
+    /// An interim cutoff at this many first MACE events (a snapshot of the same study, which
+    /// may fall during enrollment).
+    pub interim_events: Option<usize>,
     /// Longest possible follow-up from the first randomisation, in days.
     pub max_days: i32,
 }
@@ -143,7 +146,17 @@ pub fn simulate(
         .map(|s| s.randomization)
         .max()
         .unwrap_or(design.first_randomization);
-    let cut = cutoff(p, &latents, design.cutoff).max(last_rand.add_days(1));
+    let cut = match p.interim_events {
+        Some(k) => cutoff(
+            &OutcomesParams {
+                target_events: k,
+                ..p.clone()
+            },
+            &latents,
+            design.cutoff,
+        ),
+        None => cutoff(p, &latents, design.cutoff).max(last_rand.add_days(1)),
+    };
     let timelines = subjects
         .iter()
         .zip(&latents)
@@ -229,6 +242,10 @@ fn observe(design: &Design, p: &OutcomesParams, s: &Subject, l: &Latent, cutoff:
             dose,
             time: None,
             period: None,
+            location: None,
+            group: None,
+            visitnum: None,
+            switched: false,
         });
     }
 
@@ -296,7 +313,11 @@ fn observe(design: &Design, p: &OutcomesParams, s: &Subject, l: &Latent, cutoff:
         .filter(|(d, _)| *d <= last_contact)
         .map(|(d, k)| ClinicalEvent {
             pt: p.events[*k].pt.clone(),
+            term: p.events[*k].pt.clone(),
+            category: "ADJUDICATED ENDPOINT EVENT",
             date: *d,
+            end: None,
+            severity: None,
         })
         .collect();
 
@@ -316,5 +337,8 @@ fn observe(design: &Design, p: &OutcomesParams, s: &Subject, l: &Latent, cutoff:
         tumor: Vec::new(),
         pk: Vec::new(),
         clinical_events,
+        study_eye: None,
+        birth_date: None,
+        diaries: Vec::new(),
     }
 }
