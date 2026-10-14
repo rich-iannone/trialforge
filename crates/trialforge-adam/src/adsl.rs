@@ -290,5 +290,130 @@ pub fn adsl(sdtm: &[Dataset], inputs: &AdslInputs) -> Result<Dataset, DeriveErro
     if let Some(c) = inputs.cutoff {
         cols.push(("DCUTDT", Values::Date(vec![Some(c); n])));
     }
+    if let (Some(ta), Some(se)) = (find(sdtm, "TA"), find(sdtm, "SE")) {
+        crossover_periods(&mut cols, &dm, ta, se)?;
+    }
     Ok(build("ADSL", cols)?)
+}
+
+/// Period variables of a crossover (TA has `TREATMENT k` epochs): `TRTkkP/PN/A/AN` from TA
+/// elements, `APkkSDT`/`APkkEDT` from the subject's SE, `TRTSEQP`/`TRTSEQA` from DM.
+fn crossover_periods(
+    cols: &mut Vec<(&str, Values)>,
+    dm: &Frame<'_>,
+    ta: &Dataset,
+    se: &Dataset,
+) -> Result<(), DeriveError> {
+    let ta = Frame::new(ta);
+    let (ta_arm, ta_epoch, ta_etcd, ta_el) = (
+        ta.chars("ARMCD")?,
+        ta.chars("EPOCH")?,
+        ta.chars("ETCD")?,
+        ta.chars("ELEMENT")?,
+    );
+    let period = |e: &Option<String>| {
+        e.as_deref()
+            .and_then(|e| e.strip_prefix("TREATMENT "))
+            .and_then(|k| k.parse::<i64>().ok())
+    };
+    let n_periods = (0..ta.n())
+        .filter_map(|i| period(&ta_epoch[i]))
+        .max()
+        .unwrap_or(0);
+    if n_periods == 0 {
+        return Ok(());
+    }
+    // Treatment elements numbered in order of first appearance in TA.
+    let mut etcds: Vec<&str> = Vec::new();
+    let mut element: HashMap<(&str, i64), (String, f64)> = HashMap::new();
+    for i in 0..ta.n() {
+        if let (Some(k), Some(arm), Some(cd)) = (
+            period(&ta_epoch[i]),
+            ta_arm[i].as_deref(),
+            ta_etcd[i].as_deref(),
+        ) {
+            if !etcds.contains(&cd) {
+                etcds.push(cd);
+            }
+            let num = etcds.iter().position(|c| *c == cd).expect("added") as f64 + 1.0;
+            element.insert((arm, k), (ta_el[i].clone().unwrap_or_default(), num));
+        }
+    }
+    let se = Frame::new(se);
+    let (se_u, se_epoch, se_st, se_en) = (
+        se.chars("USUBJID")?,
+        se.chars("EPOCH")?,
+        se.chars("SESTDTC")?,
+        se.chars("SEENDTC")?,
+    );
+    // (start, end) of each subject's element in each period.
+    type Span = (Option<Date>, Option<Date>);
+    let mut spans: HashMap<(&str, i64), Span> = HashMap::new();
+    for i in 0..se.n() {
+        if let (Some(u), Some(k)) = (se_u[i].as_deref(), period(&se_epoch[i])) {
+            spans.insert((u, k), (dt(&se_st[i]), dt(&se_en[i])));
+        }
+    }
+    let usubjid = dm.chars("USUBJID")?;
+    let (armcd, actarmcd) = (dm.chars("ARMCD")?, dm.chars("ACTARMCD")?);
+    let (arm, actarm) = (dm.chars("ARM")?, dm.chars("ACTARM")?);
+    let name =
+        |cd: &Option<String>, k: i64| cd.as_deref().and_then(|c| element.get(&(c, k)).cloned());
+    let names: [[&str; 4]; 4] = [
+        ["TRT01P", "TRT01PN", "TRT01A", "TRT01AN"],
+        ["TRT02P", "TRT02PN", "TRT02A", "TRT02AN"],
+        ["TRT03P", "TRT03PN", "TRT03A", "TRT03AN"],
+        ["TRT04P", "TRT04PN", "TRT04A", "TRT04AN"],
+    ];
+    let starts = ["AP01SDT", "AP02SDT", "AP03SDT", "AP04SDT"];
+    let ends = ["AP01EDT", "AP02EDT", "AP03EDT", "AP04EDT"];
+    for k in 1..=n_periods.min(4) {
+        let v = names[(k - 1) as usize];
+        let col = |cd: &[Option<String>]| {
+            Values::Char(cd.iter().map(|c| name(c, k).map(|x| x.0)).collect())
+        };
+        let num = |cd: &[Option<String>]| {
+            Values::Num(cd.iter().map(|c| name(c, k).map(|x| x.1)).collect())
+        };
+        let set = |cols: &mut Vec<(&str, Values)>, key: &'static str, values: Values| match cols
+            .iter_mut()
+            .find(|(n, _)| *n == key)
+        {
+            Some(slot) => slot.1 = values,
+            None => cols.push((key, values)),
+        };
+        let span = |u: &Option<String>| u.as_deref().and_then(|u| spans.get(&(u, k)).copied());
+        // Actual treatment only for periods the subject entered.
+        let entered: Vec<bool> = usubjid.iter().map(|u| span(u).is_some()).collect();
+        let only_entered = |v: Values| match v {
+            Values::Char(x) => Values::Char(
+                x.into_iter()
+                    .zip(&entered)
+                    .map(|(x, e)| x.filter(|_| *e))
+                    .collect(),
+            ),
+            Values::Num(x) => Values::Num(
+                x.into_iter()
+                    .zip(&entered)
+                    .map(|(x, e)| x.filter(|_| *e))
+                    .collect(),
+            ),
+            other => other,
+        };
+        set(cols, v[0], col(armcd));
+        set(cols, v[1], num(armcd));
+        set(cols, v[2], only_entered(col(actarmcd)));
+        set(cols, v[3], only_entered(num(actarmcd)));
+        cols.push((
+            starts[(k - 1) as usize],
+            Values::Date(usubjid.iter().map(|u| span(u).and_then(|s| s.0)).collect()),
+        ));
+        cols.push((
+            ends[(k - 1) as usize],
+            Values::Date(usubjid.iter().map(|u| span(u).and_then(|s| s.1)).collect()),
+        ));
+    }
+    cols.push(("TRTSEQP", Values::Char(arm.to_vec())));
+    cols.push(("TRTSEQA", Values::Char(actarm.to_vec())));
+    Ok(())
 }
