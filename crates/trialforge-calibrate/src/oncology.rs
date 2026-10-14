@@ -2,7 +2,7 @@
 
 use trialforge_core::math;
 use trialforge_model::{Design, enroll};
-use trialforge_processes::oncology::{OncologyParams, confirmed_response, latent, simulate_one};
+use trialforge_processes::oncology::{OncologyParams, latent, responded, simulate_one};
 
 /// Clinical targets for the oncology course.
 #[derive(Clone, Debug, PartialEq)]
@@ -101,7 +101,7 @@ pub fn calibrate(design: &Design, base: &OncologyParams, targets: &OncologyTarge
             .iter()
             .filter_map(|a| a.response.as_ref().map(|r| (a.date, r.2.as_str())))
             .collect();
-        confirmed_response(&resp)
+        responded(q.criteria, &resp)
     };
     let mut achieved = Vec::new();
     let mut reachable = true;
