@@ -7,10 +7,11 @@ types and output that is verified to be workable.
 trialforge has a Rust core with Python and R bindings. The same spec and seed produce identical
 data in both languages.
 
-> **Status: pre-alpha.** Two archetypes generate a complete, verified study: trial design
+> **Status: pre-alpha.** Eight archetypes generate a complete, verified study: trial design
 > (TA, TE, TV, TI, TS), SDTM (DM, SE, SV, EX, CM, AE + SUPPAE, DS, MH, LB, VS; TU, TR, RS for
-> oncology) and ADaM (ADSL, ADAE, ADLB, ADVS; ADRS, ADTTE, ADTR for oncology), written as XPT
-> v5, CSV, Dataset-JSON 1.1 or Parquet, with a Define-XML 2.1 `define.xml` for each standard.
+> oncology; PC, PP for pharmacokinetics; FT for functional tests; CE for clinical events) and
+> ADaM (ADSL, ADAE, ADLB, ADVS; ADRS, ADTTE, ADTR; ADPC, ADPP; ADADAS), written as XPT v5, CSV, Dataset-JSON 1.1 or
+> Parquet, with a Define-XML 2.1 `define.xml` for each standard.
 
 ```python
 import trialforge as tf
@@ -41,12 +42,18 @@ trialforge generate examples/hypertension.yaml -o out/
 The same `seed` and controls give byte-identical files from Python and R. Every study passes
 trialforge's structural, referential and derivational checks before it is returned
 (`verify()` re-runs them after you modify the data), and its ADaM matches admiral: admiral and
-admiralonco re-derive it from trialforge's SDTM with no differences.
+admiralonco re-derive it from trialforge's SDTM with no differences. PK parameters (PP) match
+R's PKNCA, recomputed from trialforge's PC.
 
 | Archetype | What it simulates |
 |---|---|
-| `parallel_continuous` | Randomised, double-blind, placebo-controlled study with a continuous endpoint: `type_2_diabetes` (HbA1c), `hypertension` (SBP) or `obesity` (weight) |
+| `parallel_continuous` | Randomised, double-blind study with a continuous endpoint: `type_2_diabetes` (HbA1c), `hypertension` (SBP) or `obesity` (weight); placebo-controlled, or active-controlled with a non-inferiority margin |
+| `dose_ranging_ph2` | Phase 2 dose-ranging study (placebo and several doses) with a sigmoid Emax dose-response; the truth manifest refits the Emax model |
+| `cv_outcomes` | Event-driven cardiovascular outcomes trial: recurrent MI and stroke, CV death and competing non-CV death in CE; time to first MACE and its components in ADTTE; the study ends at a target number of events |
+| `cns_alzheimers` | Placebo-controlled study in mild to moderate Alzheimer's disease: ADAS-Cog (11) items (FT) from an IRT model of cognitive decline, prorated totals and LOCF analysis |
 | `oncology_solid_tumor` | Randomised solid-tumour study: RECIST 1.1 tumour assessments, confirmed response, progression and death, calibrated to target medians, hazard ratios and response rates |
+| `phase1_sad_mad` | First-in-human single or multiple ascending dose study in healthy volunteers: dose cohorts with placebo, intensive PK (1- or 2-compartment population model), NCA, dose proportionality |
+| `crossover_be` | Crossover bioequivalence (2x2 or 2x2x4 replicate) or food-effect study: periods and washouts, per-period PK and NCA, the BE analysis of AUC and Cmax |
 
 Oncology controls are clinical targets (`os_median_months`, `os_hr`, `pfs_median_months`,
 `pfs_hr`, `orr`, …); trialforge calibrates its latent model to them, and `trial.truth` reports
