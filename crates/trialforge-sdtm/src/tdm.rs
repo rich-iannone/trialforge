@@ -8,31 +8,57 @@ use trialforge_model::{Epoch, VisitKind};
 
 use crate::{Context, chars, constant, ints};
 
+/// The element name of a treatment, e.g. `DRUG A 10 mg`.
+fn treatment_element(t: &trialforge_model::Treatment) -> String {
+    let dose = trialforge_core::math::round_dp(t.dose, 4);
+    format!("{} {} {}", t.name, dose, t.unit)
+}
+
+/// The elements of arm `arm`, in order: (epoch, `ETCD`, `ELEMENT`).
+pub fn arm_elements(ctx: &Context<'_>, arm: usize) -> Vec<(Epoch, String, String)> {
+    let a = &ctx.design.arms[arm];
+    let mut out = vec![(
+        Epoch::Screening,
+        "SCRN".to_string(),
+        "Screening".to_string(),
+    )];
+    if a.periods.is_empty() {
+        let etcd: String = a.armcd.chars().take(8).collect();
+        out.push((Epoch::Treatment, etcd, treatment_element(&a.treatment)));
+    } else {
+        let n = a.periods.len();
+        for (k, p) in a.periods.iter().enumerate() {
+            out.push((
+                Epoch::Period(k as u8 + 1),
+                p.etcd.clone(),
+                p.element.clone(),
+            ));
+            if k + 1 < n {
+                let w = if n == 2 { 0 } else { k as u8 + 1 };
+                out.push((Epoch::Washout(w), "WASHOUT".into(), "Washout".into()));
+            }
+        }
+    }
+    out.push((Epoch::FollowUp, "FU".into(), "Follow-up".into()));
+    out
+}
+
 /// `ETCD` and `ELEMENT` of an epoch's element for arm `arm`.
 pub fn element(ctx: &Context<'_>, epoch: Epoch, arm: usize) -> (String, String) {
-    match epoch {
-        Epoch::Screening => ("SCRN".into(), "Screening".into()),
-        Epoch::Treatment => {
-            let a = &ctx.design.arms[arm];
-            let etcd: String = a.armcd.chars().take(8).collect();
-            let t = &a.treatment;
-            let dose = trialforge_core::math::round_dp(t.dose, 4);
-            (etcd, format!("{} {} {}", t.name, dose, t.unit))
-        }
-        Epoch::FollowUp => ("FU".into(), "Follow-up".into()),
-    }
+    arm_elements(ctx, arm)
+        .into_iter()
+        .find(|(e, _, _)| *e == epoch)
+        .map(|(_, c, n)| (c, n))
+        .expect("every timeline epoch is an element of the arm")
 }
 
-/// The order of an epoch's element within every arm.
-pub fn taetord(epoch: Epoch) -> i64 {
-    match epoch {
-        Epoch::Screening => 1,
-        Epoch::Treatment => 2,
-        Epoch::FollowUp => 3,
-    }
+/// The order of an epoch's element within arm `arm` (`TAETORD`).
+pub fn taetord(ctx: &Context<'_>, epoch: Epoch, arm: usize) -> i64 {
+    arm_elements(ctx, arm)
+        .iter()
+        .position(|(e, _, _)| *e == epoch)
+        .map_or(0, |p| p as i64 + 1)
 }
-
-const EPOCHS: [Epoch; 3] = [Epoch::Screening, Epoch::Treatment, Epoch::FollowUp];
 
 pub(crate) fn emit(ctx: &Context<'_>) -> Result<Vec<Dataset>, MetadataError> {
     Ok(vec![ta(ctx)?, te(ctx)?, tv(ctx)?, ti(ctx)?, ts(ctx)?])
@@ -54,12 +80,11 @@ fn ta(ctx: &Context<'_>) -> Result<Dataset, MetadataError> {
     }
     let mut rows = Vec::new();
     for (i, a) in ctx.design.arms.iter().enumerate() {
-        for epoch in EPOCHS {
-            let (etcd, element) = element(ctx, epoch, i);
+        for (k, (epoch, etcd, element)) in arm_elements(ctx, i).into_iter().enumerate() {
             rows.push(Row {
                 armcd: a.armcd.clone(),
                 arm: a.arm.clone(),
-                order: taetord(epoch),
+                order: k as i64 + 1,
                 etcd,
                 element,
                 branch: (epoch == Epoch::Screening).then(|| format!("Randomized to {}", a.arm)),
@@ -88,25 +113,53 @@ fn ta(ctx: &Context<'_>) -> Result<Dataset, MetadataError> {
 }
 
 fn te(ctx: &Context<'_>) -> Result<Dataset, MetadataError> {
+    let crossover = ctx.design.arms.iter().any(|a| !a.periods.is_empty());
     let mut rows: Vec<(String, String, &str, &str)> = vec![(
         "SCRN".into(),
         "Screening".into(),
         "Informed consent",
         "First dose of study treatment",
     )];
+    let mut washout = false;
     for i in 0..ctx.design.arms.len() {
-        let (etcd, element) = element(ctx, Epoch::Treatment, i);
+        for (epoch, etcd, element) in arm_elements(ctx, i) {
+            if rows.iter().any(|r| r.0 == etcd) {
+                continue;
+            }
+            match epoch {
+                Epoch::Treatment => rows.push((
+                    etcd,
+                    element,
+                    "First dose of study treatment",
+                    "End of study treatment",
+                )),
+                Epoch::Period(_) => rows.push((
+                    etcd,
+                    element,
+                    "Dose of the period's treatment",
+                    "End of the treatment period",
+                )),
+                Epoch::Washout(_) => washout = true,
+                _ => {}
+            }
+        }
+    }
+    if washout {
         rows.push((
-            etcd,
-            element,
-            "First dose of study treatment",
-            "End of study treatment",
+            "WASHOUT".into(),
+            "Washout".into(),
+            "End of the treatment period",
+            "Dose of the next period's treatment",
         ));
     }
     rows.push((
         "FU".into(),
         "Follow-up".into(),
-        "End of study treatment",
+        if crossover {
+            "End of the last treatment period"
+        } else {
+            "End of study treatment"
+        },
         "End of study participation",
     ));
     build(
@@ -200,16 +253,24 @@ fn ts(ctx: &Context<'_>) -> Result<Dataset, MetadataError> {
         ("TITLE", info.title.clone(), None),
         ("SPONSOR", info.sponsor.clone(), None),
         ("TPHASE", info.phase.clone(), Some("CDISC CT")),
-        ("TTYPE", "EFFICACY".into(), Some("CDISC CT")),
+    ];
+    for t in &info.trial_types {
+        params.push(("TTYPE", t.clone(), Some("CDISC CT")));
+    }
+    params.extend(vec![
         ("STYPE", "INTERVENTIONAL".into(), Some("CDISC CT")),
-        ("INTMODEL", "PARALLEL".into(), Some("CDISC CT")),
+        (
+            "INTMODEL",
+            info.intervention_model.clone(),
+            Some("CDISC CT"),
+        ),
         ("INTTYPE", "DRUG".into(), Some("CDISC CT")),
         ("RANDOM", "Y".into(), Some("CDISC CT")),
         ("TBLIND", info.blinding.clone(), Some("CDISC CT")),
         ("TCNTRL", info.control.clone(), Some("CDISC CT")),
         ("ADDON", yes_no(info.add_on), Some("CDISC CT")),
         ("ADAPT", "N".into(), Some("CDISC CT")),
-        ("HLTSUBJI", "N".into(), Some("CDISC CT")),
+        ("HLTSUBJI", yes_no(info.healthy_subjects), Some("CDISC CT")),
         ("TDIGRP", info.indication.clone(), None),
         ("THERAREA", info.therapeutic_area.clone(), None),
         ("OBJPRIM", info.primary_objective.clone(), None),
@@ -230,7 +291,7 @@ fn ts(ctx: &Context<'_>) -> Result<Dataset, MetadataError> {
         ("NARMS", d.arms.len().to_string(), None),
         ("SDTIGVER", "3.4".into(), None),
         ("SDTMVER", "2.0".into(), None),
-    ];
+    ]);
     if let Some(sch) = &d.schedule {
         params.push((
             "LENGTH",
