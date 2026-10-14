@@ -118,6 +118,10 @@ fn recist(
 /// L1: TR sums and RS responses agree with RECIST 1.1 applied to TR.
 pub(crate) fn l1(sdtm: &[Dataset], r: &mut Report) {
     const L: Level = Level::L1;
+    if crate::lugano::applies(sdtm) {
+        crate::lugano::l1(sdtm, r);
+        return;
+    }
     let (Some(tr), Some(rs)) = (get(sdtm, "TR"), get(sdtm, "RS")) else {
         return;
     };
@@ -260,12 +264,26 @@ fn overall_responses<'a>(
     ) else {
         return out;
     };
+    // Lugano: the PET-CT-based response in Lugano's categories (CMR is CR, PMR PR, SMD SD, PMD PD).
+    let scat = rs.c("RSSCAT");
     for i in 0..rs.n() {
         if test[i].as_deref() != Some("OVRLRESP") || eval[i].as_deref() != Some("INVESTIGATOR") {
             continue;
         }
+        if let Some(sc) = scat {
+            if sc[i].as_deref() != Some("PET-CT") {
+                continue;
+            }
+        }
         let (Some(x), Some(v), Some(d)) = (u[i].as_deref(), res[i].as_deref(), dtc[i]) else {
             continue;
+        };
+        let v = match v {
+            "CMR" => "CR",
+            "PMR" => "PR",
+            "SMD" => "SD",
+            "PMD" => "PD",
+            other => other,
         };
         if randdt.get(x).copied().flatten().is_some_and(|rd| d >= rd) {
             out.entry(x).or_default().push((d, v));
