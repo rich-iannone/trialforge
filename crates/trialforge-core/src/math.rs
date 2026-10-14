@@ -28,6 +28,22 @@ pub fn round_dp(x: f64, dp: u32) -> f64 {
     libm::round(x * m) / m
 }
 
+/// `x` rounded to `digits` significant digits (half away from zero), as R's `signif()` for
+/// values that are not exact ties.
+pub fn signif(x: f64, digits: u32) -> f64 {
+    if x == 0.0 || !x.is_finite() {
+        return x;
+    }
+    let e = libm::floor(libm::log10(libm::fabs(x))) as i32;
+    let dp = digits as i32 - 1 - e;
+    if dp >= 0 {
+        round_dp(x, dp as u32)
+    } else {
+        let m = libm::pow(10.0, f64::from(-dp));
+        libm::round(x / m) * m
+    }
+}
+
 /// Standard normal CDF, Φ(x).
 pub fn norm_cdf(x: f64) -> f64 {
     0.5 * libm::erfc(-x / core::f64::consts::SQRT_2)
