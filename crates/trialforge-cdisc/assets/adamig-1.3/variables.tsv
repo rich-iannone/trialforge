@@ -4,6 +4,7 @@ ADSL	USUBJID	Unique Subject Identifier	Char	Req		Predecessor	DM.USUBJID
 ADSL	SUBJID	Subject Identifier for the Study	Char	Req		Predecessor	DM.SUBJID	
 ADSL	SITEID	Study Site Identifier	Char	Req		Predecessor	DM.SITEID	
 ADSL	COUNTRY	Country	Char	Perm	COUNTRY	Predecessor	DM.COUNTRY	
+ADSL	BRTHDT	Date of Birth	Num	Perm		Derived		DM.BRTHDTC as a date.
 ADSL	AGE	Age	Num	Req		Predecessor	DM.AGE	
 ADSL	AGEU	Age Units	Char	Req	AGEU	Predecessor	DM.AGEU	
 ADSL	AGEGR1	Pooled Age Group 1	Char	Perm		Derived		AGEGR1 = '<65' if AGE < 65, else '>=65'.
@@ -22,10 +23,10 @@ ADSL	TRT01P	Planned Treatment for Period 01	Char	Req		Derived		For a crossover, 
 ADSL	TRT01PN	Planned Treatment for Period 01 (N)	Num	Perm		Derived		Position of the treatment among the treatment elements in TA (crossover), or of the arm among the arms in TA (order of first appearance).
 ADSL	TRT01A	Actual Treatment for Period 01	Char	Req		Derived		For a crossover, the ELEMENT (TA) of the subject's arm in treatment period 1; otherwise DM.ACTARM.
 ADSL	TRT01AN	Actual Treatment for Period 01 (N)	Num	Perm		Derived		Position of the treatment among the treatment elements in TA (crossover), or of the arm among the arms in TA (order of first appearance).
-ADSL	TRT02P	Planned Treatment for Period 02	Char	Cond		Derived		ELEMENT (TA) of the subject's ARMCD in epoch TREATMENT 2.
-ADSL	TRT02PN	Planned Treatment for Period 02 (N)	Num	Perm		Derived		Position of the treatment among the treatment elements in TA.
-ADSL	TRT02A	Actual Treatment for Period 02	Char	Cond		Derived		ELEMENT (TA) of the subject's ACTARMCD in epoch TREATMENT 2, if the subject entered it (SE).
-ADSL	TRT02AN	Actual Treatment for Period 02 (N)	Num	Perm		Derived		Position of the treatment among the treatment elements in TA.
+ADSL	TRT02P	Planned Treatment for Period 02	Char	Cond		Derived		ELEMENT (TA) of the subject's ARMCD in epoch TREATMENT 2. Vaccine studies: TRT01P.
+ADSL	TRT02PN	Planned Treatment for Period 02 (N)	Num	Perm		Derived		Position of the treatment among the treatment elements in TA. Vaccine studies: TRT01PN.
+ADSL	TRT02A	Actual Treatment for Period 02	Char	Cond		Derived		ELEMENT (TA) of the subject's ACTARMCD in epoch TREATMENT 2, if the subject entered it (SE). Vaccine studies: TRT01A if the second vaccination was given.
+ADSL	TRT02AN	Actual Treatment for Period 02 (N)	Num	Perm		Derived		Position of the treatment among the treatment elements in TA. Vaccine studies: TRT01AN if the second vaccination was given.
 ADSL	TRT03P	Planned Treatment for Period 03	Char	Cond		Derived		ELEMENT (TA) of the subject's ARMCD in epoch TREATMENT 3.
 ADSL	TRT03PN	Planned Treatment for Period 03 (N)	Num	Perm		Derived		Position of the treatment among the treatment elements in TA.
 ADSL	TRT03A	Actual Treatment for Period 03	Char	Cond		Derived		ELEMENT (TA) of the subject's ACTARMCD in epoch TREATMENT 3, if the subject entered it (SE).
@@ -36,17 +37,21 @@ ADSL	TRT04A	Actual Treatment for Period 04	Char	Cond		Derived		ELEMENT (TA) of t
 ADSL	TRT04AN	Actual Treatment for Period 04 (N)	Num	Perm		Derived		Position of the treatment among the treatment elements in TA.
 ADSL	TRTSEQP	Planned Sequence of Treatments	Char	Cond		Predecessor	DM.ARM	
 ADSL	TRTSEQA	Actual Sequence of Treatments	Char	Cond		Predecessor	DM.ACTARM	
-ADSL	AP01SDT	Period 01 Start Date	Num	Cond		Derived		SESTDTC of the subject's SE element in epoch TREATMENT 1.
-ADSL	AP01EDT	Period 01 End Date	Num	Cond		Derived		SEENDTC of the subject's SE element in epoch TREATMENT 1.
-ADSL	AP02SDT	Period 02 Start Date	Num	Cond		Derived		SESTDTC of the subject's SE element in epoch TREATMENT 2.
-ADSL	AP02EDT	Period 02 End Date	Num	Cond		Derived		SEENDTC of the subject's SE element in epoch TREATMENT 2.
+ADSL	VAX01DT	Vaccination Date 01	Num	Perm		Derived		Date of the first vaccination: EX.EXSTDTC of the earliest VISITNUM (admiralvaccine derive_vars_vaxdt()).
+ADSL	VAX02DT	Vaccination Date 02	Num	Perm		Derived		Date of the second vaccination: EX.EXSTDTC of the second VISITNUM (admiralvaccine derive_vars_vaxdt()).
+ADSL	AP01SDT	Period 01 Start Date	Num	Cond		Derived		SESTDTC of the subject's SE element in epoch TREATMENT 1. Vaccine studies: VAX01DT.
+ADSL	AP01EDT	Period 01 End Date	Num	Cond		Derived		SEENDTC of the subject's SE element in epoch TREATMENT 1. Vaccine studies: VAX02DT - 1, or RFPENDTC without a second vaccination.
+ADSL	AP02SDT	Period 02 Start Date	Num	Cond		Derived		SESTDTC of the subject's SE element in epoch TREATMENT 2. Vaccine studies: VAX02DT.
+ADSL	AP02EDT	Period 02 End Date	Num	Cond		Derived		SEENDTC of the subject's SE element in epoch TREATMENT 2. Vaccine studies: DM.RFPENDTC.
 ADSL	AP03SDT	Period 03 Start Date	Num	Cond		Derived		SESTDTC of the subject's SE element in epoch TREATMENT 3.
 ADSL	AP03EDT	Period 03 End Date	Num	Cond		Derived		SEENDTC of the subject's SE element in epoch TREATMENT 3.
 ADSL	AP04SDT	Period 04 Start Date	Num	Cond		Derived		SESTDTC of the subject's SE element in epoch TREATMENT 4.
 ADSL	AP04EDT	Period 04 End Date	Num	Cond		Derived		SEENDTC of the subject's SE element in epoch TREATMENT 4.
+ADSL	STUDYEYE	Study Eye Location	Char	Perm	LAT	Derived		SC.SCSTRESC where SCTESTCD = 'FOCID': OS -> LEFT, OD -> RIGHT, OU -> BILATERAL.
 ADSL	STRAT1R	Stratification Factor 1 (Randomized)	Char	Perm		Assigned	Sponsor	Stratum recorded by the randomization system.
 ADSL	ITTFL	Intent-To-Treat Population Flag	Char	Cond	NY	Derived		'Y' if DS has a record with DSDECOD = 'RANDOMIZED', else 'N'.
 ADSL	SAFFL	Safety Population Flag	Char	Cond	NY	Derived		'Y' if the subject has any EX record, else 'N'.
+ADSL	DLTEVLFL	DLT Evaluable Population Flag	Char	Perm	NY	Derived		Dose-finding studies: 'Y' if the subject had a DLT (SUPPAE AEDLT = 'Y') or took part for the whole 28-day DLT window (DM.RFPENDTC at least 27 days after RFXSTDTC), else 'N'.
 ADSL	COMPLFL	Completers Population Flag	Char	Cond	NY	Derived		'Y' if the DS record with DSSCAT = 'END OF STUDY' has DSDECOD = 'COMPLETED', else 'N'.
 ADSL	RANDDT	Date of Randomization	Num	Perm		Derived		Date of DS.DSSTDTC where DSDECOD = 'RANDOMIZED'.
 ADSL	TRTSDT	Date of First Exposure to Treatment	Num	Cond		Derived		Earliest EX.EXSTDTC, as a date.
@@ -61,6 +66,8 @@ ADSL	DTHFL	Subject Death Flag	Char	Perm	NY	Predecessor	DM.DTHFL
 ADSL	DTHDT	Date of Death	Num	Perm		Derived		DM.DTHDTC as a date.
 ADSL	LSTALVDT	Date Last Known Alive	Num	Perm		Derived		Latest of TRTEDT and DM.RFPENDTC.
 ADSL	DCUTDT	Data Cutoff Date	Num	Perm		Assigned	Sponsor	Data cutoff date of the analysis.
+ADSL	CROSSFL	Crossover on Progression Flag	Char	Perm	NY	Derived		'Y' if the subject has an SE element in epoch CONTINUATION TREATMENT (crossed over on progression), else 'N'.
+ADSL	CROSSDT	Date of Crossover	Num	Perm		Derived		SESTDTC of the subject's SE element in epoch CONTINUATION TREATMENT.
 ADAE	STUDYID	Study Identifier	Char	Req		Predecessor	AE.STUDYID	
 ADAE	USUBJID	Unique Subject Identifier	Char	Req		Predecessor	AE.USUBJID	
 ADAE	SUBJID	Subject Identifier for the Study	Char	Perm		Predecessor	ADSL.SUBJID	
@@ -97,6 +104,7 @@ ADAE	TRTEMFL	Treatment Emergent Analysis Flag	Char	Cond	NY	Derived		'Y' if TRTSD
 ADAE	AOCCFL	1st Occurrence within Subject Flag	Char	Perm	NY	Derived		'Y' on the first treatment-emergent event per subject, sorted by ASTDT and AESEQ.
 ADAE	AOCCSFL	1st Occurrence of SOC Flag	Char	Perm	NY	Derived		'Y' on the first treatment-emergent event per subject and AEBODSYS, sorted by ASTDT and AESEQ.
 ADAE	AOCCPFL	1st Occurrence of Preferred Term Flag	Char	Perm	NY	Derived		'Y' on the first treatment-emergent event per subject and AEDECOD, sorted by ASTDT and AESEQ.
+ADAE	DLTFL	Dose Limiting Toxicity Flag	Char	Perm	NY	Derived		SUPPAE.QVAL where QNAM = 'AEDLT' (the AE started in the DLT observation window of cycle 1).
 ADLB	STUDYID	Study Identifier	Char	Req		Predecessor	ADSL.STUDYID	
 ADLB	USUBJID	Unique Subject Identifier	Char	Req		Predecessor	LB.USUBJID	
 ADLB	SUBJID	Subject Identifier for the Study	Char	Perm		Predecessor	ADSL.SUBJID	
@@ -146,15 +154,17 @@ ADVS	TRTPN	Planned Treatment (N)	Num	Perm		Predecessor	ADSL.TRT01PN
 ADVS	TRTA	Actual Treatment	Char	Cond		Predecessor	ADSL.TRT01A	
 ADVS	TRTAN	Actual Treatment (N)	Num	Perm		Predecessor	ADSL.TRT01AN	
 ADVS	APERIOD	Period	Num	Cond		Derived		For a crossover, k where ADSL.APkkSDT <= the record's date <= APkkEDT (ASTDT for ADAE); TRTP/TRTA then follow the latest period started on or before that date (the first period before any).
-ADVS	PARAMCD	Parameter Code	Char	Req		Predecessor	VS.VSTESTCD	
-ADVS	PARAM	Parameter	Char	Req		Derived		VSTEST followed by the standard unit in parentheses: VSTEST || ' (' || VSSTRESU || ')'.
+ADVS	PARAMCD	Parameter Code	Char	Req		Derived		VS.VSTESTCD. Paediatric studies add the CDC 2000 growth indicators of WEIGHT, HEIGHT and BMI (WGTASDS/WGTAPCTL, HGTSDS/HGTPCTL, BMISDS/BMIPCTL; admiralpeds derive_params_growth_age()) and HTVEL.
+ADVS	PARAM	Parameter	Char	Req		Derived		VSTEST followed by the standard unit in parentheses: VSTEST || ' (' || VSSTRESU || ')'; for growth indicators, e.g. 'Height-for-age z-score'; 'Annualized Height Velocity (cm/yr)' for HTVEL.
 ADVS	PARAMN	Parameter (N)	Num	Perm		Derived		Order of first appearance of PARAMCD.
-ADVS	AVAL	Analysis Value	Num	Cond		Predecessor	VS.VSSTRESN	
+ADVS	AVAL	Analysis Value	Num	Cond		Derived		VS.VSSTRESN. Growth z-scores: ((X / M)^L - 1) / (L x S) with the CDC LMS at AAGECUR (BMI at or above P95: qnorm of the extended percentile); percentiles: pnorm(z) x 100 (BMI at or above P95: 90 + 10 x pnorm((X - P95) / Sigma)). HTVEL: (height - baseline height) / (days since the baseline height / 365.25).
 ADVS	BASE	Baseline Value	Num	Cond		Derived		AVAL of the ABLFL = 'Y' record for the subject and PARAMCD.
-ADVS	CHG	Change from Baseline	Num	Cond		Derived		AVAL - BASE for records after TRTSDT, rounded to the precision of VSSTRESC.
+ADVS	CHG	Change from Baseline	Num	Cond		Derived		AVAL - BASE for records after TRTSDT, rounded to the precision of VSSTRESC (unrounded for derived parameters).
 ADVS	PCHG	Percent Change from Baseline	Num	Cond		Derived		(AVAL - BASE) / abs(BASE) * 100 for records after TRTSDT (not rounded), as admiral's derive_var_pchg().
 ADVS	ADT	Analysis Date	Num	Cond		Derived		VS.VSDTC as a date.
 ADVS	ADY	Analysis Relative Day	Num	Perm		Derived		ADT - TRTSDT + 1 if ADT >= TRTSDT, else ADT - TRTSDT.
+ADVS	AAGECUR	Analysis Current Age	Num	Perm		Derived		Days from ADSL.BRTHDT to ADT, plus one (admiral derive_vars_duration()).
+ADVS	AAGECURU	Analysis Current Age Unit	Char	Perm		Assigned	Sponsor	
 ADVS	AVISIT	Analysis Visit	Char	Cond		Derived		VISIT for planned visits; other post-baseline records (e.g. early termination) take the planned visit from TV whose VISITDY is nearest ADY.
 ADVS	AVISITN	Analysis Visit (N)	Num	Perm		Derived		VISITNUM of the analysis visit (see AVISIT).
 ADVS	ABLFL	Baseline Record Flag	Char	Cond	NY	Derived		'Y' on the last record with ADT <= TRTSDT and non-missing AVAL, per subject and PARAMCD.
@@ -352,3 +362,224 @@ ADADAS	DTYPE	Derivation Type	Char	Cond		Derived		LOCF: for ACTOT, a planned visi
 ADADAS	SRCDOM	Source Data	Char	Perm		Assigned	Sponsor	
 ADADAS	SRCVAR	Source Variable	Char	Perm		Assigned	Sponsor	
 ADADAS	SRCSEQ	Source Sequence Number	Num	Perm		Predecessor	FT.FTSEQ	
+ADBCVA	STUDYID	Study Identifier	Char	Req		Predecessor	ADSL.STUDYID	
+ADBCVA	USUBJID	Unique Subject Identifier	Char	Req		Predecessor	ADSL.USUBJID	
+ADBCVA	SUBJID	Subject Identifier for the Study	Char	Perm		Predecessor	ADSL.SUBJID	
+ADBCVA	SITEID	Study Site Identifier	Char	Perm		Predecessor	ADSL.SITEID	
+ADBCVA	AGE	Age	Num	Perm		Predecessor	ADSL.AGE	
+ADBCVA	SEX	Sex	Char	Perm	SEX	Predecessor	ADSL.SEX	
+ADBCVA	RACE	Race	Char	Perm	RACE	Predecessor	ADSL.RACE	
+ADBCVA	SAFFL	Safety Population Flag	Char	Perm	NY	Predecessor	ADSL.SAFFL	
+ADBCVA	ITTFL	Intent-To-Treat Population Flag	Char	Perm	NY	Predecessor	ADSL.ITTFL	
+ADBCVA	TRTP	Planned Treatment	Char	Req		Predecessor	ADSL.TRT01P	
+ADBCVA	TRTPN	Planned Treatment (N)	Num	Perm		Predecessor	ADSL.TRT01PN	
+ADBCVA	TRTA	Actual Treatment	Char	Cond		Predecessor	ADSL.TRT01A	
+ADBCVA	TRTAN	Actual Treatment (N)	Num	Perm		Predecessor	ADSL.TRT01AN	
+ADBCVA	TRTSDT	Date of First Exposure to Treatment	Num	Perm		Predecessor	ADSL.TRTSDT	
+ADBCVA	TRTEDT	Date of Last Exposure to Treatment	Num	Perm		Predecessor	ADSL.TRTEDT	
+ADBCVA	STUDYEYE	Study Eye Location	Char	Perm	LAT	Predecessor	ADSL.STUDYEYE	
+ADBCVA	ASEQ	Analysis Sequence Number	Num	Perm		Derived		Sequence within the subject ordered by PARAMCD, ADT, AVISITN, VISITNUM (admiral derive_var_obs_number()).
+ADBCVA	PARAMCD	Parameter Code	Char	Req		Derived		SBCVA/FBCVA for OE NUMLCOR of the study/fellow eye (AFEYE); SBCVALOG/FBCVALOG for their logMAR scores.
+ADBCVA	PARAM	Parameter	Char	Req		Derived		Study/Fellow Eye Visual Acuity Score (letters) or LogMAR Score, from PARAMCD.
+ADBCVA	PARAMN	Parameter (N)	Num	Perm		Derived		1 SBCVA, 2 FBCVA, 3 SBCVALOG, 4 FBCVALOG.
+ADBCVA	AVAL	Analysis Value	Num	Cond		Derived		Letters: OE.OESTRESN. LogMAR: -0.02 x letters + 1.7 (admiralophtha convert_etdrs_to_logmar()), rounded to 2 decimals.
+ADBCVA	AVALC	Analysis Value (C)	Char	Cond		Derived		AVAL as character (R as.character()).
+ADBCVA	AVALU	Analysis Value Unit	Char	Perm		Assigned	Sponsor	
+ADBCVA	AVALCAT1	Analysis Value Category 1	Char	Perm		Derived		Snellen equivalent of the letters score (admiralophtha ad_adbcva.R definition_bcva).
+ADBCVA	AVALCA1N	Analysis Value Category 1 (N)	Num	Perm		Derived		Snellen denominator of AVALCAT1 (1000 for < 20/800, 1 for > 20/12).
+ADBCVA	BASE	Baseline Value	Num	Cond		Derived		AVAL of the ABLFL = 'Y' record of the parameter.
+ADBCVA	BASEC	Baseline Value (C)	Char	Perm		Derived		AVALC of the ABLFL = 'Y' record of the parameter.
+ADBCVA	BASETYPE	Baseline Type	Char	Cond		Assigned	Sponsor	
+ADBCVA	CHG	Change from Baseline	Num	Cond		Derived		AVAL - BASE (admiral derive_var_chg()).
+ADBCVA	PCHG	Percent Change from Baseline	Num	Cond		Derived		(AVAL - BASE) / |BASE| x 100; missing when BASE is 0.
+ADBCVA	ADT	Analysis Date	Num	Cond		Derived		OE.OEDTC as a date.
+ADBCVA	ADY	Analysis Relative Day	Num	Perm		Derived		ADT - TRTSDT + 1 if ADT >= TRTSDT, else ADT - TRTSDT.
+ADBCVA	AVISIT	Analysis Visit	Char	Cond		Derived		'Screening' for screening visits; otherwise VISIT in title case.
+ADBCVA	AVISITN	Analysis Visit (N)	Num	Perm		Derived		VISITNUM.
+ADBCVA	AFEYE	Affected Eye	Char	Perm		Derived		'Study Eye' if OELAT = STUDYEYE, else 'Fellow Eye' (admiralophtha derive_var_afeye()).
+ADBCVA	ONTRTFL	On Treatment Record Flag	Char	Cond	NY	Derived		'Y' if TRTSDT < ADT <= TRTEDT + 112 days, or ADT = TRTSDT outside the Baseline visit (admiral derive_var_ontrtfl()).
+ADBCVA	ABLFL	Baseline Record Flag	Char	Cond	NY	Derived		'Y' on the last record (by ADT, VISITNUM, OESEQ) with ADT <= TRTSDT per parameter.
+ADBCVA	ANL01FL	Analysis Flag 01	Char	Cond	NY	Derived		'Y' on the last record (by ADT, AVAL) per parameter and AVISIT among baseline and on-treatment records.
+ADBCVA	ANL02FL	Analysis Flag 02	Char	Cond	NY	Derived		'Y' on the last record (by ADT) per parameter and ABLFL among baseline and on-treatment records.
+ADBCVA	WORS01FL	Worst Observation in Window Flag 01	Char	Cond	NY	Derived		'Y' on the lowest letters score (earliest on ties) per parameter among baseline and on-treatment records.
+ADBCVA	CRIT1	Analysis Criterion 1	Char	Cond		Assigned	Sponsor	
+ADBCVA	CRIT1FL	Criterion 1 Evaluation Result Flag	Char	Cond	NY	Derived		Letters parameters: 'Y' if 0 <= CHG <= 5, 'N' otherwise (admiral derive_vars_crit_flag()).
+ADBCVA	CRIT2	Analysis Criterion 2	Char	Cond		Assigned	Sponsor	
+ADBCVA	CRIT2FL	Criterion 2 Evaluation Result Flag	Char	Cond	NY	Derived		Letters parameters: 'Y' if -5 <= CHG <= -1, 'N' otherwise (admiral derive_vars_crit_flag()).
+ADBCVA	CRIT3	Analysis Criterion 3	Char	Cond		Assigned	Sponsor	
+ADBCVA	CRIT3FL	Criterion 3 Evaluation Result Flag	Char	Cond	NY	Derived		Letters parameters: 'Y' if 10 <= CHG <= 15, 'N' otherwise (admiral derive_vars_crit_flag()).
+ADBCVA	CRIT4	Analysis Criterion 4	Char	Cond		Assigned	Sponsor	
+ADBCVA	CRIT4FL	Criterion 4 Evaluation Result Flag	Char	Cond	NY	Derived		Letters parameters: 'Y' if CHG <= -20, 'N' otherwise (admiral derive_vars_crit_flag()).
+ADBCVA	CRIT5	Analysis Criterion 5	Char	Cond		Assigned	Sponsor	
+ADBCVA	CRIT5FL	Criterion 5 Evaluation Result Flag	Char	Cond	NY	Derived		Letters parameters: 'Y' if CHG <= 5, 'N' otherwise (admiral derive_vars_crit_flag()).
+ADBCVA	CRIT6	Analysis Criterion 6	Char	Cond		Assigned	Sponsor	
+ADBCVA	CRIT6FL	Criterion 6 Evaluation Result Flag	Char	Cond	NY	Derived		Letters parameters: 'Y' if CHG <= 10, 'N' otherwise (admiral derive_vars_crit_flag()).
+ADBCVA	CRIT7	Analysis Criterion 7	Char	Cond		Assigned	Sponsor	
+ADBCVA	CRIT7FL	Criterion 7 Evaluation Result Flag	Char	Cond	NY	Derived		Letters parameters: 'Y' if CHG >= -15, 'N' otherwise (admiral derive_vars_crit_flag()).
+ADBCVA	CRIT8	Analysis Criterion 8	Char	Cond		Assigned	Sponsor	
+ADBCVA	CRIT8FL	Criterion 8 Evaluation Result Flag	Char	Cond	NY	Derived		Letters parameters: 'Y' if CHG >= 15, 'N' otherwise (admiral derive_vars_crit_flag()).
+ADBCVA	VISIT	Visit Name	Char	Perm		Predecessor	OE.VISIT	
+ADBCVA	VISITNUM	Visit Number	Num	Perm		Predecessor	OE.VISITNUM	
+ADBCVA	SRCDOM	Source Data	Char	Perm		Assigned	Sponsor	
+ADBCVA	SRCVAR	Source Variable	Char	Perm		Assigned	Sponsor	
+ADBCVA	SRCSEQ	Source Sequence Number	Num	Perm		Predecessor	OE.OESEQ	
+ADRE	STUDYID	Study Identifier	Char	Req		Predecessor	ADSL.STUDYID	
+ADRE	USUBJID	Unique Subject Identifier	Char	Req		Predecessor	RE.USUBJID	
+ADRE	SUBJID	Subject Identifier for the Study	Char	Perm		Predecessor	ADSL.SUBJID	
+ADRE	SITEID	Study Site Identifier	Char	Perm		Predecessor	ADSL.SITEID	
+ADRE	AGE	Age	Num	Perm		Predecessor	ADSL.AGE	
+ADRE	SEX	Sex	Char	Perm	SEX	Predecessor	ADSL.SEX	
+ADRE	RACE	Race	Char	Perm	RACE	Predecessor	ADSL.RACE	
+ADRE	SAFFL	Safety Population Flag	Char	Perm	NY	Predecessor	ADSL.SAFFL	
+ADRE	TRTP	Planned Treatment	Char	Req		Predecessor	ADSL.TRT01P	
+ADRE	TRTPN	Planned Treatment (N)	Num	Perm		Predecessor	ADSL.TRT01PN	
+ADRE	TRTA	Actual Treatment	Char	Cond		Predecessor	ADSL.TRT01A	
+ADRE	TRTAN	Actual Treatment (N)	Num	Perm		Predecessor	ADSL.TRT01AN	
+ADRE	APERIOD	Period	Num	Cond		Derived		For a crossover, k where ADSL.APkkSDT <= the record's date <= APkkEDT (ASTDT for ADAE); TRTP/TRTA then follow the latest period started on or before that date (the first period before any).
+ADRE	PARAMCD	Parameter Code	Char	Req		Predecessor	RE.RETESTCD	
+ADRE	PARAM	Parameter	Char	Req		Derived		RETEST followed by the standard unit in parentheses: RETEST || ' (' || RESTRESU || ')'.
+ADRE	PARAMN	Parameter (N)	Num	Perm		Derived		Order of first appearance of PARAMCD.
+ADRE	AVAL	Analysis Value	Num	Cond		Predecessor	RE.RESTRESN	
+ADRE	BASE	Baseline Value	Num	Cond		Derived		AVAL of the ABLFL = 'Y' record for the subject and PARAMCD.
+ADRE	CHG	Change from Baseline	Num	Cond		Derived		AVAL - BASE for records after TRTSDT, rounded to the precision of RESTRESC.
+ADRE	PCHG	Percent Change from Baseline	Num	Cond		Derived		(AVAL - BASE) / abs(BASE) * 100 for records after TRTSDT (not rounded), as admiral's derive_var_pchg().
+ADRE	ADT	Analysis Date	Num	Cond		Derived		RE.REDTC as a date.
+ADRE	ADY	Analysis Relative Day	Num	Perm		Derived		ADT - TRTSDT + 1 if ADT >= TRTSDT, else ADT - TRTSDT.
+ADRE	AVISIT	Analysis Visit	Char	Cond		Derived		VISIT for planned visits; other post-baseline records (e.g. early termination) take the planned visit from TV whose VISITDY is nearest ADY.
+ADRE	AVISITN	Analysis Visit (N)	Num	Perm		Derived		VISITNUM of the analysis visit (see AVISIT).
+ADRE	ABLFL	Baseline Record Flag	Char	Cond	NY	Derived		'Y' on the last record with ADT <= TRTSDT and non-missing AVAL, per subject and PARAMCD.
+ADRE	ONTRTFL	On Treatment Record Flag	Char	Perm	NY	Derived		'Y' if TRTSDT < ADT <= TRTEDT + 1.
+ADRE	ANL01FL	Analysis Flag 01	Char	Cond	NY	Derived		'Y' on the baseline record and, per subject, PARAMCD and post-baseline AVISITN, the record closest to the planned day (the later one on ties).
+ADRE	SRCDOM	Source Data	Char	Perm		Assigned	Sponsor	
+ADRE	SRCVAR	Source Variable	Char	Perm		Assigned	Sponsor	
+ADRE	SRCSEQ	Source Sequence Number	Num	Perm		Predecessor	RE.RESEQ	
+ADEXAC	STUDYID	Study Identifier	Char	Req		Predecessor	ADSL.STUDYID	
+ADEXAC	USUBJID	Unique Subject Identifier	Char	Req		Predecessor	ADSL.USUBJID	
+ADEXAC	SUBJID	Subject Identifier for the Study	Char	Perm		Predecessor	ADSL.SUBJID	
+ADEXAC	SITEID	Study Site Identifier	Char	Perm		Predecessor	ADSL.SITEID	
+ADEXAC	AGE	Age	Num	Perm		Predecessor	ADSL.AGE	
+ADEXAC	SEX	Sex	Char	Perm	SEX	Predecessor	ADSL.SEX	
+ADEXAC	ARMCD	Planned Arm Code	Char	Perm		Predecessor	ADSL.ARMCD	
+ADEXAC	ARM	Description of Planned Arm	Char	Perm		Predecessor	ADSL.ARM	
+ADEXAC	TRT01P	Planned Treatment for Period 01	Char	Perm		Predecessor	ADSL.TRT01P	
+ADEXAC	TRT01A	Actual Treatment for Period 01	Char	Perm		Predecessor	ADSL.TRT01A	
+ADEXAC	STRAT1R	Stratification Factor 1 (Randomized)	Char	Perm		Predecessor	ADSL.STRAT1R	
+ADEXAC	ITTFL	Intent-To-Treat Population Flag	Char	Perm	NY	Predecessor	ADSL.ITTFL	
+ADEXAC	TRTSDT	Date of First Exposure to Treatment	Num	Perm		Predecessor	ADSL.TRTSDT	
+ADEXAC	LSTALVDT	Date Last Known Alive	Num	Perm		Predecessor	ADSL.LSTALVDT	
+ADEXAC	TRTP	Planned Treatment	Char	Req		Predecessor	ADSL.TRT01P	
+ADEXAC	TRTA	Actual Treatment	Char	Cond		Predecessor	ADSL.TRT01A	
+ADEXAC	PARAMCD	Parameter Code	Char	Req		Assigned	Sponsor	
+ADEXAC	PARAM	Parameter	Char	Req		Assigned	Sponsor	
+ADEXAC	PARAMN	Parameter (N)	Num	Perm		Assigned	Sponsor	
+ADEXAC	AVAL	Analysis Value	Num	Cond		Derived		EXACN: CE records with CECAT = 'EXACERBATION' and TRTSDT <= CESTDTC <= LSTALVDT; SEVEXACN: those with CESEV = 'SEVERE'; FUPYR: (LSTALVDT - TRTSDT + 1) / 365.25; EXACRATE: EXACN / FUPYR.
+ADIS	STUDYID	Study Identifier	Char	Req		Predecessor	ADSL.STUDYID	
+ADIS	USUBJID	Unique Subject Identifier	Char	Req		Predecessor	ADSL.USUBJID	
+ADIS	SUBJID	Subject Identifier for the Study	Char	Perm		Predecessor	ADSL.SUBJID	
+ADIS	SITEID	Study Site Identifier	Char	Perm		Predecessor	ADSL.SITEID	
+ADIS	AGE	Age	Num	Perm		Predecessor	ADSL.AGE	
+ADIS	SEX	Sex	Char	Perm	SEX	Predecessor	ADSL.SEX	
+ADIS	RACE	Race	Char	Perm	RACE	Predecessor	ADSL.RACE	
+ADIS	SAFFL	Safety Population Flag	Char	Perm	NY	Predecessor	ADSL.SAFFL	
+ADIS	TRTP	Planned Treatment	Char	Req		Derived		ADSL.TRTxxP of the period whose dates contain ADT (admiral derive_vars_joined() with create_period_dataset()).
+ADIS	TRTA	Actual Treatment	Char	Cond		Derived		ADSL.TRTxxA of the period whose dates contain ADT.
+ADIS	APERIOD	Period	Num	Cond		Derived		k where ADSL.APkkSDT <= ADT <= APkkEDT.
+ADIS	PARAMCD	Parameter Code	Char	Req		Derived		IS.ISTESTCD; with suffix L (LOG10), F (4FOLD) or LF (LOG10 4FOLD, ISTESTCD truncated to 6 characters).
+ADIS	PARAM	Parameter	Char	Req		Derived		IS.ISTEST, or 'LOG10 (...)', '4FOLD (...)', 'LOG10 4FOLD (...)' around it.
+ADIS	PARAMN	Parameter (N)	Num	Perm		Derived		1 original, 11 LOG10, 21 4FOLD, 31 LOG10 4FOLD.
+ADIS	PARCAT1	Parameter Category 1	Char	Perm		Predecessor	IS.ISCAT	
+ADIS	AVAL	Analysis Value	Num	Cond		Derived		admiralvaccine derive_var_aval_adis(): ISSTRESN within the limits; below the LLOQ ISLLOQ / 2 (4FOLD: ISLLOQ); at or above the ULOQ ISULOQ; log10 of it for LOG10 parameters; rounded to 2 decimals.
+ADIS	AVALU	Analysis Value Unit	Char	Perm		Predecessor	IS.ISSTRESU	
+ADIS	DTYPE	Derivation Type	Char	Cond		Derived		Original and LOG10 parameters: HALFLLOQ for a result below the LLOQ, ULOQ above the ULOQ.
+ADIS	ABLFL	Baseline Record Flag	Char	Cond	NY	Derived		'Y' on the ISBLFL = 'Y' record of the parameter.
+ADIS	BASE	Baseline Value	Num	Cond		Derived		AVAL of the ABLFL = 'Y' record of the parameter.
+ADIS	BASECAT1	Baseline Category 1	Char	Perm		Derived		'Titer value < 1:10' if BASE < 10 (log parameters: < 1), else 'Titer value >= 1:10'.
+ADIS	CHG	Change from Baseline	Num	Cond		Derived		AVAL - BASE for visits after the baseline visit.
+ADIS	R2BASE	Ratio to Baseline	Num	Cond		Derived		AVAL / BASE for visits after the baseline visit (admiral derive_var_analysis_ratio()).
+ADIS	SERCAT1	Analysis Serology Category 1	Char	Perm		Derived		Baseline records: 'S-' if AVAL < ISLLOQ (log parameters: log10 ISLLOQ), 'S+' otherwise, 'UNKNOWN' if missing.
+ADIS	SERCAT1N	Analysis Serology Category 1 (N)	Num	Perm		Derived		1 S-, 2 S+, 3 UNKNOWN.
+ADIS	CRIT1	Analysis Criterion 1	Char	Cond		Assigned	Sponsor	
+ADIS	CRIT1FL	Criterion 1 Evaluation Result Flag	Char	Cond	NY	Derived		'Y' if AVAL >= ISLLOQ (log parameters: log10 ISLLOQ), else 'N' (admiral derive_vars_crit_flag()).
+ADIS	CRIT1FN	Criterion 1 Evaluation Result Flag (N)	Num	Cond		Derived		1 if CRIT1FL = 'Y', 0 if 'N'.
+ADIS	ADT	Analysis Date	Num	Cond		Derived		IS.ISDTC as a date.
+ADIS	ADY	Analysis Relative Day	Num	Perm		Derived		ADT - TRTSDT + 1 if ADT >= TRTSDT, else ADT - TRTSDT.
+ADIS	AVISIT	Analysis Visit	Char	Cond		Derived		IS.VISIT in title case.
+ADIS	AVISITN	Analysis Visit (N)	Num	Perm		Derived		IS.VISITNUM.
+ADIS	ATPTREF	Analysis Timepoint Reference	Char	Perm		Derived		'VACCINATION k' of the latest vaccination before ADT (ADSL.VAXkkDT); the first for the baseline sample.
+ADIS	SRCDOM	Source Data	Char	Perm		Assigned	Sponsor	
+ADIS	SRCVAR	Source Variable	Char	Perm		Assigned	Sponsor	
+ADIS	SRCSEQ	Source Sequence Number	Num	Perm		Predecessor	IS.ISSEQ	
+ADCE	STUDYID	Study Identifier	Char	Req		Predecessor	ADSL.STUDYID	
+ADCE	USUBJID	Unique Subject Identifier	Char	Req		Predecessor	ADSL.USUBJID	
+ADCE	SUBJID	Subject Identifier for the Study	Char	Perm		Predecessor	ADSL.SUBJID	
+ADCE	SITEID	Study Site Identifier	Char	Perm		Predecessor	ADSL.SITEID	
+ADCE	AGE	Age	Num	Perm		Predecessor	ADSL.AGE	
+ADCE	SEX	Sex	Char	Perm	SEX	Predecessor	ADSL.SEX	
+ADCE	RACE	Race	Char	Perm	RACE	Predecessor	ADSL.RACE	
+ADCE	SAFFL	Safety Population Flag	Char	Perm	NY	Predecessor	ADSL.SAFFL	
+ADCE	TRT01P	Planned Treatment for Period 01	Char	Perm		Predecessor	ADSL.TRT01P	
+ADCE	TRT01A	Actual Treatment for Period 01	Char	Perm		Predecessor	ADSL.TRT01A	
+ADCE	TRTSDT	Date of First Exposure to Treatment	Num	Perm		Predecessor	ADSL.TRTSDT	
+ADCE	TRTEDT	Date of Last Exposure to Treatment	Num	Perm		Predecessor	ADSL.TRTEDT	
+ADCE	CESEQ	Sequence Number	Num	Perm		Predecessor	CE.CESEQ	
+ADCE	CETERM	Reported Term for the Clinical Event	Char	Perm		Predecessor	CE.CETERM	
+ADCE	CEDECOD	Dictionary-Derived Term	Char	Perm		Predecessor	CE.CEDECOD	
+ADCE	CECAT	Category for Clinical Event	Char	Perm		Predecessor	CE.CECAT	
+ADCE	CESCAT	Subcategory for Clinical Event	Char	Perm		Predecessor	CE.CESCAT	
+ADCE	CEOCCUR	Clinical Event Occurrence	Char	Perm	NY	Predecessor	CE.CEOCCUR	
+ADCE	CELOC	Location of Event	Char	Perm	LOC	Predecessor	CE.CELOC	
+ADCE	CELAT	Laterality	Char	Perm	LAT	Predecessor	CE.CELAT	
+ADCE	CETPTREF	Time Point Reference	Char	Perm		Predecessor	CE.CETPTREF	
+ADCE	ASEQ	Analysis Sequence Number	Num	Perm		Derived		Sequence within the subject ordered by CEDECOD, CELAT, CETPTREF, APERIOD (admiral derive_var_obs_number()).
+ADCE	ASTDT	Analysis Start Date	Num	Perm		Derived		CE.CESTDTC as a date (no imputation).
+ADCE	AENDT	Analysis End Date	Num	Perm		Derived		CE.CEENDTC as a date (no imputation).
+ADCE	ASTDY	Analysis Start Relative Day	Num	Perm		Derived		ASTDT - TRTSDT + 1 if ASTDT >= TRTSDT, else ASTDT - TRTSDT.
+ADCE	AENDY	Analysis End Relative Day	Num	Perm		Derived		AENDT - TRTSDT + 1 if AENDT >= TRTSDT, else AENDT - TRTSDT.
+ADCE	APERIOD	Period	Num	Cond		Derived		k where ADSL.APkkSDT <= ASTDT <= APkkEDT.
+ADCE	APERSDT	Period Start Date	Num	Perm		Derived		ADSL.APkkSDT of APERIOD.
+ADCE	APEREDT	Period End Date	Num	Perm		Derived		ADSL.APkkEDT of APERIOD.
+ADCE	APERSTDY	Period Analysis Start Day	Num	Perm		Derived		ASTDT - APERSDT + 1.
+ADCE	AREL	Analysis Causality	Char	Perm		Predecessor	CE.CEREL	
+ADCE	ASEV	Analysis Severity/Intensity	Char	Perm	AESEV	Predecessor	CE.CESEV	
+ADCE	ASEVN	Analysis Severity/Intensity (N)	Num	Perm		Derived		1 MILD, 2 MODERATE, 3 SEVERE.
+ADCE	AOCC01FL	1st Max Sev./Int. Occurrence Flag	Char	Perm	NY	Derived		'Y' on the first record per subject and APERIOD ordered by descending ASEVN, ASTDY, CEDECOD, CESEQ (admiral derive_var_extreme_flag()).
+ADCE	ADURN	Analysis Duration (N)	Num	Perm		Derived		AENDT - ASTDT + 1 days (admiral derive_vars_duration()).
+ADCE	ADURU	Analysis Duration Units	Char	Perm		Assigned	Sponsor	
+ADFACE	STUDYID	Study Identifier	Char	Req		Predecessor	ADSL.STUDYID	
+ADFACE	USUBJID	Unique Subject Identifier	Char	Req		Predecessor	ADSL.USUBJID	
+ADFACE	SUBJID	Subject Identifier for the Study	Char	Perm		Predecessor	ADSL.SUBJID	
+ADFACE	SITEID	Study Site Identifier	Char	Perm		Predecessor	ADSL.SITEID	
+ADFACE	AGE	Age	Num	Perm		Predecessor	ADSL.AGE	
+ADFACE	SEX	Sex	Char	Perm	SEX	Predecessor	ADSL.SEX	
+ADFACE	RACE	Race	Char	Perm	RACE	Predecessor	ADSL.RACE	
+ADFACE	SAFFL	Safety Population Flag	Char	Perm	NY	Predecessor	ADSL.SAFFL	
+ADFACE	TRTP	Planned Treatment	Char	Req		Derived		ADSL.TRTxxP of the period whose dates contain ADT.
+ADFACE	TRTA	Actual Treatment	Char	Cond		Derived		ADSL.TRTxxA of the period whose dates contain ADT.
+ADFACE	APERIOD	Period	Num	Cond		Derived		k where ADSL.APkkSDT <= ADT <= APkkEDT.
+ADFACE	APERSDT	Period Start Date	Num	Perm		Derived		ADSL.APkkSDT of APERIOD.
+ADFACE	APEREDT	Period End Date	Num	Perm		Derived		ADSL.APkkEDT of APERIOD.
+ADFACE	FATESTCD	Findings About Test Short Name	Char	Perm		Predecessor	FACE.FATESTCD	
+ADFACE	FATEST	Findings About Test Name	Char	Perm		Predecessor	FACE.FATEST	
+ADFACE	FAOBJ	Object of the Observation	Char	Perm		Predecessor	FACE.FAOBJ	
+ADFACE	FALNKGRP	Link Group ID	Char	Perm		Predecessor	FACE.FALNKGRP	
+ADFACE	FAEVAL	Evaluator	Char	Perm	EVAL	Predecessor	FACE.FAEVAL	
+ADFACE	FAORRES	Result or Finding in Original Units	Char	Perm		Predecessor	FACE.FAORRES	
+ADFACE	PARAMCD	Parameter Code	Char	Req		Derived		By FATESTCD and FAOBJ from admiralvaccine's lookup (ad_adface.R), extended to every solicited reaction.
+ADFACE	PARAM	Parameter	Char	Req		Derived		FAOBJ, FATEST, FALOC and FALAT joined in sentence case (admiralvaccine derive_vars_params()).
+ADFACE	PARAMN	Parameter (N)	Num	Perm		Derived		Position of PARAMCD in the lookup.
+ADFACE	PARCAT1	Parameter Category 1	Char	Perm		Assigned	Sponsor	
+ADFACE	PARCAT2	Parameter Category 2	Char	Perm		Assigned	Sponsor	
+ADFACE	AVAL	Analysis Value	Num	Cond		Derived		FASTRESN, or the severity as 0-3 (NONE to SEVERE). Redness and swelling severities from the diameter: <= 2 cm none, <= 5 mild, <= 10 moderate, > 10 severe. MAXSEV/MAXDIAM: the largest per vaccination (the latest on ties).
+ADFACE	AVALC	Analysis Value (C)	Char	Cond		Derived		FASTRESC; for fever, 'Y' if the diary temperature (VS) is 38.0 C or more, else 'N'.
+ADFACE	ADT	Analysis Date	Num	Cond		Derived		FADTC (fever: VSDTC) as a date.
+ADFACE	ADY	Analysis Relative Day	Num	Perm		Derived		ADT - TRTSDT + 1 if ADT >= TRTSDT, else ADT - TRTSDT.
+ADFACE	ATPT	Analysis Timepoint	Char	Perm		Predecessor	FACE.FATPT	
+ADFACE	ATPTN	Analysis Timepoint (N)	Num	Perm		Predecessor	FACE.FATPTNUM	
+ADFACE	ATPTREF	Analysis Timepoint Reference	Char	Perm		Predecessor	FACE.FATPTREF	
+ADFACE	EXTRT	Name of Treatment	Char	Perm		Predecessor	EX.EXTRT	
+ADFACE	EXDOSE	Dose	Num	Perm		Predecessor	EX.EXDOSE	
+ADFACE	ANL01FL	Analysis Flag 01	Char	Cond	NY	Assigned	Sponsor	
+ADFACE	ANL02FL	Analysis Flag 02	Char	Cond	NY	Derived		'Y' on the first record with the largest positive AVAL per subject, FAOBJ, ATPTREF and PARAMCD (admiralvaccine derive_vars_max_flag()).
+ADFACE	ANL03FL	Analysis Flag 03	Char	Cond	NY	Derived		'Y' on the first record with the largest positive AVAL per subject, FAOBJ and PARAMCD over all vaccinations.
+ADFACE	EVENTFL	Event Flag	Char	Perm		Derived		'Y' for every record of a reaction after a vaccination if any record has AVAL > 2.5 or AVALC Y, MILD, MODERATE or SEVERE; else 'N' where AVAL <= 2.5 or AVALC = 'N' (admiralvaccine derive_vars_event_flag()).
+ADFACE	EVENTDFL	Event by Day Flag	Char	Perm		Derived		As EVENTFL for the record alone; missing for maximum records.

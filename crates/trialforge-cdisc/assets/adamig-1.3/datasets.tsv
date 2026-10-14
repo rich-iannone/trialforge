@@ -9,3 +9,9 @@ ADTR	Tumor Results Analysis Dataset	BASIC DATA STRUCTURE	One record per subject 
 ADPC	Pharmacokinetic Concentrations Analysis	BASIC DATA STRUCTURE	One record per subject per sample or dose per analysis type	STUDYID,USUBJID,ASEQ
 ADPP	Pharmacokinetic Parameters Analysis	BASIC DATA STRUCTURE	One record per subject per parameter per profile	STUDYID,USUBJID,PARAMCD,AVISITN
 ADADAS	ADAS-Cog Analysis Dataset	BASIC DATA STRUCTURE	One record per subject per parameter per analysis visit per analysis date	STUDYID,USUBJID,PARAMCD,AVISITN,ADT,DTYPE
+ADBCVA	Best Corrected Visual Acuity Analysis	BASIC DATA STRUCTURE	One record per subject per parameter per visit	STUDYID,USUBJID,PARAMCD,VISITNUM
+ADRE	Respiratory Analysis Dataset	BASIC DATA STRUCTURE	One record per parameter per analysis visit per subject	STUDYID,USUBJID,PARAMCD,AVISITN,ADT,SRCSEQ
+ADEXAC	Exacerbation Analysis Dataset	BASIC DATA STRUCTURE	One record per subject per parameter	STUDYID,USUBJID,PARAMCD
+ADIS	Immunogenicity Analysis Dataset	BASIC DATA STRUCTURE	One record per subject per parameter per visit	STUDYID,USUBJID,PARAMCD,AVISITN
+ADCE	Clinical Events Analysis Dataset	OCCURRENCE DATA STRUCTURE	One record per clinical event per subject	STUDYID,USUBJID,CEDECOD,CETPTREF
+ADFACE	Reactogenicity Analysis Dataset	BASIC DATA STRUCTURE	One record per subject per parameter per time point	STUDYID,USUBJID,PARAMCD,ATPTREF,ATPTN
