@@ -54,6 +54,7 @@ DM	RFPENDTC	Date/Time of End of Participation	Char	Exp		Derived		Date of last co
 DM	DTHDTC	Date/Time of Death	Char	Exp		Collected	Investigator	
 DM	DTHFL	Subject Death Flag	Char	Exp	NY	Derived		'Y' if DTHDTC is populated.
 DM	SITEID	Study Site Identifier	Char	Req		Assigned	Sponsor	
+DM	BRTHDTC	Date/Time of Birth	Char	Perm		Collected	Investigator	
 DM	AGE	Age	Num	Exp		Collected	Investigator	
 DM	AGEU	Age Units	Char	Exp	AGEU	Assigned	Sponsor	
 DM	SEX	Sex	Char	Req	SEX	Collected	Investigator	
@@ -99,6 +100,10 @@ EX	EXDOSU	Dose Units	Char	Exp	UNIT	Protocol
 EX	EXDOSFRM	Dose Form	Char	Exp	FRM	Protocol		
 EX	EXDOSFRQ	Dosing Frequency per Interval	Char	Perm	FREQ	Protocol		
 EX	EXROUTE	Route of Administration	Char	Perm	ROUTE	Protocol		
+EX	EXLOC	Location of Dose Administration	Char	Perm	LOC	Protocol		
+EX	EXLAT	Laterality	Char	Perm	LAT	Collected	Investigator	
+EX	EXLNKGRP	Link Group ID	Char	Perm		Assigned	Sponsor	
+EX	EXLNKID	Link ID	Char	Perm		Assigned	Sponsor	
 EX	VISITNUM	Visit Number	Num	Perm		Assigned	Sponsor	
 EX	VISIT	Visit Name	Char	Perm		Assigned	Sponsor	
 EX	VISITDY	Planned Study Day of Visit	Num	Perm		Assigned	Sponsor	
@@ -222,6 +227,13 @@ VS	VISITDY	Planned Study Day of Visit	Num	Perm		Assigned	Sponsor
 VS	EPOCH	Epoch	Char	Perm	EPOCH	Derived		The epoch of the subject's SE element that contains the record's start date.
 VS	VSDTC	Date/Time of Measurements	Char	Exp		Collected	Investigator	
 VS	VSDY	Study Day of Vital Signs	Num	Perm		Derived		Study day of VSDTC relative to DM.RFSTDTC: date - RFSTDTC + 1 on or after RFSTDTC, date - RFSTDTC before it (no day 0).
+VS	VSCAT	Category for Vital Signs	Char	Perm		Assigned	Sponsor	
+VS	VSSCAT	Subcategory for Vital Signs	Char	Perm		Assigned	Sponsor	
+VS	VSEVAL	Evaluator	Char	Perm	EVAL	Assigned	Sponsor	
+VS	VSTPT	Planned Time Point Name	Char	Perm		Assigned	Sponsor	
+VS	VSTPTNUM	Planned Time Point Number	Num	Perm		Assigned	Sponsor	
+VS	VSTPTREF	Time Point Reference	Char	Perm		Assigned	Sponsor	
+VS	VSRFTDTC	Date/Time of Reference Time Point	Char	Perm		Derived		EX.EXSTDTC of the vaccination.
 SUPPAE	STUDYID	Study Identifier	Char	Req		Assigned	Sponsor	
 SUPPAE	RDOMAIN	Related Domain Abbreviation	Char	Req	DOMAIN	Assigned	Sponsor	
 SUPPAE	USUBJID	Unique Subject Identifier	Char	Req		Assigned	Sponsor	
@@ -281,6 +293,7 @@ RS	RSLNKGRP	Link Group ID	Char	Perm		Assigned	Sponsor
 RS	RSTESTCD	Assessment Short Name	Char	Req		Assigned	Sponsor	
 RS	RSTEST	Assessment Name	Char	Req		Assigned	Sponsor	
 RS	RSCAT	Category for Assessment	Char	Exp		Assigned	Sponsor	
+RS	RSSCAT	Subcategory for Assessment	Char	Perm		Assigned	Sponsor	
 RS	RSORRES	Result or Finding in Original Units	Char	Exp		Derived		RECIST 1.1 response derived from the TR measurements and lesion states at the visit.
 RS	RSSTRESC	Character Result/Finding in Std Format	Char	Exp		Derived		RSORRES in standard format.
 RS	RSEVAL	Evaluator	Char	Exp	EVAL	Assigned	Sponsor	
@@ -353,10 +366,132 @@ CE	STUDYID	Study Identifier	Char	Req		Assigned	Sponsor
 CE	DOMAIN	Domain Abbreviation	Char	Req	DOMAIN	Assigned	Sponsor	
 CE	USUBJID	Unique Subject Identifier	Char	Req		Assigned	Sponsor	
 CE	CESEQ	Sequence Number	Num	Req		Assigned	Sponsor	
+CE	CELNKGRP	Link Group ID	Char	Perm		Assigned	Sponsor	
 CE	CETERM	Reported Term for the Clinical Event	Char	Req		Collected	Investigator	
 CE	CEDECOD	Dictionary-Derived Term	Char	Perm		Derived		CETERM coded to its Preferred Term (open MedDRA-shaped dictionary).
 CE	CECAT	Category for Clinical Event	Char	Perm		Assigned	Sponsor	
+CE	CESCAT	Subcategory for Clinical Event	Char	Perm		Assigned	Sponsor	
+CE	CEPRESP	Clinical Event Pre-specified	Char	Perm	NY	Assigned	Sponsor	
+CE	CEOCCUR	Clinical Event Occurrence	Char	Perm	NY	Collected	Subject	
 CE	CEBODSYS	Body System or Organ Class	Char	Perm		Derived		Primary System Organ Class of CEDECOD.
+CE	CELOC	Location of Event	Char	Perm	LOC	Collected	Subject	
+CE	CELAT	Laterality	Char	Perm	LAT	Collected	Subject	
+CE	CESEV	Severity/Intensity	Char	Perm	AESEV	Collected	Investigator	
+CE	CEREL	Causality	Char	Perm		Assigned	Sponsor	
+CE	CEOUT	Outcome of Event	Char	Perm	OUT	Derived		'RECOVERED/RESOLVED' for an occurred solicited reaction, whose diary ends within the 7-day period.
 CE	EPOCH	Epoch	Char	Perm	EPOCH	Derived		The epoch of the subject's SE element that contains the record's start date.
 CE	CESTDTC	Start Date/Time of Clinical Event	Char	Exp		Collected	Investigator	
+CE	CEENDTC	End Date/Time of Clinical Event	Char	Perm		Collected	Investigator	
 CE	CESTDY	Study Day of Start of Event	Num	Perm		Derived		Study day of CESTDTC relative to DM.RFSTDTC: date - RFSTDTC + 1 on or after RFSTDTC, date - RFSTDTC before it (no day 0).
+CE	CEENDY	Study Day of End of Event	Num	Perm		Derived		Study day of CEENDTC relative to DM.RFSTDTC: date - RFSTDTC + 1 on or after RFSTDTC, date - RFSTDTC before it (no day 0).
+CE	CETPT	Planned Time Point Name	Char	Perm		Assigned	Sponsor	
+CE	CETPTNUM	Planned Time Point Number	Num	Perm		Assigned	Sponsor	
+CE	CETPTREF	Time Point Reference	Char	Perm		Assigned	Sponsor	
+CE	CERFTDTC	Date/Time of Reference Time Point	Char	Perm		Derived		EX.EXSTDTC of the vaccination.
+CE	CEEVINTX	Evaluation Interval Text	Char	Perm		Assigned	Sponsor	
+OE	STUDYID	Study Identifier	Char	Req		Assigned	Sponsor	
+OE	DOMAIN	Domain Abbreviation	Char	Req	DOMAIN	Assigned	Sponsor	
+OE	USUBJID	Unique Subject Identifier	Char	Req		Assigned	Sponsor	
+OE	FOCID	Focus of Study-Specific Interest	Char	Perm	OEFOCUS	Derived		OD for the right eye, OS for the left eye (from OELAT).
+OE	OESEQ	Sequence Number	Num	Req		Assigned	Sponsor	
+OE	OETESTCD	Short Name of Ophthalmic Test or Exam	Char	Req	OETESTCD	Assigned	Sponsor	
+OE	OETEST	Name of Ophthalmic Test or Exam	Char	Req	OETEST	Assigned	Sponsor	
+OE	OETSTDTL	Ophthalmic Test or Exam Detail	Char	Perm		Assigned	Sponsor	
+OE	OECAT	Category for Ophthalmic Test or Exam	Char	Perm		Assigned	Sponsor	
+OE	OEORRES	Result or Finding in Original Units	Char	Exp		Collected	Investigator	
+OE	OEORRESU	Original Units	Char	Perm	UNIT	Collected	Investigator	
+OE	OESTRESC	Character Result/Finding in Std Format	Char	Exp		Derived		OEORRES in standard format.
+OE	OESTRESN	Numeric Result/Finding in Standard Units	Num	Perm		Derived		OESTRESC as a number.
+OE	OESTRESU	Standard Units	Char	Perm	UNIT	Assigned	Sponsor	
+OE	OELOC	Location Used for the Measurement	Char	Perm	LOC	Assigned	Sponsor	
+OE	OELAT	Laterality	Char	Exp	LAT	Collected	Investigator	
+OE	OEMETHOD	Method of Test or Examination	Char	Perm	METHOD	Assigned	Sponsor	
+OE	OELOBXFL	Last Observation Before Exposure Flag	Char	Exp	NY	Derived		'Y' on the last non-missing result on or before DM.RFXSTDTC for each subject, OETESTCD and OELAT.
+OE	VISITNUM	Visit Number	Num	Exp		Assigned	Sponsor	
+OE	VISIT	Visit Name	Char	Perm		Assigned	Sponsor	
+OE	VISITDY	Planned Study Day of Visit	Num	Perm		Assigned	Sponsor	
+OE	EPOCH	Epoch	Char	Perm	EPOCH	Derived		The epoch of the subject's SE element that contains the record's start date.
+OE	OEDTC	Date/Time of Collection	Char	Exp		Collected	Investigator	
+OE	OEDY	Study Day of Visit/Collection/Exam	Num	Perm		Derived		Study day of OEDTC relative to DM.RFSTDTC: date - RFSTDTC + 1 on or after RFSTDTC, date - RFSTDTC before it (no day 0).
+SC	STUDYID	Study Identifier	Char	Req		Assigned	Sponsor	
+SC	DOMAIN	Domain Abbreviation	Char	Req	DOMAIN	Assigned	Sponsor	
+SC	USUBJID	Unique Subject Identifier	Char	Req		Assigned	Sponsor	
+SC	SCSEQ	Sequence Number	Num	Req		Assigned	Sponsor	
+SC	SCTESTCD	Subject Characteristic Short Name	Char	Req	SCTESTCD	Assigned	Sponsor	
+SC	SCTEST	Subject Characteristic	Char	Req	SCTEST	Assigned	Sponsor	
+SC	SCCAT	Category for Subject Characteristic	Char	Perm		Assigned	Sponsor	
+SC	SCORRES	Result or Finding in Original Units	Char	Exp		Collected	Investigator	
+SC	SCSTRESC	Character Result/Finding in Std Format	Char	Exp	OEFOCUS	Derived		SCORRES in standard format: OD for the right eye, OS for the left eye.
+SC	EPOCH	Epoch	Char	Perm	EPOCH	Assigned	Sponsor	
+SC	SCDTC	Date/Time of Collection	Char	Perm		Collected	Investigator	
+SC	SCDY	Study Day of Examination	Num	Perm		Derived		Study day of SCDTC relative to DM.RFSTDTC: date - RFSTDTC + 1 on or after RFSTDTC, date - RFSTDTC before it (no day 0).
+RE	STUDYID	Study Identifier	Char	Req		Assigned	Sponsor	
+RE	DOMAIN	Domain Abbreviation	Char	Req	DOMAIN	Assigned	Sponsor	
+RE	USUBJID	Unique Subject Identifier	Char	Req		Assigned	Sponsor	
+RE	RESEQ	Sequence Number	Num	Req		Assigned	Sponsor	
+RE	RETESTCD	Short Name of Respiratory Test	Char	Req	RETESTCD	Assigned	Sponsor	
+RE	RETEST	Name of Respiratory Test	Char	Req	RETEST	Assigned	Sponsor	
+RE	REORRES	Result or Finding in Original Units	Char	Exp		Collected	Investigator	
+RE	REORRESU	Original Units	Char	Exp	UNIT	Collected	Investigator	
+RE	RESTRESC	Character Result/Finding in Std Format	Char	Exp		Derived		REORRES in standard format.
+RE	RESTRESN	Numeric Result/Finding in Standard Units	Num	Exp		Derived		RESTRESC as a number.
+RE	RESTRESU	Standard Units	Char	Exp	UNIT	Assigned	Sponsor	
+RE	REMETHOD	Method of Test or Examination	Char	Perm	METHOD	Assigned	Sponsor	
+RE	RELOBXFL	Last Observation Before Exposure Flag	Char	Exp	NY	Derived		'Y' on the last non-missing result on or before DM.RFXSTDTC for each subject and RETESTCD.
+RE	VISITNUM	Visit Number	Num	Exp		Assigned	Sponsor	
+RE	VISIT	Visit Name	Char	Perm		Assigned	Sponsor	
+RE	VISITDY	Planned Study Day of Visit	Num	Perm		Assigned	Sponsor	
+RE	EPOCH	Epoch	Char	Perm	EPOCH	Derived		The epoch of the subject's SE element that contains the record's start date.
+RE	REDTC	Date/Time of Collection	Char	Exp		Collected	Investigator	
+RE	REDY	Study Day of Visit/Collection/Exam	Num	Perm		Derived		Study day of REDTC relative to DM.RFSTDTC: date - RFSTDTC + 1 on or after RFSTDTC, date - RFSTDTC before it (no day 0).
+IS	STUDYID	Study Identifier	Char	Req		Assigned	Sponsor	
+IS	DOMAIN	Domain Abbreviation	Char	Req	DOMAIN	Assigned	Sponsor	
+IS	USUBJID	Unique Subject Identifier	Char	Req		Assigned	Sponsor	
+IS	ISSEQ	Sequence Number	Num	Req		Assigned	Sponsor	
+IS	ISTESTCD	Immunogenicity Test/Exam Short Name	Char	Req	ISTESTCD	Assigned	Sponsor	
+IS	ISTEST	Immunogenicity Test or Examination Name	Char	Req	ISTEST	Assigned	Sponsor	
+IS	ISCAT	Category for Immunogenicity Test	Char	Perm		Assigned	Sponsor	
+IS	ISORRES	Results or Findings in Original Units	Char	Exp		Collected	Vendor	
+IS	ISORRESU	Original Units	Char	Exp	UNIT	Collected	Vendor	
+IS	ISSTRESC	Character Result/Finding in Std Format	Char	Exp		Derived		ISORRES in standard format: the reciprocal titre, or '<LLOQ' / '>ULOQ'.
+IS	ISSTRESN	Numeric Result/Finding in Standard Units	Num	Exp		Derived		ISSTRESC as a number when quantified.
+IS	ISSTRESU	Standard Units	Char	Exp	UNIT	Assigned	Sponsor	
+IS	ISBDAGNT	Binding Agent	Char	Perm		Assigned	Sponsor	
+IS	ISSPEC	Specimen Type	Char	Perm	SPECTYPE	Assigned	Sponsor	
+IS	ISMETHOD	Method of Test or Examination	Char	Perm	METHOD	Assigned	Sponsor	
+IS	ISBLFL	Baseline Flag	Char	Perm	NY	Derived		'Y' on the last result on or before DM.RFXSTDTC for each subject and ISTESTCD.
+IS	ISLOBXFL	Last Observation Before Exposure Flag	Char	Exp	NY	Derived		'Y' on the last result on or before DM.RFXSTDTC for each subject and ISTESTCD.
+IS	ISLLOQ	Lower Limit of Quantitation	Num	Perm		Assigned	Vendor	
+IS	ISULOQ	Upper Limit of Quantitation	Num	Perm		Assigned	Vendor	
+IS	VISITNUM	Visit Number	Num	Exp		Assigned	Sponsor	
+IS	VISIT	Visit Name	Char	Perm		Assigned	Sponsor	
+IS	VISITDY	Planned Study Day of Visit	Num	Perm		Assigned	Sponsor	
+IS	EPOCH	Epoch	Char	Perm	EPOCH	Derived		The epoch of the subject's SE element that contains the record's start date.
+IS	ISDTC	Date/Time of Collection	Char	Exp		Collected	Investigator	
+IS	ISDY	Study Day of Visit/Collection/Exam	Num	Perm		Derived		Study day of ISDTC relative to DM.RFSTDTC: date - RFSTDTC + 1 on or after RFSTDTC, date - RFSTDTC before it (no day 0).
+FACE	STUDYID	Study Identifier	Char	Req		Assigned	Sponsor	
+FACE	DOMAIN	Domain Abbreviation	Char	Req	DOMAIN	Assigned	Sponsor	
+FACE	USUBJID	Unique Subject Identifier	Char	Req		Assigned	Sponsor	
+FACE	FASEQ	Sequence Number	Num	Req		Assigned	Sponsor	
+FACE	FALNKGRP	Link Group ID	Char	Perm		Assigned	Sponsor	
+FACE	FALNKID	Link ID	Char	Perm		Assigned	Sponsor	
+FACE	FATESTCD	Findings About Test Short Name	Char	Req	FATESTCD	Assigned	Sponsor	
+FACE	FATEST	Findings About Test Name	Char	Req	FATEST	Assigned	Sponsor	
+FACE	FAOBJ	Object of the Observation	Char	Req		Collected	Subject	
+FACE	FACAT	Category for Findings About	Char	Perm		Assigned	Sponsor	
+FACE	FASCAT	Subcategory for Findings About	Char	Perm		Assigned	Sponsor	
+FACE	FAORRES	Result or Finding in Original Units	Char	Exp		Collected	Subject	
+FACE	FAORRESU	Original Units	Char	Perm	UNIT	Collected	Subject	
+FACE	FASTRESC	Character Result/Finding in Std Format	Char	Exp		Derived		FAORRES in standard format.
+FACE	FASTRESN	Numeric Result/Finding in Standard Units	Num	Perm		Derived		FASTRESC as a number for diameters.
+FACE	FASTRESU	Standard Units	Char	Perm	UNIT	Assigned	Sponsor	
+FACE	FALOC	Location of the Finding About	Char	Perm	LOC	Collected	Subject	
+FACE	FALAT	Laterality	Char	Perm	LAT	Collected	Subject	
+FACE	FAEVAL	Evaluator	Char	Perm	EVAL	Assigned	Sponsor	
+FACE	EPOCH	Epoch	Char	Perm	EPOCH	Derived		The epoch of the subject's SE element that contains the record's start date.
+FACE	FADTC	Date/Time of Collection	Char	Perm		Collected	Subject	
+FACE	FADY	Study Day of Collection	Num	Perm		Derived		Study day of FADTC relative to DM.RFSTDTC: date - RFSTDTC + 1 on or after RFSTDTC, date - RFSTDTC before it (no day 0).
+FACE	FATPT	Planned Time Point Name	Char	Perm		Assigned	Sponsor	
+FACE	FATPTNUM	Planned Time Point Number	Num	Perm		Assigned	Sponsor	
+FACE	FATPTREF	Time Point Reference	Char	Perm		Assigned	Sponsor	
+FACE	FARFTDTC	Date/Time of Reference Time Point	Char	Perm		Derived		EX.EXSTDTC of the vaccination.
