@@ -294,12 +294,14 @@ pub(crate) fn resolve(opts: &StudyOptions, c: &Controls) -> (Design, OncologyPar
                 arm: "Drug A".into(),
                 ratio: 1,
                 treatment: treatment("DRUG A", 200.0, "mg"),
+                periods: Vec::new(),
             },
             Arm {
                 armcd: "C".into(),
                 arm: "Control".into(),
                 ratio: 1,
                 treatment: treatment("CONTROL", 75.0, "mg/m2"),
+                periods: Vec::new(),
             },
         ],
         sites,
@@ -332,6 +334,7 @@ pub(crate) fn resolve(opts: &StudyOptions, c: &Controls) -> (Design, OncologyPar
             dose_lag: (0, 3),
         },
         schedule: Some(schedule(c)),
+        cohorts: Vec::new(),
         info: TrialInfo {
             title:
                 "A Randomized, Open-Label Study of Drug A versus Control in Advanced Solid Tumors"
@@ -345,6 +348,9 @@ pub(crate) fn resolve(opts: &StudyOptions, c: &Controls) -> (Design, OncologyPar
             blinding: "OPEN LABEL".into(),
             control: "ACTIVE".into(),
             add_on: false,
+            trial_types: vec!["EFFICACY".into()],
+            intervention_model: "PARALLEL".into(),
+            healthy_subjects: false,
             criteria: vec![
                 (
                     "INCL01".into(),
