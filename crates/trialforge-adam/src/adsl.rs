@@ -290,10 +290,255 @@ pub fn adsl(sdtm: &[Dataset], inputs: &AdslInputs) -> Result<Dataset, DeriveErro
     if let Some(c) = inputs.cutoff {
         cols.push(("DCUTDT", Values::Date(vec![Some(c); n])));
     }
+    if dm.has("BRTHDTC") {
+        cols.push((
+            "BRTHDT",
+            Values::Date(dm.chars("BRTHDTC")?.iter().map(dt).collect()),
+        ));
+    }
+    // Dose finding: the DLT-evaluable population.
+    if let Some(ts) = find(sdtm, "TS").map(Frame::new) {
+        let (cd, val) = (ts.chars("TSPARMCD")?, ts.chars("TSVAL")?);
+        let dose_finding = (0..ts.n()).any(|i| {
+            cd[i].as_deref() == Some("TTYPE") && val[i].as_deref() == Some("DOSE FINDING")
+        });
+        if dose_finding {
+            dlt_evaluable(&mut cols, &dm, sdtm)?;
+        }
+    }
+    if let Some(sc) = find(sdtm, "SC").map(Frame::new) {
+        // admiralophtha convention: the study eye is SC FOCID (OD/OS/OU).
+        let (su, cd, res) = (
+            sc.chars("USUBJID")?,
+            sc.chars("SCTESTCD")?,
+            sc.chars("SCSTRESC")?,
+        );
+        let mut eye: HashMap<&str, &str> = HashMap::new();
+        for i in 0..sc.n() {
+            if let (Some(u), Some("FOCID")) = (su[i].as_deref(), cd[i].as_deref()) {
+                let lat = match res[i].as_deref() {
+                    Some("OS") => "LEFT",
+                    Some("OD") => "RIGHT",
+                    Some("OU") => "BILATERAL",
+                    _ => continue,
+                };
+                eye.insert(u, lat);
+            }
+        }
+        if !eye.is_empty() {
+            cols.push((
+                "STUDYEYE",
+                Values::Char(
+                    usubjid
+                        .iter()
+                        .map(|u| u.as_deref().and_then(|u| eye.get(u)).map(|e| e.to_string()))
+                        .collect(),
+                ),
+            ));
+        }
+    }
     if let (Some(ta), Some(se)) = (find(sdtm, "TA"), find(sdtm, "SE")) {
         crossover_periods(&mut cols, &dm, ta, se)?;
     }
+    if let Some(ex) = find(sdtm, "EX") {
+        vaccination_periods(&mut cols, &dm, ex)?;
+    }
+    if let (Some(ta), Some(se)) = (find(sdtm, "TA"), find(sdtm, "SE")) {
+        crossover_on_progression(&mut cols, &dm, ta, se)?;
+    }
     Ok(build("ADSL", cols)?)
+}
+
+/// `DLTEVLFL`: 'Y' if the subject had a DLT (SUPPAE `AEDLT` = 'Y') or took part for the whole
+/// DLT window (`RFPENDTC` at least 27 days after `RFXSTDTC`), else 'N'.
+fn dlt_evaluable(
+    cols: &mut Vec<(&str, Values)>,
+    dm: &Frame<'_>,
+    sdtm: &[Dataset],
+) -> Result<(), DeriveError> {
+    let mut dlt: std::collections::HashSet<String> = std::collections::HashSet::new();
+    if let Some(sup) = find(sdtm, "SUPPAE").map(Frame::new) {
+        let (u, q, v) = (
+            sup.chars("USUBJID")?,
+            sup.chars("QNAM")?,
+            sup.chars("QVAL")?,
+        );
+        for i in 0..sup.n() {
+            if q[i].as_deref() == Some("AEDLT") && v[i].as_deref() == Some("Y") {
+                if let Some(x) = &u[i] {
+                    dlt.insert(x.clone());
+                }
+            }
+        }
+    }
+    let (u, st, en) = (
+        dm.chars("USUBJID")?,
+        dm.chars("RFXSTDTC")?,
+        dm.chars("RFPENDTC")?,
+    );
+    let flag = (0..dm.n())
+        .map(|i| {
+            let full =
+                matches!((dt(&st[i]), dt(&en[i])), (Some(a), Some(b)) if b.days_since(a) >= 27);
+            let had = u[i].as_ref().is_some_and(|x| dlt.contains(x));
+            Some(if full || had { "Y" } else { "N" }.to_string())
+        })
+        .collect();
+    cols.push(("DLTEVLFL", Values::Char(flag)));
+    Ok(())
+}
+
+/// Crossover on progression (TA has a `CONTINUATION TREATMENT` element): `CROSSDT`, the start
+/// of the subject's SE element in that epoch, and `CROSSFL`.
+fn crossover_on_progression(
+    cols: &mut Vec<(&str, Values)>,
+    dm: &Frame<'_>,
+    ta: &Dataset,
+    se: &Dataset,
+) -> Result<(), DeriveError> {
+    const EPOCH: &str = "CONTINUATION TREATMENT";
+    if !Frame::new(ta)
+        .chars("EPOCH")?
+        .iter()
+        .any(|e| e.as_deref() == Some(EPOCH))
+    {
+        return Ok(());
+    }
+    let se = Frame::new(se);
+    let (u, ep, st) = (
+        se.chars("USUBJID")?,
+        se.chars("EPOCH")?,
+        se.chars("SESTDTC")?,
+    );
+    let mut start: HashMap<&str, Date> = HashMap::new();
+    for i in 0..se.n() {
+        if let (Some(x), Some(EPOCH), Some(d)) = (u[i].as_deref(), ep[i].as_deref(), dt(&st[i])) {
+            start.insert(x, d);
+        }
+    }
+    let dates: Vec<Option<Date>> = dm
+        .chars("USUBJID")?
+        .iter()
+        .map(|x| x.as_deref().and_then(|x| start.get(x).copied()))
+        .collect();
+    cols.push((
+        "CROSSFL",
+        Values::Char(
+            dates
+                .iter()
+                .map(|d| Some(if d.is_some() { "Y" } else { "N" }.to_string()))
+                .collect(),
+        ),
+    ));
+    cols.push(("CROSSDT", Values::Date(dates)));
+    Ok(())
+}
+
+/// Vaccination periods (admiralvaccine `ad_adsl.R`), when EX links administrations to
+/// `VACCINATION k` groups: `VAXkkDT` is the date of the k-th vaccination (by visit,
+/// `derive_vars_vaxdt()`); period k runs from it to the day before the next vaccination, the
+/// last to the end of participation (`RFPENDTC`). `TRTkkP/PN` repeat the planned arm and
+/// `TRTkkA/AN` the actual arm for each vaccination received (adaptation: the template takes
+/// `EXTRT`, which for one product per arm is the same treatment).
+fn vaccination_periods(
+    cols: &mut Vec<(&str, Values)>,
+    dm: &Frame<'_>,
+    ex: &Dataset,
+) -> Result<(), DeriveError> {
+    let ex = Frame::new(ex);
+    if !ex.has("EXLNKGRP") {
+        return Ok(());
+    }
+    let (u, grp, visitnum, st) = (
+        ex.chars("USUBJID")?,
+        ex.chars("EXLNKGRP")?,
+        ex.ints("VISITNUM")?,
+        ex.chars("EXSTDTC")?,
+    );
+    if !grp.iter().flatten().any(|g| g.starts_with("VACCINATION ")) {
+        return Ok(());
+    }
+    // Vaccination dates per subject, in visit order.
+    let mut vax: HashMap<&str, Vec<(Option<i64>, Date)>> = HashMap::new();
+    for i in 0..ex.n() {
+        if let (Some(x), Some(d)) = (u[i].as_deref(), dt(&st[i])) {
+            vax.entry(x).or_default().push((visitnum[i], d));
+        }
+    }
+    for v in vax.values_mut() {
+        v.sort();
+    }
+    let n = vax.values().map(Vec::len).max().unwrap_or(0).min(2);
+    let usubjid = dm.chars("USUBJID")?;
+    let rfpendt: Vec<Option<Date>> = dm.chars("RFPENDTC")?.iter().map(dt).collect();
+    let date = |r: usize, k: usize| {
+        usubjid[r]
+            .as_deref()
+            .and_then(|x| vax.get(x))
+            .and_then(|v| v.get(k))
+            .map(|v| v.1)
+    };
+    let set = |cols: &mut Vec<(&str, Values)>, key: &'static str, values: Values| match cols
+        .iter_mut()
+        .find(|(n, _)| *n == key)
+    {
+        Some(slot) => slot.1 = values,
+        None => cols.push((key, values)),
+    };
+    let copy = |cols: &Vec<(&str, Values)>, key: &str| {
+        cols.iter()
+            .find(|(n, _)| *n == key)
+            .map(|(_, v)| v.clone())
+            .expect("ADSL has the period 1 treatment")
+    };
+    let only = |v: Values, keep: &[bool]| match v {
+        Values::Char(x) => Values::Char(
+            x.into_iter()
+                .zip(keep)
+                .map(|(x, k)| x.filter(|_| *k))
+                .collect(),
+        ),
+        Values::Num(x) => Values::Num(
+            x.into_iter()
+                .zip(keep)
+                .map(|(x, k)| x.filter(|_| *k))
+                .collect(),
+        ),
+        other => other,
+    };
+    const VAX: [&str; 2] = ["VAX01DT", "VAX02DT"];
+    const SDT: [&str; 2] = ["AP01SDT", "AP02SDT"];
+    const EDT: [&str; 2] = ["AP01EDT", "AP02EDT"];
+    const TRT: [[&str; 4]; 2] = [
+        ["TRT01P", "TRT01PN", "TRT01A", "TRT01AN"],
+        ["TRT02P", "TRT02PN", "TRT02A", "TRT02AN"],
+    ];
+    let rows = 0..usubjid.len();
+    for k in 0..n {
+        let start: Vec<Option<Date>> = rows.clone().map(|r| date(r, k)).collect();
+        let end: Vec<Option<Date>> = rows
+            .clone()
+            .map(|r| {
+                start[r]?;
+                match date(r, k + 1).filter(|_| k + 1 < n) {
+                    Some(next) => Some(next.add_days(-1)),
+                    None => rfpendt[r],
+                }
+            })
+            .collect();
+        cols.push((VAX[k], Values::Date(start.clone())));
+        cols.push((SDT[k], Values::Date(start.clone())));
+        cols.push((EDT[k], Values::Date(end)));
+        if k > 0 {
+            let entered: Vec<bool> = start.iter().map(Option::is_some).collect();
+            let all = vec![true; entered.len()];
+            set(cols, TRT[k][0], only(copy(cols, "TRT01P"), &all));
+            set(cols, TRT[k][1], only(copy(cols, "TRT01PN"), &all));
+            set(cols, TRT[k][2], only(copy(cols, "TRT01A"), &entered));
+            set(cols, TRT[k][3], only(copy(cols, "TRT01AN"), &entered));
+        }
+    }
+    Ok(())
 }
 
 /// Period variables of a crossover (TA has `TREATMENT k` epochs): `TRTkkP/PN/A/AN` from TA
