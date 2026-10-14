@@ -73,6 +73,22 @@ pub struct OncologyParams {
     /// For subjects alive and in follow-up at cutoff, last contact is up to this many days
     /// before the cutoff.
     pub last_contact_lag_days: i32,
+    /// The response criteria of the tumour assessments.
+    pub criteria: Criteria,
+    /// Crossover on progression for arms with a switch treatment: (probability that a subject
+    /// who progresses switches, hazard ratio of death after switching relative to the arm's).
+    pub crossover: Option<(f64, f64)>,
+    /// An interim data cutoff before the design's (a snapshot of the same study).
+    pub data_cutoff: Option<Date>,
+}
+
+/// Tumour response criteria.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Criteria {
+    /// RECIST 1.1 (solid tumours).
+    Recist11,
+    /// The Lugano 2014 classification (lymphoma), CT- and PET-CT-based.
+    Lugano,
 }
 
 /// Why treatment stopped.
@@ -326,6 +342,8 @@ fn tumor_course(
             .collect(),
         new_lesions: Vec::new(),
         response: None,
+        perpendicular: Vec::new(),
+        deauville: None,
     }];
 
     let interval = p.assessment_interval_days;
@@ -440,6 +458,8 @@ fn tumor_course(
             non_target: ntl_ids.iter().cloned().zip(ntl_state).collect(),
             new_lesions: new_ids,
             response: Some((tl, nt, ovr)),
+            perpendicular: Vec::new(),
+            deauville: None,
         });
         if is_pd {
             progression = Some(date);
@@ -450,6 +470,332 @@ fn tumor_course(
         lesions,
         assessments,
         progression,
+    }
+}
+
+/// A target lesion's measurement at one Lugano assessment: (longest diameter, perpendicular),
+/// in mm; `None` if not evaluable.
+pub type Ppd = Option<(f64, f64)>;
+
+/// Lugano 2014 visit-level responses: (CT-based, PET-CT-based) and the sum of the products of
+/// the perpendicular diameters (SPD, mm²) when every target lesion was measured.
+///
+/// - CT: PD for a new lesion, unequivocal non-target progression, or a target lesion with a
+///   longest diameter over 15 mm whose product grew by at least 50% and whose longest diameter
+///   grew by at least 5 mm over that lesion's nadir; NE when a target lesion is not measured;
+///   CR when every nodal target lesion is 15 mm or less, every extranodal one is gone and no
+///   non-target lesion is present; PR for an SPD at most half the baseline; else SD.
+/// - PET-CT: PMD on CT progression; NE without a Deauville score; CMR for a Deauville score of
+///   3 or less; PMR for 4–5 with an SPD at most half the baseline (the residual mass of a
+///   metabolic partial response); NE for 4–5 when the SPD is unknown; else SMD.
+///
+/// `nadir`: per target lesion, the smallest (product, longest diameter) so far.
+pub fn lugano_visit(
+    m: &[Ppd],
+    node: &[bool],
+    base_spd: f64,
+    nadir: &[(f64, f64)],
+    ntl: &[String],
+    new_les: bool,
+    deauville: Option<u8>,
+) -> (String, String, Option<f64>) {
+    let all_measured = m.iter().all(Option::is_some);
+    let spd: f64 = m.iter().flatten().map(|(l, s)| l * s).sum();
+    let lesion_pd = m.iter().zip(nadir).any(|(v, &(np, nl))| {
+        v.is_some_and(|(l, s)| l > 15.0 && l * s >= 1.5 * np && l - nl >= 5.0)
+    });
+    let ntl_pd = ntl.iter().any(|x| x == "UNEQUIVOCAL PROGRESSION");
+    let ct = if new_les || ntl_pd || lesion_pd {
+        "PD"
+    } else if !all_measured {
+        "NE"
+    } else if m.iter().zip(node).all(|(v, &n)| {
+        let l = v.map_or(0.0, |x| x.0);
+        if n { l <= 15.0 } else { l == 0.0 }
+    }) && ntl.iter().all(|x| x == "ABSENT")
+    {
+        "CR"
+    } else if spd <= 0.5 * base_spd {
+        "PR"
+    } else {
+        "SD"
+    };
+    let pet = match (ct, deauville) {
+        ("PD", _) => "PMD",
+        (_, None) => "NE",
+        (_, Some(d)) if d <= 3 => "CMR",
+        ("NE", Some(_)) => "NE",
+        (_, Some(_)) if spd <= 0.5 * base_spd => "PMR",
+        _ => "SMD",
+    };
+    (ct.to_string(), pet.to_string(), all_measured.then_some(spd))
+}
+
+/// Nodal and extranodal sites of lymphoma lesions.
+const LYMPHOMA_SITES: [&str; 4] = ["LYMPH NODE", "SPLEEN", "LIVER", "LUNG"];
+
+/// One subject's lymphoma course under Lugano 2014: up to 6 target lesions (mostly lymph
+/// nodes) measured by longest and perpendicular diameter, 0–3 non-target lesions, and an
+/// FDG-PET Deauville score at every assessment, with the same response classes and latent
+/// progression as the solid-tumour course.
+#[allow(clippy::too_many_arguments)]
+fn lymphoma_course(
+    design: &Design,
+    p: &OncologyParams,
+    s: &Subject,
+    class: Class,
+    onset: usize,
+    depth: f64,
+    sd_level: f64,
+    pd_days: f64,
+    end_day: f64,
+) -> TumorCourse {
+    let mut d = Draws::new(design.subject_stream(s.index).label("lymphoma"));
+    let lat = |d: &mut Draws, loc: &str| {
+        matches!(loc, "LYMPH NODE" | "LUNG")
+            .then(|| ["LEFT", "RIGHT"][d.below(2) as usize].to_string())
+    };
+    // Draw order is part of the output contract; append new draws at the end.
+    let n_tl = 1 + d.weighted(&[0.15, 0.2, 0.25, 0.2, 0.1, 0.1]);
+    let sites: Vec<&str> = (0..n_tl)
+        .map(|_| LYMPHOMA_SITES[d.weighted(&[0.8, 0.08, 0.07, 0.05])])
+        .collect();
+    let node: Vec<bool> = sites.iter().map(|l| *l == "LYMPH NODE").collect();
+    let base: Vec<(f64, f64)> = sites
+        .iter()
+        .map(|_| {
+            let l = d.lognormal(32.0, 0.35).round().clamp(16.0, 100.0);
+            let w = (l * d.uniform_range(0.5, 0.9)).round().max(10.0);
+            (l, w)
+        })
+        .collect();
+    let base_spd: f64 = base.iter().map(|(l, w)| l * w).sum();
+    let n_ntl = d.weighted(&[0.4, 0.35, 0.15, 0.1]);
+    let pd_type = match d.weighted(&[0.65, 0.2, 0.15]) {
+        0 => "TARGET",
+        2 if n_ntl > 0 => "NTL",
+        _ => "NEW",
+    };
+    let screening = s.screening;
+    let mut lesions = Vec::new();
+    for (k, loc) in sites.iter().enumerate() {
+        lesions.push(Lesion {
+            id: format!("T{:02}", k + 1),
+            kind: LesionKind::Target,
+            location: loc.to_string(),
+            laterality: lat(&mut d, loc),
+            node: node[k],
+            visitnum: 1,
+            date: screening,
+        });
+    }
+    for k in 0..n_ntl {
+        lesions.push(Lesion {
+            id: format!("NT{:02}", k + 1),
+            kind: LesionKind::NonTarget,
+            location: "LYMPH NODE".into(),
+            laterality: lat(&mut d, "LYMPH NODE"),
+            node: true,
+            visitnum: 1,
+            date: screening,
+        });
+    }
+    let tl_ids: Vec<String> = (1..=n_tl).map(|k| format!("T{k:02}")).collect();
+    let ntl_ids: Vec<String> = (1..=n_ntl).map(|k| format!("NT{k:02}")).collect();
+    let base_deauville = 4 + u8::from(d.uniform() < 0.6);
+    let mut assessments = vec![TumorAssessment {
+        visitnum: 1,
+        date: screening,
+        target: tl_ids
+            .iter()
+            .cloned()
+            .zip(base.iter().map(|b| Some(b.0)))
+            .collect(),
+        sum: Some(base_spd),
+        non_target: ntl_ids
+            .iter()
+            .map(|id| (id.clone(), "PRESENT".to_string()))
+            .collect(),
+        new_lesions: Vec::new(),
+        response: None,
+        perpendicular: tl_ids
+            .iter()
+            .cloned()
+            .zip(base.iter().map(|b| Some(b.1)))
+            .collect(),
+        deauville: Some(base_deauville),
+    }];
+    let mut nadir: Vec<(f64, f64)> = base.iter().map(|(l, w)| (l * w, *l)).collect();
+    let interval = p.assessment_interval_days;
+    let mut n_new = 0;
+    let mut progression = None;
+    for k in 1usize.. {
+        let jitter = d.normal(0.0, 3.0).round().clamp(-7.0, 7.0) as i32;
+        let t_k = interval * k as i32 + jitter;
+        if f64::from(t_k) > end_day {
+            break;
+        }
+        let pd_now = f64::from(t_k) >= pd_days;
+        let cr_now = class == Class::Cr && k > onset && !pd_now;
+        // Fractional change in each diameter (an area change of (1 + pc)²).
+        let pc = match class {
+            Class::Cr => {
+                if k < onset {
+                    -0.3
+                } else {
+                    -0.6
+                }
+            }
+            Class::Pr => {
+                if k < onset {
+                    (depth / 2.0).max(-0.3)
+                } else {
+                    depth
+                }
+            }
+            Class::Unconfirmed => {
+                if k == onset {
+                    -0.4
+                } else {
+                    -0.2
+                }
+            }
+            Class::Stable => sd_level * (k as f64 / 2.0).min(1.0) / 2.0,
+        } + d.normal(0.0, 0.03);
+        let noise: Vec<f64> = (0..n_tl).map(|_| d.normal(0.0, 0.04)).collect();
+        let node_cr: Vec<f64> = (0..n_tl).map(|_| d.int_range(6, 14) as f64).collect();
+        let u_ne = d.uniform();
+        let ne_pick = d.below(n_tl as u64) as usize;
+        let pd_pick = d.below(n_tl as u64) as usize;
+        let pd_factor = d.uniform_range(1.35, 1.6);
+        let ntl_pick = if n_ntl > 0 {
+            d.below(n_ntl as u64) as usize
+        } else {
+            0
+        };
+        let u_pet = d.uniform();
+        let u_pet_done = d.uniform();
+        let mut m: Vec<Ppd> = base
+            .iter()
+            .zip(&noise)
+            .map(|((l, w), e)| {
+                let f = ((1.0 + pc) * math::exp(*e)).max(0.05);
+                Some(((l * f).round(), (w * f).round().max(1.0)))
+            })
+            .collect();
+        if cr_now {
+            m = node
+                .iter()
+                .zip(&node_cr)
+                .map(|(&n, &v)| {
+                    Some(if n {
+                        (v, (v * 0.7).round())
+                    } else {
+                        (0.0, 0.0)
+                    })
+                })
+                .collect();
+        }
+        let mut new_les = false;
+        let mut ntl_state: Vec<String> =
+            vec![if cr_now { "ABSENT" } else { "PRESENT" }.to_string(); n_ntl];
+        if pd_now {
+            match pd_type {
+                "TARGET" => {
+                    // Grow one lesion well past its nadir.
+                    let (np, nl) = nadir[pd_pick];
+                    let l = (nl.max(16.0) * pd_factor).round().max(nl + 6.0).max(17.0);
+                    let w = ((np * pd_factor * pd_factor / l).round() + 1.0).max(10.0);
+                    m[pd_pick] = Some((l, w));
+                }
+                "NTL" => ntl_state[ntl_pick] = "UNEQUIVOCAL PROGRESSION".into(),
+                _ => new_les = true,
+            }
+        } else {
+            // No lesion-level progression before the latent time: cap growth below the rule.
+            for (v, &(np, nl)) in m.iter_mut().zip(&nadir) {
+                if let Some((l, w)) = v {
+                    if *l * *w >= 1.4 * np || *l - nl >= 5.0 {
+                        let cap = (nl + 4.0).min(*l);
+                        *w = (*w).min((1.4 * np / cap.max(1.0)).floor()).max(1.0);
+                        *l = cap;
+                    }
+                }
+            }
+        }
+        if !pd_now && u_ne < 0.04 {
+            m[ne_pick] = None;
+        }
+        let deauville = (u_pet_done >= 0.03).then(|| match (pd_now, class) {
+            (true, _) => 5,
+            (_, Class::Cr) if k > onset => 1 + (u_pet * 3.0) as u8,
+            (_, Class::Cr) | (_, Class::Pr) => 4,
+            (_, Class::Unconfirmed) if k == onset => 4,
+            _ => 4 + u8::from(u_pet < 0.5),
+        });
+        let (ct, pet, spd) =
+            lugano_visit(&m, &node, base_spd, &nadir, &ntl_state, new_les, deauville);
+        for (v, n) in m.iter().zip(nadir.iter_mut()) {
+            if let Some((l, w)) = v {
+                n.0 = n.0.min(l * w);
+                n.1 = n.1.min(*l);
+            }
+        }
+        let visitnum = k as i64 + 1;
+        let date = s.randomization.add_days(t_k);
+        let mut new_ids = Vec::new();
+        if new_les {
+            n_new += 1;
+            let id = format!("NEW{n_new:02}");
+            lesions.push(Lesion {
+                id: id.clone(),
+                kind: LesionKind::New,
+                location: "LYMPH NODE".into(),
+                laterality: lat(&mut d, "LYMPH NODE"),
+                node: true,
+                visitnum,
+                date,
+            });
+            new_ids.push(id);
+        }
+        let is_pd = pet == "PMD";
+        assessments.push(TumorAssessment {
+            visitnum,
+            date,
+            target: tl_ids
+                .iter()
+                .cloned()
+                .zip(m.iter().map(|v| v.map(|x| x.0)))
+                .collect(),
+            sum: spd,
+            non_target: ntl_ids.iter().cloned().zip(ntl_state).collect(),
+            new_lesions: new_ids,
+            response: Some((ct, None, pet)),
+            perpendicular: tl_ids
+                .iter()
+                .cloned()
+                .zip(m.iter().map(|v| v.map(|x| x.1)))
+                .collect(),
+            deauville,
+        });
+        if is_pd {
+            progression = Some(date);
+            break;
+        }
+    }
+    TumorCourse {
+        lesions,
+        assessments,
+        progression,
+    }
+}
+
+/// Whether a list of responses (date, overall) shows an objective response: confirmed CR/PR
+/// under RECIST 1.1 ([`confirmed_response`]), any CMR or PMR under Lugano (no confirmation).
+pub fn responded(criteria: Criteria, responses: &[(Date, &str)]) -> bool {
+    match criteria {
+        Criteria::Recist11 => confirmed_response(responses),
+        Criteria::Lugano => responses.iter().any(|(_, r)| matches!(*r, "CMR" | "PMR")),
     }
 }
 
@@ -497,14 +843,15 @@ pub fn simulate_one(design: &Design, p: &OncologyParams, s: &Subject) -> Timelin
     let rand = s.randomization;
     let first_dose_day = s.treatment_start.days_since(rand);
     let day = |t: f64| rand.add_days(t.floor().min(1e6) as i32);
-    let cutoff = design.cutoff;
+    let cutoff = p.data_cutoff.unwrap_or(design.cutoff);
     let death_latent = day(lat.os_days.max(f64::from(first_dose_day + 1)));
     let withdrawal_latent = (u_withdraw < p.withdrawal_prob).then(|| {
         day(p.withdrawal_window.0 + u_wd_time * (p.withdrawal_window.1 - p.withdrawal_window.0))
     });
-    let death = (death_latent <= cutoff && withdrawal_latent.is_none_or(|w| death_latent < w))
+    let mut death = (death_latent <= cutoff && withdrawal_latent.is_none_or(|w| death_latent < w))
         .then_some(death_latent);
-    let withdrawal = withdrawal_latent.filter(|&w| w <= cutoff && death.is_none_or(|dd| w < dd));
+    let mut withdrawal =
+        withdrawal_latent.filter(|&w| w <= cutoff && death.is_none_or(|dd| w < dd));
 
     // Scans stop at death, withdrawal or cutoff; progression only if it precedes death.
     let end = [Some(death_latent), withdrawal_latent, Some(cutoff)]
@@ -518,10 +865,43 @@ pub fn simulate_one(design: &Design, p: &OncologyParams, s: &Subject) -> Timelin
     } else {
         f64::INFINITY
     };
-    let tumor = tumor_course(
-        design, p, s, class, onset, depth, sd_level, pd_days, end_day,
-    );
+    let tumor = match p.criteria {
+        Criteria::Recist11 => tumor_course(
+            design, p, s, class, onset, depth, sd_level, pd_days, end_day,
+        ),
+        Criteria::Lugano => lymphoma_course(
+            design, p, s, class, onset, depth, sd_level, pd_days, end_day,
+        ),
+    };
     let progression = tumor.progression;
+
+    // Crossover on progression: switching changes the hazard of death from then on (Weibull
+    // proportional hazards on the same latent uniform), so the death time moves.
+    let mut crossover: Option<Date> = None;
+    if let (Some((prob, hr)), Some(pd), Some(_)) = (
+        p.crossover,
+        progression,
+        design.arms[s.arm].switch_to.as_ref(),
+    ) {
+        let mut x = Draws::new(design.subject_stream(s.index).label("crossover"));
+        let (u_switch, delay) = (x.uniform(), x.int_range(7, 28) as i32);
+        let date = pd.add_days(delay);
+        let alive = date < death_latent && withdrawal_latent.is_none_or(|w| date < w);
+        if u_switch < prob && alive && date <= cutoff {
+            let k = p.os_shape;
+            let tx = f64::from(date.days_since(rand));
+            let os = math::pow(
+                math::pow(tx, k) + (math::pow(lat.os_days, k) - math::pow(tx, k)) / hr,
+                1.0 / k,
+            );
+            let latent_death = day(os).max(date.add_days(1));
+            death = (latent_death <= cutoff && withdrawal_latent.is_none_or(|w| latent_death < w))
+                .then_some(latent_death);
+            withdrawal =
+                withdrawal_latent.filter(|&w| w <= cutoff && death.is_none_or(|dd| w < dd));
+            crossover = Some(date);
+        }
+    }
 
     let ae_latent = (u_ae < p.ae_stop_prob).then(|| {
         s.treatment_start.add_days(
@@ -546,6 +926,23 @@ pub fn simulate_one(design: &Design, p: &OncologyParams, s: &Subject) -> Timelin
         .take_while(|&dd| dd == s.treatment_start || dd < treatment_stop)
         .collect();
     let last_dose = *doses.last().expect("the first dose is always given");
+    // Switch-treatment doses from the crossover until death, withdrawal or the cutoff.
+    let switch_doses: Vec<Date> = crossover.map_or_else(Vec::new, |x| {
+        let stop = [death, withdrawal, Some(cutoff.add_days(1))]
+            .into_iter()
+            .flatten()
+            .min()
+            .expect("cutoff");
+        let cycle = design.arms[s.arm]
+            .switch_to
+            .as_ref()
+            .map_or(21, |t| t.0.cycle_days);
+        (0..p.max_cycles as i32)
+            .map(|k| x.add_days(k * cycle))
+            .take_while(|&dd| dd == x || dd < stop)
+            .collect()
+    });
+    let last_dose = switch_doses.last().copied().unwrap_or(last_dose);
     let last_scan = tumor.assessments.last().map_or(s.screening, |a| a.date);
     let stopped = stop_reason != TreatmentStop::Ongoing;
     let last_contact = death
@@ -560,14 +957,24 @@ pub fn simulate_one(design: &Design, p: &OncologyParams, s: &Subject) -> Timelin
         });
 
     let dose = design.arms[s.arm].treatment.dose;
+    let switch_dose = design.arms[s.arm]
+        .switch_to
+        .as_ref()
+        .map_or(dose, |t| t.0.dose);
     let exposure = doses
         .iter()
-        .map(|&dd| Exposure {
+        .map(|&dd| (dd, false))
+        .chain(switch_doses.iter().map(|&dd| (dd, true)))
+        .map(|(dd, switched)| Exposure {
             start: dd,
             end: dd,
-            dose,
+            dose: if switched { switch_dose } else { dose },
             time: None,
             period: None,
+            location: None,
+            group: None,
+            visitnum: None,
+            switched,
         })
         .collect();
     let first_dose = s.treatment_start;
@@ -588,12 +995,27 @@ pub fn simulate_one(design: &Design, p: &OncologyParams, s: &Subject) -> Timelin
             end: treatment_end,
         },
     ];
-    if last_contact > treatment_end {
-        elements.push(ElementSpan {
+    match crossover {
+        Some(x) => {
+            if x > treatment_end {
+                elements.push(ElementSpan {
+                    epoch: Epoch::FollowUp,
+                    start: treatment_end,
+                    end: x,
+                });
+            }
+            elements.push(ElementSpan {
+                epoch: Epoch::Continuation,
+                start: x,
+                end: last_contact,
+            });
+        }
+        None if last_contact > treatment_end => elements.push(ElementSpan {
             epoch: Epoch::FollowUp,
             start: treatment_end,
             end: last_contact,
-        });
+        }),
+        None => {}
     }
     let mut disposition = vec![
         DispositionEvent {
@@ -660,6 +1082,9 @@ pub fn simulate_one(design: &Design, p: &OncologyParams, s: &Subject) -> Timelin
         tumor: tumor.assessments,
         pk: Vec::new(),
         clinical_events: Vec::new(),
+        study_eye: None,
+        birth_date: None,
+        diaries: Vec::new(),
     }
 }
 
