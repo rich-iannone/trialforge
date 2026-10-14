@@ -8,24 +8,39 @@ pub mod cns;
 pub mod crossover;
 pub mod cv;
 pub mod dose_ranging;
+pub mod escalation;
+pub mod lymphoma;
 pub mod oncology;
+pub mod ophthalmology;
 pub mod parallel;
+pub mod pediatric;
 pub mod phase1;
+pub mod respiratory;
+pub mod vaccine;
 
 use serde::Serialize;
 use serde_json::Value;
 use trialforge_model::Design;
 use trialforge_processes::adas::AdasParams;
+use trialforge_processes::escalation::{EscalationParams, Trace};
+use trialforge_processes::exacerbation::ExacerbationParams;
 use trialforge_processes::fixed::CourseParams;
+use trialforge_processes::growth::GrowthParams;
 use trialforge_processes::oncology::OncologyParams;
+use trialforge_processes::ophtha::OphthaParams;
 use trialforge_processes::outcomes::OutcomesParams;
 use trialforge_processes::pk::PkParams;
+use trialforge_processes::vaccine::VaccineParams;
 
 /// The archetypes this build knows, with one-line descriptions.
 pub const ARCHETYPES: &[(&str, &str)] = &[
     (
         "parallel_continuous",
         "Randomised, double-blind, placebo-controlled parallel study with a continuous endpoint (HbA1c, SBP or weight)",
+    ),
+    (
+        "heme_lymphoma",
+        "Randomised study in relapsed or refractory DLBCL: Lugano 2014 CT and PET-CT responses (TU, TR, RS), ADRS, PFS and OS",
     ),
     (
         "oncology_solid_tumor",
@@ -44,12 +59,32 @@ pub const ARCHETYPES: &[(&str, &str)] = &[
         "Event-driven cardiovascular outcomes trial: recurrent MI and stroke, CV and non-CV death, time to first MACE",
     ),
     (
+        "dose_escalation",
+        "Phase 1 dose escalation in advanced solid tumours (3+3, BOIN or mTPI-2): DLTs in SUPPAE, DLT-evaluable population, MTD",
+    ),
+    (
         "dose_ranging_ph2",
         "Phase 2 dose-ranging study (placebo + several doses) with a sigmoid Emax dose-response",
     ),
     (
+        "ophthalmology",
+        "Active-controlled non-inferiority study of intravitreal Drug A in neovascular AMD: study and fellow eye BCVA and retinal thickness (OE)",
+    ),
+    (
+        "pediatric_growth",
+        "Active-controlled study of once-weekly Drug A vs daily somatropin in children with growth hormone deficiency: height velocity, CDC growth z-scores",
+    ),
+    (
         "phase1_sad_mad",
         "First-in-human single or multiple ascending dose study in healthy volunteers, with intensive PK and NCA",
+    ),
+    (
+        "vaccine",
+        "Placebo-controlled vaccine study: neutralising antibody titres (IS), 7-day reactogenicity diaries (CE, FACE), ADIS/ADCE/ADFACE",
+    ),
+    (
+        "respiratory_exacerbation",
+        "Placebo-controlled COPD study: moderate and severe exacerbations (CE, negative binomial rate ratio) and trough FEV1 (RE)",
     ),
 ];
 
@@ -120,6 +155,16 @@ pub enum Course {
     Adas(CourseParams, AdasParams),
     /// An event-driven outcomes course.
     Outcomes(OutcomesParams),
+    /// A fixed-duration course with ophthalmic examinations and intravitreal injections.
+    Ophtha(CourseParams, OphthaParams),
+    /// A fixed-duration paediatric course with growth measurements.
+    Growth(CourseParams, GrowthParams),
+    /// A fixed-duration respiratory course with exacerbations and lung function.
+    Exacerbation(CourseParams, ExacerbationParams),
+    /// A fixed-duration vaccine course: vaccinations, reactogenicity and immunogenicity.
+    Vaccine(CourseParams, VaccineParams),
+    /// A dose-escalation course: the cohorts the design treated and their DLTs.
+    Escalation(CourseParams, EscalationParams, Trace),
 }
 
 /// A resolved study: design, course parameters and the controls actually used.
@@ -202,9 +247,33 @@ pub fn control_docs(archetype: &str) -> Result<Vec<ControlDoc>, ResolveError> {
             crossover::docs(),
             serde_json::to_value(crossover::Controls::default()),
         ),
+        "ophthalmology" => (
+            ophthalmology::docs(),
+            serde_json::to_value(ophthalmology::Controls::default()),
+        ),
+        "pediatric_growth" => (
+            pediatric::docs(),
+            serde_json::to_value(pediatric::Controls::default()),
+        ),
         "phase1_sad_mad" => (
             phase1::docs(),
             serde_json::to_value(phase1::Controls::default()),
+        ),
+        "heme_lymphoma" => (
+            lymphoma::docs(),
+            serde_json::to_value(lymphoma::Controls::default()),
+        ),
+        "dose_escalation" => (
+            escalation::docs(),
+            serde_json::to_value(escalation::Controls::default()),
+        ),
+        "vaccine" => (
+            vaccine::docs(),
+            serde_json::to_value(vaccine::Controls::default()),
+        ),
+        "respiratory_exacerbation" => (
+            respiratory::docs(),
+            serde_json::to_value(respiratory::Controls::default()),
         ),
         other => return Err(unknown(other)),
     };
@@ -278,6 +347,26 @@ pub fn resolve(archetype: &str, opts: &StudyOptions) -> Result<Resolved, Resolve
                 controls: json,
             })
         }
+        "ophthalmology" => {
+            let (c, json) = controls::<ophthalmology::Controls>(&opts.controls)?;
+            ophthalmology::validate(&c).map_err(ResolveError)?;
+            let (design, course, ophtha) = ophthalmology::resolve(opts, &c);
+            Ok(Resolved {
+                design,
+                course: Course::Ophtha(course, ophtha),
+                controls: json,
+            })
+        }
+        "pediatric_growth" => {
+            let (c, json) = controls::<pediatric::Controls>(&opts.controls)?;
+            pediatric::validate(&c).map_err(ResolveError)?;
+            let (design, course, growth) = pediatric::resolve(opts, &c);
+            Ok(Resolved {
+                design,
+                course: Course::Growth(course, growth),
+                controls: json,
+            })
+        }
         "phase1_sad_mad" => {
             let (c, json) = controls::<phase1::Controls>(&opts.controls)?;
             phase1::validate(&c).map_err(ResolveError)?;
@@ -285,6 +374,46 @@ pub fn resolve(archetype: &str, opts: &StudyOptions) -> Result<Resolved, Resolve
             Ok(Resolved {
                 design,
                 course: Course::Pk(course, pk),
+                controls: json,
+            })
+        }
+        "heme_lymphoma" => {
+            let (c, json) = controls::<lymphoma::Controls>(&opts.controls)?;
+            oncology::validate(&c.0).map_err(ResolveError)?;
+            let (design, params, calibration) = lymphoma::resolve(opts, &c);
+            Ok(Resolved {
+                design,
+                course: Course::Oncology(params, calibration),
+                controls: json,
+            })
+        }
+        "dose_escalation" => {
+            let (c, json) = controls::<escalation::Controls>(&opts.controls)?;
+            escalation::validate(&c, opts.n).map_err(ResolveError)?;
+            let (design, course, p, trace) = escalation::resolve(opts, &c);
+            Ok(Resolved {
+                design,
+                course: Course::Escalation(course, p, trace),
+                controls: json,
+            })
+        }
+        "vaccine" => {
+            let (c, json) = controls::<vaccine::Controls>(&opts.controls)?;
+            vaccine::validate(&c).map_err(ResolveError)?;
+            let (design, course, p) = vaccine::resolve(opts, &c);
+            Ok(Resolved {
+                design,
+                course: Course::Vaccine(course, p),
+                controls: json,
+            })
+        }
+        "respiratory_exacerbation" => {
+            let (c, json) = controls::<respiratory::Controls>(&opts.controls)?;
+            respiratory::validate(&c).map_err(ResolveError)?;
+            let (design, course, p) = respiratory::resolve(opts, &c);
+            Ok(Resolved {
+                design,
+                course: Course::Exacerbation(course, p),
                 controls: json,
             })
         }
