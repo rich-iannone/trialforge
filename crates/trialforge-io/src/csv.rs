@@ -49,6 +49,11 @@ pub fn to_string(dataset: &Dataset) -> String {
                         out.push_str(&x.to_string());
                     }
                 }
+                Values::DateTime(v) => {
+                    if let Some(x) = v[i] {
+                        out.push_str(&x.to_string());
+                    }
+                }
             }
         }
         out.push('\n');
