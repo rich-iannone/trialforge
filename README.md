@@ -13,26 +13,119 @@ data in both languages.
 > ADaM (ADSL, ADAE, ADLB, ADVS; ADRS, ADTTE, ADTR; ADPC, ADPP; ADADAS), written as XPT v5, CSV, Dataset-JSON 1.1 or
 > Parquet, with a Define-XML 2.1 `define.xml` for each standard.
 
+In Python, datasets come back as Polars DataFrames (`output="pandas"` or `output="pyarrow"` in
+`tf.study()` returns those types instead):
+
 ```python
+import polars as pl
 import trialforge as tf
 
 trial = tf.study("parallel_continuous", n=300, seed=1, indication="hypertension", weeks=12)
-advs = trial.adam["ADVS"]                # a Polars DataFrame
-dm = trial.sdtm["DM"]                    # SDTM datasets too
-# output="pandas" or output="pyarrow" in tf.study() returns those types instead
-trial.truth["endpoint"]                  # target vs realised treatment effect
+
+trial.sdtm["DM"].select("USUBJID", "AGE", "SEX", "RACE", "ARM", "RFSTDTC").head(5)
+```
+
+```text
+shape: (5, 6)
+┌─────────────────┬─────┬─────┬───────┬──────────────┬────────────┐
+│ USUBJID         ┆ AGE ┆ SEX ┆ RACE  ┆ ARM          ┆ RFSTDTC    │
+│ ---             ┆ --- ┆ --- ┆ ---   ┆ ---          ┆ ---        │
+│ str             ┆ i64 ┆ str ┆ str   ┆ str          ┆ str        │
+╞═════════════════╪═════╪═════╪═══════╪══════════════╪════════════╡
+│ SIMPAR01-201001 ┆ 63  ┆ F   ┆ WHITE ┆ Drug A 10 mg ┆ 2024-03-01 │
+│ SIMPAR01-201002 ┆ 56  ┆ M   ┆ WHITE ┆ Drug A 10 mg ┆ 2024-03-13 │
+│ SIMPAR01-201003 ┆ 65  ┆ F   ┆ WHITE ┆ Placebo      ┆ 2024-03-20 │
+│ SIMPAR01-201004 ┆ 48  ┆ F   ┆ WHITE ┆ Drug A 10 mg ┆ 2024-03-21 │
+│ SIMPAR01-201005 ┆ 64  ┆ M   ┆ WHITE ┆ Placebo      ┆ 2024-03-31 │
+└─────────────────┴─────┴─────┴───────┴──────────────┴────────────┘
+```
+
+ADaM datasets are derived from the SDTM. Here is one subject's systolic blood pressure in ADVS:
+
+```python
+advs = trial.adam["ADVS"]
+advs.filter(pl.col("PARAMCD") == "SYSBP", pl.col("USUBJID") == "SIMPAR01-201001").select(
+    "USUBJID", "TRTP", "AVISIT", "AVAL", "BASE", "CHG"
+)
+```
+
+```text
+shape: (7, 6)
+┌─────────────────┬──────────────┬───────────┬───────┬───────┬───────┐
+│ USUBJID         ┆ TRTP         ┆ AVISIT    ┆ AVAL  ┆ BASE  ┆ CHG   │
+│ ---             ┆ ---          ┆ ---       ┆ ---   ┆ ---   ┆ ---   │
+│ str             ┆ str          ┆ str       ┆ f64   ┆ f64   ┆ f64   │
+╞═════════════════╪══════════════╪═══════════╪═══════╪═══════╪═══════╡
+│ SIMPAR01-201001 ┆ Drug A 10 mg ┆ SCREENING ┆ 145.0 ┆ 145.0 ┆ null  │
+│ SIMPAR01-201001 ┆ Drug A 10 mg ┆ BASELINE  ┆ 145.0 ┆ 145.0 ┆ null  │
+│ SIMPAR01-201001 ┆ Drug A 10 mg ┆ WEEK 2    ┆ 138.0 ┆ 145.0 ┆ -7.0  │
+│ SIMPAR01-201001 ┆ Drug A 10 mg ┆ WEEK 4    ┆ 122.0 ┆ 145.0 ┆ -23.0 │
+│ SIMPAR01-201001 ┆ Drug A 10 mg ┆ WEEK 8    ┆ 116.0 ┆ 145.0 ┆ -29.0 │
+│ SIMPAR01-201001 ┆ Drug A 10 mg ┆ WEEK 12   ┆ 137.0 ┆ 145.0 ┆ -8.0  │
+│ SIMPAR01-201001 ┆ Drug A 10 mg ┆ FOLLOW-UP ┆ 130.0 ┆ 145.0 ┆ -15.0 │
+└─────────────────┴──────────────┴───────────┴───────┴───────┴───────┘
+```
+
+The truth manifest records what the study was built to show and what it realised:
+
+```python
+e = trial.truth["endpoint"]
+{k: e[k] for k in ("target_difference", "realised_difference")}
+```
+
+```text
+{'target_difference': -8.0, 'realised_difference': -7.2283}
+```
+
+```python
 trial.write_submission("out/")           # sdtm/ and adam/: XPT + define.xml
 trial.verify(level=3)                    # + Pointblank's SDTMIG conformance rules
 tf.controls("parallel_continuous")       # every control, with its default
 ```
 
+In R, datasets are data frames with variable labels, so they convert directly to tibbles. The
+same spec and seed give the same subjects:
+
 ```r
 library(trialforge)
+library(dplyr)
 
 trial <- study("parallel_continuous", n = 300, seed = 1, indication = "hypertension", weeks = 12)
-advs <- tibble::as_tibble(trial$adam$ADVS)  # a tibble (datasets are data frames with labels)
-dm <- tibble::as_tibble(trial$sdtm$DM)
-trial$truth$endpoint
+
+as_tibble(trial$sdtm$DM) |>
+  select(USUBJID, AGE, SEX, RACE, ARM, RFSTDTC) |>
+  print(n = 5)
+```
+
+```text
+# A tibble: 300 × 6
+  USUBJID           AGE SEX   RACE  ARM          RFSTDTC
+  <chr>           <int> <chr> <chr> <chr>        <chr>
+1 SIMPAR01-201001    63 F     WHITE Drug A 10 mg 2024-03-01
+2 SIMPAR01-201002    56 M     WHITE Drug A 10 mg 2024-03-13
+3 SIMPAR01-201003    65 F     WHITE Placebo      2024-03-20
+4 SIMPAR01-201004    48 F     WHITE Drug A 10 mg 2024-03-21
+5 SIMPAR01-201005    64 M     WHITE Placebo      2024-03-31
+# ℹ 295 more rows
+```
+
+Mean change from baseline in systolic blood pressure at week 12, by treatment:
+
+```r
+as_tibble(trial$adam$ADVS) |>
+  filter(PARAMCD == "SYSBP", AVISIT == "WEEK 12", ANL01FL == "Y") |>
+  summarise(n = n(), mean_chg = round(mean(CHG), 1), .by = TRTP)
+```
+
+```text
+# A tibble: 2 × 3
+  TRTP             n mean_chg
+  <chr>        <int>    <dbl>
+1 Drug A 10 mg   147    -13
+2 Placebo        145     -5.7
+```
+
+```r
 write_submission(trial, "out/")
 ```
 
@@ -80,7 +173,11 @@ CIs, confirmed response rates) next to the targets.
 
 ```python
 trial = tf.study("oncology_solid_tumor", n=400, seed=1, os_hr=0.7, orr=[0.4, 0.2])
-trial.truth["overall_survival"]["stratified_cox_hr"]   # {'hr': ..., 'ci95': [..., ...]}
+trial.truth["overall_survival"]["stratified_cox_hr"]
+```
+
+```text
+{'ci95': [0.4684, 0.8295], 'comparison': 'Drug A vs Control', 'hr': 0.6233}
 ```
 
 Coding uses open dictionaries: MedDRA System Organ Class names with common Preferred Terms (no
