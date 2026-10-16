@@ -13,6 +13,33 @@ data in both languages.
 > ADaM (ADSL, ADAE, ADLB, ADVS; ADRS, ADTTE, ADTR; ADPC, ADPP; ADADAS), written as XPT v5, CSV, Dataset-JSON 1.1 or
 > Parquet, with a Define-XML 2.1 `define.xml` for each standard.
 
+## Installation
+
+trialforge is not on PyPI or CRAN yet. Both packages install from GitHub and compile the Rust
+core from source, so you need a Rust toolchain (≥ 1.85; [rustup](https://rustup.rs) is the
+easiest way to get one). The first build takes a few minutes.
+
+Python (≥ 3.10):
+
+```bash
+pip install "trialforge[pl] @ git+https://github.com/rich-iannone/trialforge#subdirectory=bindings/python"
+```
+
+The `pl` extra installs Polars, the default output backend; use `pd` for pandas or `pa` for
+PyArrow instead. With uv, use `uv pip install` or `uv add` with the same requirement.
+
+R (≥ 4.2):
+
+```r
+# install.packages("remotes")
+remotes::install_github("rich-iannone/trialforge", subdir = "bindings/r", build = FALSE)
+```
+
+`build = FALSE` matters: the R package compiles the engine crates from elsewhere in the
+repository, and building a source tarball first would leave them behind.
+
+## Usage
+
 In Python, datasets come back as Polars DataFrames (`output="pandas"` or `output="pyarrow"` in
 `tf.study()` returns those types instead):
 
