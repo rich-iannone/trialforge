@@ -344,7 +344,7 @@ impl Design {
                     "every cohort needs valid arms and a positive enrollment window".into(),
                 );
             }
-        } else if self.block_size == 0 || self.block_size % ratio_sum != 0 {
+        } else if self.block_size == 0 || !self.block_size.is_multiple_of(ratio_sum) {
             return err(format!(
                 "block size {} is not a multiple of the summed arm ratios ({ratio_sum})",
                 self.block_size
