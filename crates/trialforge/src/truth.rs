@@ -774,13 +774,14 @@ fn adas_truth(r: &Resolved, p: &trialforge_processes::adas::AdasParams, adam: &[
         if ablfl[i].as_deref() == Some("Y") {
             bases.extend(base[i]);
         }
-        if anl[i].as_deref() == Some("Y") && avn[i] == Some(last) {
-            if let (Some(t), Some(c)) = (trt[i].clone(), chg[i]) {
-                if dtype.is_none_or(|x| x[i].is_none()) {
-                    observed.entry(t.clone()).or_default().push(c);
-                }
-                by.entry(t).or_default().push(c);
+        if anl[i].as_deref() == Some("Y")
+            && avn[i] == Some(last)
+            && let (Some(t), Some(c)) = (trt[i].clone(), chg[i])
+        {
+            if dtype.is_none_or(|x| x[i].is_none()) {
+                observed.entry(t.clone()).or_default().push(c);
             }
+            by.entry(t).or_default().push(c);
         }
     }
     let realised: BTreeMap<String, Value> = by
@@ -885,10 +886,12 @@ fn ophtha_truth(
     };
     let mut groups: BTreeMap<String, Vec<f64>> = BTreeMap::new();
     for i in 0..d.n_rows() {
-        if pc[i].as_deref() == Some("SBCVA") && anl[i].as_deref() == Some("Y") && avn[i] == eot {
-            if let (Some(a), Some(c)) = (&trt[i], chg[i]) {
-                groups.entry(a.clone()).or_default().push(c);
-            }
+        if pc[i].as_deref() == Some("SBCVA")
+            && anl[i].as_deref() == Some("Y")
+            && avn[i] == eot
+            && let (Some(a), Some(c)) = (&trt[i], chg[i])
+        {
+            groups.entry(a.clone()).or_default().push(c);
         }
     }
     let realised: BTreeMap<&String, Value> = groups
@@ -946,10 +949,12 @@ fn growth_truth(
     let collect = |param: &str, values: &[Option<f64>]| {
         let mut groups: BTreeMap<String, Vec<f64>> = BTreeMap::new();
         for i in 0..d.n_rows() {
-            if pc[i].as_deref() == Some(param) && anl[i].as_deref() == Some("Y") && avn[i] == eot {
-                if let (Some(a), Some(v)) = (&trt[i], values[i]) {
-                    groups.entry(a.clone()).or_default().push(v);
-                }
+            if pc[i].as_deref() == Some(param)
+                && anl[i].as_deref() == Some("Y")
+                && avn[i] == eot
+                && let (Some(a), Some(v)) = (&trt[i], values[i])
+            {
+                groups.entry(a.clone()).or_default().push(v);
             }
         }
         groups
@@ -1090,10 +1095,9 @@ fn exacerbation_truth(
                 if pc[i].as_deref() == Some("FEV1")
                     && anl[i].as_deref() == Some("Y")
                     && avn[i] == eot
+                    && let (Some(a), Some(v)) = (&trt[i], chg[i])
                 {
-                    if let (Some(a), Some(v)) = (&trt[i], chg[i]) {
-                        groups.entry(a.clone()).or_default().push(v);
-                    }
+                    groups.entry(a.clone()).or_default().push(v);
                 }
             }
             out["fev1_change"] = json!(
@@ -1137,32 +1141,33 @@ fn vaccine_truth(
                 .find(|v| v.kind == trialforge_model::VisitKind::EndOfTreatment)
         })
         .map(|v| v.visitnum as f64);
-    if let Some(d) = adam.iter().find(|d| d.name == "ADIS") {
-        if let (Some(pn), Some(trt), Some(avn), Some(aval), Some(ratio)) = (
+    if let Some(d) = adam.iter().find(|d| d.name == "ADIS")
+        && let (Some(pn), Some(trt), Some(avn), Some(aval), Some(ratio)) = (
             nums(d, "PARAMN"),
             chars(d, "TRTP"),
             nums(d, "AVISITN"),
             nums(d, "AVAL"),
             nums(d, "R2BASE"),
-        ) {
-            let mut logs: BTreeMap<String, Vec<f64>> = BTreeMap::new();
-            let mut conv: BTreeMap<String, Vec<f64>> = BTreeMap::new();
-            for i in 0..d.n_rows() {
-                let (Some(a), true) = (&trt[i], avn[i] == eot) else {
-                    continue;
-                };
-                match (pn[i], aval[i], ratio[i]) {
-                    (Some(1.0), Some(v), _) if v > 0.0 => {
-                        logs.entry(a.clone()).or_default().push(math::ln(v))
-                    }
-                    (Some(21.0), _, Some(q)) => conv
-                        .entry(a.clone())
-                        .or_default()
-                        .push(f64::from(u8::from(q >= 4.0))),
-                    _ => {}
+        )
+    {
+        let mut logs: BTreeMap<String, Vec<f64>> = BTreeMap::new();
+        let mut conv: BTreeMap<String, Vec<f64>> = BTreeMap::new();
+        for i in 0..d.n_rows() {
+            let (Some(a), true) = (&trt[i], avn[i] == eot) else {
+                continue;
+            };
+            match (pn[i], aval[i], ratio[i]) {
+                (Some(1.0), Some(v), _) if v > 0.0 => {
+                    logs.entry(a.clone()).or_default().push(math::ln(v))
                 }
+                (Some(21.0), _, Some(q)) => conv
+                    .entry(a.clone())
+                    .or_default()
+                    .push(f64::from(u8::from(q >= 4.0))),
+                _ => {}
             }
-            out["realised"] = json!(arms
+        }
+        out["realised"] = json!(arms
                 .iter()
                 .filter_map(|a| {
                     let l = logs.get(a)?;
@@ -1170,62 +1175,60 @@ fn vaccine_truth(
                     Some((a.clone(), json!({"gmt": mean(l).map(|m| round4(math::exp(m))), "seroconversion": c, "n": l.len()})))
                 })
                 .collect::<BTreeMap<_, _>>());
-            if let (Some(a), Some(b)) = (
-                arms.first().and_then(|a| logs.get(a)),
-                arms.last().and_then(|a| logs.get(a)),
-            ) {
-                if a.len() > 1 && b.len() > 1 {
-                    let stats = |xs: &[f64]| {
-                        let n = xs.len() as f64;
-                        let m = xs.iter().sum::<f64>() / n;
-                        (n, m, xs.iter().map(|x| (x - m) * (x - m)).sum::<f64>())
-                    };
-                    let ((n1, m1, s1), (n2, m2, s2)) = (stats(a), stats(b));
-                    let df = n1 + n2 - 2.0;
-                    let se = math::sqrt((s1 + s2) / df * (1.0 / n1 + 1.0 / n2));
-                    let t = t_quantile(0.975, df);
-                    out["gmt_ratio"] = json!({
-                        "comparison": format!("{} / {}", arms.last().expect("checked"), arms.first().expect("checked")),
-                        "estimate": round4(math::exp(m2 - m1)),
-                        "ci95": [round4(math::exp(m2 - m1 - t * se)), round4(math::exp(m2 - m1 + t * se))],
-                    });
-                }
-            }
+        if let (Some(a), Some(b)) = (
+            arms.first().and_then(|a| logs.get(a)),
+            arms.last().and_then(|a| logs.get(a)),
+        ) && a.len() > 1
+            && b.len() > 1
+        {
+            let stats = |xs: &[f64]| {
+                let n = xs.len() as f64;
+                let m = xs.iter().sum::<f64>() / n;
+                (n, m, xs.iter().map(|x| (x - m) * (x - m)).sum::<f64>())
+            };
+            let ((n1, m1, s1), (n2, m2, s2)) = (stats(a), stats(b));
+            let df = n1 + n2 - 2.0;
+            let se = math::sqrt((s1 + s2) / df * (1.0 / n1 + 1.0 / n2));
+            let t = t_quantile(0.975, df);
+            out["gmt_ratio"] = json!({
+                "comparison": format!("{} / {}", arms.last().expect("checked"), arms.first().expect("checked")),
+                "estimate": round4(math::exp(m2 - m1)),
+                "ci95": [round4(math::exp(m2 - m1 - t * se)), round4(math::exp(m2 - m1 + t * se))],
+            });
         }
     }
-    if let Some(d) = adam.iter().find(|d| d.name == "ADFACE") {
-        if let (Some(u), Some(trt), Some(cat), Some(rf), Some(ev)) = (
+    if let Some(d) = adam.iter().find(|d| d.name == "ADFACE")
+        && let (Some(u), Some(trt), Some(cat), Some(rf), Some(ev)) = (
             chars(d, "USUBJID"),
             chars(d, "TRTP"),
             chars(d, "PARCAT2"),
             chars(d, "ATPTREF"),
             chars(d, "EVENTFL"),
-        ) {
-            // (arm, vaccination, category) → subject → any event.
-            let mut any: BTreeMap<(String, String, String), BTreeMap<String, bool>> =
-                BTreeMap::new();
-            for i in 0..d.n_rows() {
-                let (Some(x), Some(a), Some(c), Some(v)) = (&u[i], &trt[i], &cat[i], &rf[i]) else {
-                    continue;
-                };
-                let e = any
-                    .entry((a.clone(), v.clone(), c.to_ascii_lowercase()))
-                    .or_default()
-                    .entry(x.clone())
-                    .or_insert(false);
-                *e |= ev[i].as_deref() == Some("Y");
-            }
-            let mut rates: BTreeMap<String, BTreeMap<String, BTreeMap<String, Value>>> =
-                BTreeMap::new();
-            for ((a, v, c), subj) in any {
-                let k = subj.values().filter(|x| **x).count();
-                rates.entry(a).or_default().entry(v).or_default().insert(
+        )
+    {
+        // (arm, vaccination, category) → subject → any event.
+        let mut any: BTreeMap<(String, String, String), BTreeMap<String, bool>> = BTreeMap::new();
+        for i in 0..d.n_rows() {
+            let (Some(x), Some(a), Some(c), Some(v)) = (&u[i], &trt[i], &cat[i], &rf[i]) else {
+                continue;
+            };
+            let e = any
+                .entry((a.clone(), v.clone(), c.to_ascii_lowercase()))
+                .or_default()
+                .entry(x.clone())
+                .or_insert(false);
+            *e |= ev[i].as_deref() == Some("Y");
+        }
+        let mut rates: BTreeMap<String, BTreeMap<String, BTreeMap<String, Value>>> =
+            BTreeMap::new();
+        for ((a, v, c), subj) in any {
+            let k = subj.values().filter(|x| **x).count();
+            rates.entry(a).or_default().entry(v).or_default().insert(
                     c,
                     json!({"subjects": subj.len(), "with_reaction": k, "proportion": round4(k as f64 / subj.len() as f64)}),
                 );
-            }
-            out["reactogenicity"] = json!(rates);
         }
+        out["reactogenicity"] = json!(rates);
     }
     out
 }
@@ -1249,33 +1252,33 @@ fn escalation_truth(
         .min_by(|a, b| (a.1 - p.target).abs().total_cmp(&(b.1 - p.target).abs()))
         .map(|(k, _)| arms[k].clone());
     let mut per: BTreeMap<String, (usize, usize, usize)> = BTreeMap::new(); // (treated, evaluable, with DLT)
-    if let Some(sl) = adam.iter().find(|d| d.name == "ADSL") {
-        if let (Some(u), Some(trt), Some(ev)) = (
+    if let Some(sl) = adam.iter().find(|d| d.name == "ADSL")
+        && let (Some(u), Some(trt), Some(ev)) = (
             chars(sl, "USUBJID"),
             chars(sl, "TRT01A"),
             chars(sl, "DLTEVLFL"),
-        ) {
-            let mut dlt: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
-            if let Some(ae) = adam.iter().find(|d| d.name == "ADAE") {
-                if let (Some(au), Some(fl)) = (chars(ae, "USUBJID"), chars(ae, "DLTFL")) {
-                    for i in 0..ae.n_rows() {
-                        if fl[i].as_deref() == Some("Y") {
-                            if let Some(x) = &au[i] {
-                                dlt.insert(x.clone());
-                            }
-                        }
-                    }
+        )
+    {
+        let mut dlt: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+        if let Some(ae) = adam.iter().find(|d| d.name == "ADAE")
+            && let (Some(au), Some(fl)) = (chars(ae, "USUBJID"), chars(ae, "DLTFL"))
+        {
+            for i in 0..ae.n_rows() {
+                if fl[i].as_deref() == Some("Y")
+                    && let Some(x) = &au[i]
+                {
+                    dlt.insert(x.clone());
                 }
             }
-            for i in 0..sl.n_rows() {
-                let (Some(x), Some(a)) = (&u[i], &trt[i]) else {
-                    continue;
-                };
-                let e = per.entry(a.clone()).or_default();
-                e.0 += 1;
-                e.1 += usize::from(ev[i].as_deref() == Some("Y"));
-                e.2 += usize::from(dlt.contains(x));
-            }
+        }
+        for i in 0..sl.n_rows() {
+            let (Some(x), Some(a)) = (&u[i], &trt[i]) else {
+                continue;
+            };
+            let e = per.entry(a.clone()).or_default();
+            e.0 += 1;
+            e.1 += usize::from(ev[i].as_deref() == Some("Y"));
+            e.2 += usize::from(dlt.contains(x));
         }
     }
     let mut d = trialforge_core::Draws::new(r.design.stream().label("operating-characteristics"));
