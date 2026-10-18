@@ -458,18 +458,18 @@ fn simulate_one(design: &Design, schedule: &Schedule, p: &CourseParams, s: &Subj
             ..SeriousCriteria::default()
         });
         let mut treated = false;
-        if let Some(ind) = reference::indication(&a.pt, TreatmentKind::Acute) {
-            if a.u_treat < (ind.p_treat * [0.7, 1.2, 1.5][sev_i]).min(1.0) {
-                treated = true;
-                let w: Vec<f64> = ind.ingredients.iter().map(|(_, w)| *w).collect();
-                let pick = pick_weighted(&w, a.u_med);
-                acute_meds.push(Medication {
-                    ingredient: ind.ingredients[pick].0.clone(),
-                    indication: a.pt.clone(),
-                    start: a.start.to_string(),
-                    end,
-                });
-            }
+        if let Some(ind) = reference::indication(&a.pt, TreatmentKind::Acute)
+            && a.u_treat < (ind.p_treat * [0.7, 1.2, 1.5][sev_i]).min(1.0)
+        {
+            treated = true;
+            let w: Vec<f64> = ind.ingredients.iter().map(|(_, w)| *w).collect();
+            let pick = pick_weighted(&w, a.u_med);
+            acute_meds.push(Medication {
+                ingredient: ind.ingredients[pick].0.clone(),
+                indication: a.pt.clone(),
+                start: a.start.to_string(),
+                end,
+            });
         }
         adverse_events.push(AdverseEvent {
             pt: a.pt.clone(),
@@ -533,14 +533,15 @@ fn simulate_one(design: &Design, schedule: &Schedule, p: &CourseParams, s: &Subj
             });
         }
     }
-    if let (Some(fu), Some(fd)) = (fu_visit, fu_date) {
-        if early.is_none() && death.is_none() {
-            visits.push(VisitOccurrence {
-                visitnum: fu.visitnum,
-                date: fd,
-                end: None,
-            });
-        }
+    if let (Some(fu), Some(fd)) = (fu_visit, fu_date)
+        && early.is_none()
+        && death.is_none()
+    {
+        visits.push(VisitOccurrence {
+            visitnum: fu.visitnum,
+            date: fd,
+            end: None,
+        });
     }
     let et_visit = schedule
         .visits
@@ -692,21 +693,21 @@ fn exposure_intervals(
     while d <= last {
         let interrupted = interruptions.iter().any(|(a, b)| *a <= d && d <= *b);
         let split_here = splits.contains(&d);
-        if let Some(st) = start {
-            if interrupted || split_here {
-                out.push(Exposure {
-                    start: st,
-                    end: d.add_days(-1),
-                    dose,
-                    time: None,
-                    period: None,
-                    location: None,
-                    group: None,
-                    visitnum: None,
-                    switched: false,
-                });
-                start = None;
-            }
+        if let Some(st) = start
+            && (interrupted || split_here)
+        {
+            out.push(Exposure {
+                start: st,
+                end: d.add_days(-1),
+                dose,
+                time: None,
+                period: None,
+                location: None,
+                group: None,
+                visitnum: None,
+                switched: false,
+            });
+            start = None;
         }
         if !interrupted && start.is_none() {
             start = Some(d);
