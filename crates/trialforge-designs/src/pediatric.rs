@@ -125,7 +125,7 @@ pub(crate) fn docs() -> Vec<ControlDoc> {
 }
 
 pub(crate) fn validate(c: &Controls) -> Result<(), String> {
-    if !(26..=104).contains(&c.weeks) || c.weeks % 13 != 0 {
+    if !(26..=104).contains(&c.weeks) || !c.weeks.is_multiple_of(13) {
         return Err("`weeks` must be a multiple of 13 between 26 and 104".into());
     }
     if c.age_range[0] < 3 || c.age_range[1] > 15 || c.age_range[0] > c.age_range[1] {
