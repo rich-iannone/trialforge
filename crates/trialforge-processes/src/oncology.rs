@@ -714,12 +714,12 @@ fn lymphoma_course(
         } else {
             // No lesion-level progression before the latent time: cap growth below the rule.
             for (v, &(np, nl)) in m.iter_mut().zip(&nadir) {
-                if let Some((l, w)) = v {
-                    if *l * *w >= 1.4 * np || *l - nl >= 5.0 {
-                        let cap = (nl + 4.0).min(*l);
-                        *w = (*w).min((1.4 * np / cap.max(1.0)).floor()).max(1.0);
-                        *l = cap;
-                    }
+                if let Some((l, w)) = v
+                    && (*l * *w >= 1.4 * np || *l - nl >= 5.0)
+                {
+                    let cap = (nl + 4.0).min(*l);
+                    *w = (*w).min((1.4 * np / cap.max(1.0)).floor()).max(1.0);
+                    *l = cap;
                 }
             }
         }
