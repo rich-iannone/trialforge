@@ -175,14 +175,14 @@ pub fn nca(t: &Timeline, tau: f64, single_doses: bool) -> Vec<(DateTime, Vec<Par
         let mut conc: Vec<f64> = Vec::new();
         // After the first dose, the previous dose's τ sample (taken just before this dose) is
         // this profile's pre-dose concentration at time 0.
-        if k > 0 && !single_doses {
-            if let Some(trough) = by_ref
+        if k > 0
+            && !single_doses
+            && let Some(trough) = by_ref
                 .get(&doses[k - 1].0)
                 .and_then(|prev| prev.iter().find(|x| x.tptnum == tau))
-            {
-                time.push(0.0);
-                conc.push(trough.conc.unwrap_or(0.0));
-            }
+        {
+            time.push(0.0);
+            conc.push(trough.conc.unwrap_or(0.0));
         }
         time.extend(
             samples
