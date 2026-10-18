@@ -74,15 +74,15 @@ fn adsl(sdtm: &[Dataset], adam: &[Dataset], r: &mut Report) {
     ) {
         for i in 0..ds.n() {
             let Some(x) = u[i].as_deref() else { continue };
-            if d[i].as_deref() == Some("RANDOMIZED") {
-                if let Some(dd) = dt[i] {
-                    rand.insert(x, dd);
-                }
+            if d[i].as_deref() == Some("RANDOMIZED")
+                && let Some(dd) = dt[i]
+            {
+                rand.insert(x, dd);
             }
-            if s[i].as_deref() == Some("END OF STUDY") {
-                if let Some(dd) = d[i].as_deref() {
-                    eos.insert(x, dd);
-                }
+            if s[i].as_deref() == Some("END OF STUDY")
+                && let Some(dd) = d[i].as_deref()
+            {
+                eos.insert(x, dd);
             }
         }
     }
@@ -131,17 +131,17 @@ fn adsl(sdtm: &[Dataset], adam: &[Dataset], r: &mut Report) {
                 );
             }
         }
-        if let Some(f) = saffl {
-            if f[i].as_deref() != Some(if sp.is_some() { "Y" } else { "N" }) {
-                r.add(
-                    L,
-                    "L2.ADSL",
-                    "ADSL",
-                    Some("SAFFL"),
-                    Some(i),
-                    "SAFFL does not match EX".into(),
-                );
-            }
+        if let Some(f) = saffl
+            && f[i].as_deref() != Some(if sp.is_some() { "Y" } else { "N" })
+        {
+            r.add(
+                L,
+                "L2.ADSL",
+                "ADSL",
+                Some("SAFFL"),
+                Some(i),
+                "SAFFL does not match EX".into(),
+            );
         }
         if rdt.as_ref().map(|v| v[i]) != Some(rand.get(x).copied()) {
             r.add(
@@ -448,19 +448,18 @@ fn basic(b: &T<'_>, s: &T<'_>, src: &str, adam: &[Dataset], r: &mut Report) {
                     "CHG does not equal AVAL - BASE".into(),
                 );
             }
-            if anl[i].as_deref() == Some("Y") {
-                if let Some(v) = avn[i] {
-                    if let Some(prev) = anl_seen.insert((x, p, v as i64), i) {
-                        r.add(
-                            L,
-                            "L2.BDS",
-                            &name,
-                            Some("ANL01FL"),
-                            Some(i),
-                            format!("second ANL01FL record (first at row {})", prev + 1),
-                        );
-                    }
-                }
+            if anl[i].as_deref() == Some("Y")
+                && let Some(v) = avn[i]
+                && let Some(prev) = anl_seen.insert((x, p, v as i64), i)
+            {
+                r.add(
+                    L,
+                    "L2.BDS",
+                    &name,
+                    Some("ANL01FL"),
+                    Some(i),
+                    format!("second ANL01FL record (first at row {})", prev + 1),
+                );
             }
         }
     }
