@@ -11,7 +11,7 @@ exclude = ["bindings/r/src/rust"]
 [workspace.package]
 version = "0.1.0"
 edition = "2024"
-rust-version = "1.85"
+rust-version = "1.88"
 license = "MIT"
 repository = "https://github.com/rich-iannone/trialforge"
 authors = ["Richard Iannone <riannone@me.com>"]
