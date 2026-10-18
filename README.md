@@ -18,7 +18,7 @@ data in both languages.
 ## Installation
 
 trialforge is not on PyPI or CRAN yet. Both packages install from GitHub and compile the Rust
-core from source, so you need a Rust toolchain (≥ 1.85; [rustup](https://rustup.rs) is the
+core from source, so you need a Rust toolchain (≥ 1.88; [rustup](https://rustup.rs) is the
 easiest way to get one). The first build takes a few minutes.
 
 Python (≥ 3.10):
@@ -225,7 +225,7 @@ planned.
 
 ## Development
 
-Requirements: Rust ≥ 1.85, [uv](https://docs.astral.sh/uv/), and R ≥ 4.2 with `devtools` and
+Requirements: Rust ≥ 1.88, [uv](https://docs.astral.sh/uv/), and R ≥ 4.2 with `devtools` and
 `rextendr`.
 
 ```bash
