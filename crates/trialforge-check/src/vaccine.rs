@@ -134,10 +134,10 @@ fn adis(sdtm: &[Dataset], adam: &[Dataset], r: &mut Report) {
         let (Some(x), Some(p), Some(q)) = (au[i].as_deref(), pc[i].as_deref(), sseq[i]) else {
             continue;
         };
-        if src.get(&(x, q)).is_some_and(|s| s.2) {
-            if let Some(a) = aval[i] {
-                baselines.insert((x, p), a);
-            }
+        if src.get(&(x, q)).is_some_and(|s| s.2)
+            && let Some(a) = aval[i]
+        {
+            baselines.insert((x, p), a);
         }
     }
     let mut seen = 0;
@@ -361,24 +361,24 @@ fn adface(sdtm: &[Dataset], adam: &[Dataset], r: &mut Report) {
     }
     // Fever per diary temperature: (subject, vaccination, day) → occurred.
     let mut fever: HashMap<(&str, &str, i64), bool> = HashMap::new();
-    if let Some(vs) = get(sdtm, "VS") {
-        if let (Some(u), Some(c), Some(v), Some(rf), Some(tp)) = (
+    if let Some(vs) = get(sdtm, "VS")
+        && let (Some(u), Some(c), Some(v), Some(rf), Some(tp)) = (
             vs.c("USUBJID"),
             vs.c("VSCAT"),
             vs.f("VSSTRESN"),
             vs.c("VSTPTREF"),
             vs.i("VSTPTNUM"),
-        ) {
-            for i in 0..vs.n() {
-                if let (Some(x), Some("REACTOGENICITY"), Some(t), Some(rf), Some(tp)) = (
-                    u[i].as_deref(),
-                    c[i].as_deref(),
-                    v[i],
-                    rf[i].as_deref(),
-                    tp[i],
-                ) {
-                    fever.insert((x, rf, tp), t >= 38.0);
-                }
+        )
+    {
+        for i in 0..vs.n() {
+            if let (Some(x), Some("REACTOGENICITY"), Some(t), Some(rf), Some(tp)) = (
+                u[i].as_deref(),
+                c[i].as_deref(),
+                v[i],
+                rf[i].as_deref(),
+                tp[i],
+            ) {
+                fever.insert((x, rf, tp), t >= 38.0);
             }
         }
     }
