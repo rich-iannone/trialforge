@@ -106,6 +106,9 @@ extra <- bind_rows(
     summarise(REF = REF[K == N], PPSTRESN = PPSTRESN[K == N] / PPSTRESN[K == 1], .groups = "drop") |>
     mutate(PPTESTCD = c(AUCTAU = "ARAUC", CMAX = "ARCMAX")[PPTESTCD])
 )
+# Adaptation (also in crates/trialforge-sdtm/src/pk.rs): a ratio with a zero denominator (an
+# all-BLQ interval) is Inf here and left out of PP, which can't hold it.
+extra <- extra |> filter(is.finite(PPSTRESN))
 pknca <- bind_rows(res |> select(USUBJID, REF, PPTESTCD, PPSTRESN), extra |> select(USUBJID, REF, PPTESTCD, PPSTRESN))
 
 ours <- pp |> mutate(REF = dtm(PPRFTDTC)) |> select(USUBJID, REF, PPTESTCD, OURS = PPSTRESN)
