@@ -121,10 +121,10 @@ pub fn simulate(
             let Some(day) = schedule.visit(v.visitnum).and_then(|pv| pv.day) else {
                 continue;
             };
-            if let Some(k) = p.vaccination_days.iter().position(|&x| x == day) {
-                if v.date <= last {
-                    vaccinations.push((k as u8 + 1, v.visitnum, v.date));
-                }
+            if let Some(k) = p.vaccination_days.iter().position(|&x| x == day)
+                && v.date <= last
+            {
+                vaccinations.push((k as u8 + 1, v.visitnum, v.date));
             }
         }
         if vaccinations.is_empty() {
