@@ -1,0 +1,3 @@
+# Check out text files with LF on every platform: the TSV assets are compiled in with
+# include_str!, and CRLF on Windows would change the generated data (and the goldens).
+* text=auto eol=lf
