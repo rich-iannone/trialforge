@@ -53,7 +53,7 @@ rs-check: ## Rust gate: rustfmt check, clippy (warnings are errors), tests
 
 .PHONY: py-install
 py-install: .venv ## Build the extension and install the Python package (editable) into .venv
-	uv pip install --python "$(PYTHON)" "maturin>=1.8,<2" pytest ruff pyright polars pandas pyarrow pyreadstat pointblank greenwood lxml xmlschema odmlib
+	uv pip install --python "$(PYTHON)" "maturin>=1.8,<2" pytest ruff pyright polars pandas pyarrow pyreadstat "pointblank>=1.1.1" greenwood lxml xmlschema odmlib
 	cd $(PY_DIR) && VIRTUAL_ENV=$(CURDIR)/.venv $(CURDIR)/.venv/bin/maturin develop --uv
 
 .PHONY: py-test
