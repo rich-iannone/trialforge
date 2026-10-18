@@ -153,17 +153,17 @@ fn start_end(t: &T<'_>, r: &mut Report) {
         return;
     };
     for i in 0..t.n() {
-        if let (Some(a), Some(b)) = (st[i], en[i]) {
-            if b < a {
-                r.add(
-                    L,
-                    "L1.ORDER",
-                    p,
-                    Some(&e),
-                    Some(i),
-                    format!("{e} is before {s}"),
-                );
-            }
+        if let (Some(a), Some(b)) = (st[i], en[i])
+            && b < a
+        {
+            r.add(
+                L,
+                "L1.ORDER",
+                p,
+                Some(&e),
+                Some(i),
+                format!("{e} is before {s}"),
+            );
         }
     }
 }
@@ -234,17 +234,17 @@ fn exposure(sdtm: &[Dataset], refs: &HashMap<&str, Ref>, r: &mut Report) {
         let e = span.entry(x).or_insert((a, b));
         e.0 = e.0.min(a);
         e.1 = e.1.max(b);
-        if let Some(rf) = refs.get(x) {
-            if rf.rfxst.is_some_and(|s| a < s) || rf.rfxen.is_some_and(|f| b > f) {
-                r.add(
-                    L,
-                    "L1.EXPO",
-                    "EX",
-                    None,
-                    Some(i),
-                    "exposure outside RFXSTDTC..RFXENDTC".into(),
-                );
-            }
+        if let Some(rf) = refs.get(x)
+            && (rf.rfxst.is_some_and(|s| a < s) || rf.rfxen.is_some_and(|f| b > f))
+        {
+            r.add(
+                L,
+                "L1.EXPO",
+                "EX",
+                None,
+                Some(i),
+                "exposure outside RFXSTDTC..RFXENDTC".into(),
+            );
         }
     }
     for (x, rf) in refs {
@@ -285,17 +285,17 @@ fn visits(sdtm: &[Dataset], r: &mut Report) {
         .collect();
     // SV visit spans (start, end), for matching findings.
     let mut sv_dates: HashMap<(&str, i64), (Date, Date)> = HashMap::new();
-    if let Some(sv) = get(sdtm, "SV") {
-        if let (Some(u), Some(n), Some(d), Some(e)) = (
+    if let Some(sv) = get(sdtm, "SV")
+        && let (Some(u), Some(n), Some(d), Some(e)) = (
             sv.c("USUBJID"),
             sv.i("VISITNUM"),
             sv.d("SVSTDTC"),
             sv.d("SVENDTC"),
-        ) {
-            for i in 0..sv.n() {
-                if let (Some(u), Some(n), Some(d)) = (u[i].as_deref(), n[i], d[i]) {
-                    sv_dates.insert((u, n), (d, e[i].unwrap_or(d)));
-                }
+        )
+    {
+        for i in 0..sv.n() {
+            if let (Some(u), Some(n), Some(d)) = (u[i].as_deref(), n[i], d[i]) {
+                sv_dates.insert((u, n), (d, e[i].unwrap_or(d)));
             }
         }
     }
@@ -511,17 +511,17 @@ fn baseline_flags(sdtm: &[Dataset], refs: &HashMap<&str, Ref>, r: &mut Report) {
                     "more than one baseline record per test".into(),
                 );
             }
-            if let (Some(dd), Some(rf)) = (d[i], refs.get(x).and_then(|r| r.rfxst)) {
-                if dd > rf {
-                    r.add(
-                        L,
-                        "L1.LOBXFL",
-                        name,
-                        Some(&fl),
-                        Some(i),
-                        "baseline record is after first exposure".into(),
-                    );
-                }
+            if let (Some(dd), Some(rf)) = (d[i], refs.get(x).and_then(|r| r.rfxst))
+                && dd > rf
+            {
+                r.add(
+                    L,
+                    "L1.LOBXFL",
+                    name,
+                    Some(&fl),
+                    Some(i),
+                    "baseline record is after first exposure".into(),
+                );
             }
         }
     }
