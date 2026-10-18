@@ -214,13 +214,14 @@ mod nca {
     }
 
     /// AUC over [0, end] with the concentration at `end` interpolated (lin up/log down) when
-    /// `end` falls before the last measurable concentration, and 0 after it.
+    /// `end` falls before the last measurable concentration, and 0 after it. With nothing
+    /// measurable the AUC is 0, as in PKNCA (`aucint.last` of an all-BLQ interval).
     pub fn auc_to(pts: &[Pt], end: f64) -> Option<f64> {
-        let (tl, _) = last(pts)?;
+        let tl = last(pts).map(|(t, _)| t);
         let mut kept: Vec<Pt> = pts.iter().copied().filter(|p| p.0 < end).collect();
         let at = if let Some(p) = pts.iter().find(|p| p.0 == end) {
             p.1
-        } else if end < tl {
+        } else if tl.is_some_and(|tl| end < tl) {
             let i = pts.iter().rposition(|p| p.0 < end)?;
             let (a, b) = (pts[i], pts[i + 1]);
             if b.1 < a.1 && b.1 > 0.0 {
@@ -319,6 +320,7 @@ fn expected_pp(sdtm: &[Dataset]) -> HashMap<(String, DateTime, String), f64> {
             let lz = nca::lambda_z(&pts);
             if single {
                 let (tmax, cmax) = nca::cmax(&pts).unzip();
+                let cmax = cmax.or((!pts.is_empty()).then_some(0.0));
                 let (tlast, clast) = nca::last(&pts).unzip();
                 let auclast = nca::auc(&pts, false);
                 let inf = lz.zip(auclast).zip(clast).map(|((l, a), c)| a + c / l.0);
@@ -340,7 +342,9 @@ fn expected_pp(sdtm: &[Dataset]) -> HashMap<(String, DateTime, String), f64> {
                 put("AUCIFOD", inf.map(|i| i / dose));
             } else if k == 0 || k + 1 == n {
                 let window: Vec<Pt> = pts.iter().copied().filter(|p| p.0 <= tau).collect();
+                // An all-BLQ window has Cmax 0 and no Tmax (PKNCA).
                 let (tmax, cmax) = nca::cmax(&window).unzip();
+                let cmax = cmax.or((!window.is_empty()).then_some(0.0));
                 let auctau = nca::auc_to(&pts, tau);
                 put("CMAX", cmax);
                 put("TMAX", tmax);
@@ -348,14 +352,17 @@ fn expected_pp(sdtm: &[Dataset]) -> HashMap<(String, DateTime, String), f64> {
                 if k == 0 {
                     first = auctau.zip(cmax);
                 } else {
-                    put("CLFTAU", auctau.map(|a| dose * 1000.0 / a));
+                    put(
+                        "CLFTAU",
+                        auctau.filter(|a| *a > 0.0).map(|a| dose * 1000.0 / a),
+                    );
                     put("LAMZ", lz.map(|l| l.0));
                     put("LAMZHL", lz.map(|l| std::f64::consts::LN_2 / l.0));
                     put("LAMZNPT", lz.map(|l| l.2 as f64));
                     put("R2ADJ", lz.map(|l| l.1));
                     if let (Some((a1, c1)), Some(a), Some(c)) = (first, auctau, cmax) {
-                        put("ARAUC", Some(a / a1));
-                        put("ARCMAX", Some(c / c1));
+                        put("ARAUC", (a1 > 0.0).then(|| a / a1));
+                        put("ARCMAX", (c1 > 0.0).then(|| c / c1));
                     }
                 }
             }
