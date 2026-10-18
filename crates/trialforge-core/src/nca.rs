@@ -168,21 +168,21 @@ impl Profile {
                 conc.push(*c);
             }
         }
-        if end.is_finite() {
-            if let Some(c_end) = self.conc_at(end, kind) {
-                let keep: Vec<bool> = time.iter().map(|t| *t != end).collect();
-                let (mut t2, mut c2) = (Vec::new(), Vec::new());
-                for i in 0..time.len() {
-                    if keep[i] {
-                        t2.push(time[i]);
-                        c2.push(conc[i]);
-                    }
+        if end.is_finite()
+            && let Some(c_end) = self.conc_at(end, kind)
+        {
+            let keep: Vec<bool> = time.iter().map(|t| *t != end).collect();
+            let (mut t2, mut c2) = (Vec::new(), Vec::new());
+            for i in 0..time.len() {
+                if keep[i] {
+                    t2.push(time[i]);
+                    c2.push(conc[i]);
                 }
-                t2.push(end);
-                c2.push(c_end);
-                time = t2;
-                conc = c2;
             }
+            t2.push(end);
+            c2.push(c_end);
+            time = t2;
+            conc = c2;
         }
         let (time, conc): (Vec<f64>, Vec<f64>) = time
             .into_iter()
