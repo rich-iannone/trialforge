@@ -58,17 +58,17 @@ pub(crate) fn run(sdtm: &[Dataset], adam: &[Dataset], r: &mut Report) {
         return;
     };
     for i in 0..dm.n() {
-        if let (Some(b), Some(c), Some(a)) = (birth[i], consent[i], age[i]) {
-            if completed_years(b, c) != a {
-                r.add(
-                    Level::L1,
-                    "L1.AGE",
-                    "DM",
-                    Some("AGE"),
-                    Some(i),
-                    format!("{:?}: AGE {a} is not the age at RFICDTC", du[i]),
-                );
-            }
+        if let (Some(b), Some(c), Some(a)) = (birth[i], consent[i], age[i])
+            && completed_years(b, c) != a
+        {
+            r.add(
+                Level::L1,
+                "L1.AGE",
+                "DM",
+                Some("AGE"),
+                Some(i),
+                format!("{:?}: AGE {a} is not the age at RFICDTC", du[i]),
+            );
         }
     }
     let (Some(vs), Some(sl), Some(ad)) = (get(sdtm, "VS"), get(adam, "ADSL"), get(adam, "ADVS"))
