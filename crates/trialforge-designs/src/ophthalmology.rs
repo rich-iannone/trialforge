@@ -129,7 +129,7 @@ pub(crate) fn docs() -> Vec<ControlDoc> {
 }
 
 pub(crate) fn validate(c: &Controls) -> Result<(), String> {
-    if !(12..=104).contains(&c.weeks) || c.weeks % 4 != 0 {
+    if !(12..=104).contains(&c.weeks) || !c.weeks.is_multiple_of(4) {
         return Err("`weeks` must be a multiple of 4 between 12 and 104".into());
     }
     if !(c.dose.is_finite()
