@@ -270,10 +270,10 @@ fn overall_responses<'a>(
         if test[i].as_deref() != Some("OVRLRESP") || eval[i].as_deref() != Some("INVESTIGATOR") {
             continue;
         }
-        if let Some(sc) = scat {
-            if sc[i].as_deref() != Some("PET-CT") {
-                continue;
-            }
+        if let Some(sc) = scat
+            && sc[i].as_deref() != Some("PET-CT")
+        {
+            continue;
         }
         let (Some(x), Some(v), Some(d)) = (u[i].as_deref(), res[i].as_deref(), dtc[i]) else {
             continue;
