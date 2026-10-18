@@ -41,12 +41,18 @@ def test_cox_hazard_ratio_matches_greenwood(trial: tf.Study, paramcd: str, key: 
     assert ci == pytest.approx(truth["ci95"], abs=1e-4)
 
 
+def _km_median(fit: Any) -> float:
+    """The median survival time: a float in greenwood 0.8.0, a table after it."""
+    median = fit.median()
+    return float(median) if isinstance(median, (int, float)) else float(median["time"][0])
+
+
 @pytest.mark.parametrize(("paramcd", "key"), ENDPOINTS)
 def test_km_medians_match_greenwood(trial: tf.Study, paramcd: str, key: str) -> None:
     t = trial.adam["ADTTE"].filter(pl.col("PARAMCD") == paramcd)
     for arm, summary in trial.truth[key]["by_arm"].items():
         a = t.filter(pl.col("TRT01P") == arm)
-        median = gw.KaplanMeier().fit(_surv(a)).median()["time"][0]
+        median = _km_median(gw.KaplanMeier().fit(_surv(a)))
         assert summary["n"] == a.height
         assert summary["events"] == int((a["CNSR"] == 0).sum())
         assert summary["km_median_months"] == pytest.approx(median / DAYS_PER_MONTH, abs=1e-4)
