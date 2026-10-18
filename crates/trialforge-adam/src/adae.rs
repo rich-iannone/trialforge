@@ -156,10 +156,9 @@ pub fn adae(
                 qnam[i].as_deref(),
                 idvarval[i].as_deref(),
                 qval[i].as_deref(),
-            ) {
-                if let Ok(seq) = v.parse::<i64>() {
-                    dlt.insert((x, seq), q);
-                }
+            ) && let Ok(seq) = v.parse::<i64>()
+            {
+                dlt.insert((x, seq), q);
             }
         }
         if !dlt.is_empty() {
