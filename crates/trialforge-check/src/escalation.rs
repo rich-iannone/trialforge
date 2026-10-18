@@ -32,10 +32,9 @@ pub(crate) fn run(sdtm: &[Dataset], adam: &[Dataset], r: &mut Report) {
             q[i].as_deref(),
             idv[i].as_deref(),
             val[i].as_deref(),
-        ) {
-            if let Ok(seq) = v.parse() {
-                dlt.insert((x, seq), f);
-            }
+        ) && let Ok(seq) = v.parse()
+        {
+            dlt.insert((x, seq), f);
         }
     }
     if dlt.is_empty() {
@@ -90,20 +89,20 @@ pub(crate) fn run(sdtm: &[Dataset], adam: &[Dataset], r: &mut Report) {
             None => {}
         }
     }
-    if let Some(ad) = get(adam, "ADAE") {
-        if let (Some(u), Some(s), Some(fl)) = (ad.c("USUBJID"), ad.i("AESEQ"), ad.c("DLTFL")) {
-            for i in 0..ad.n() {
-                let want = u[i].as_deref().zip(s[i]).and_then(|k| dlt.get(&k).copied());
-                if fl[i].as_deref() != want {
-                    r.add(
-                        Level::L2,
-                        "L2.DLT",
-                        "ADAE",
-                        Some("DLTFL"),
-                        Some(i),
-                        format!("DLTFL should be {want:?}"),
-                    );
-                }
+    if let Some(ad) = get(adam, "ADAE")
+        && let (Some(u), Some(s), Some(fl)) = (ad.c("USUBJID"), ad.i("AESEQ"), ad.c("DLTFL"))
+    {
+        for i in 0..ad.n() {
+            let want = u[i].as_deref().zip(s[i]).and_then(|k| dlt.get(&k).copied());
+            if fl[i].as_deref() != want {
+                r.add(
+                    Level::L2,
+                    "L2.DLT",
+                    "ADAE",
+                    Some("DLTFL"),
+                    Some(i),
+                    format!("DLTFL should be {want:?}"),
+                );
             }
         }
     }
