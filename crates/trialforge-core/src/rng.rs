@@ -56,7 +56,7 @@ impl Stream {
     pub fn rng(self) -> ChaCha8Rng {
         let mut state = self.key;
         let mut seed = [0u8; 32];
-        for chunk in seed.chunks_exact_mut(8) {
+        for chunk in seed.as_chunks_mut::<8>().0 {
             state = state.wrapping_add(GOLDEN_GAMMA);
             chunk.copy_from_slice(&mix64(state).to_le_bytes());
         }
