@@ -364,10 +364,11 @@ fn dlt_evaluable(
             sup.chars("QVAL")?,
         );
         for i in 0..sup.n() {
-            if q[i].as_deref() == Some("AEDLT") && v[i].as_deref() == Some("Y") {
-                if let Some(x) = &u[i] {
-                    dlt.insert(x.clone());
-                }
+            if q[i].as_deref() == Some("AEDLT")
+                && v[i].as_deref() == Some("Y")
+                && let Some(x) = &u[i]
+            {
+                dlt.insert(x.clone());
             }
         }
     }
