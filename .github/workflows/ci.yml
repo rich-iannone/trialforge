@@ -1,0 +1,92 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  rust:
+    name: Rust (fmt, clippy, tests)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: rustfmt
+        run: |
+          cargo fmt --all --check
+          cargo fmt --manifest-path bindings/r/src/rust/Cargo.toml --check
+      - name: clippy
+        run: |
+          cargo clippy --workspace --exclude trialforge-python --all-targets --all-features -- -D warnings
+          cargo clippy -p trialforge-python -- -D warnings
+      - name: tests
+        run: cargo test --workspace --exclude trialforge-python --all-features
+
+  msrv:
+    name: Rust MSRV (1.88)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.88"
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo check --workspace --exclude trialforge-python --all-targets --all-features
+
+  python:
+    name: Python ${{ matrix.python }} (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest, python: "3.10" }
+          - { os: ubuntu-latest, python: "3.12", lint: true }
+          - { os: ubuntu-latest, python: "3.14" }
+          - { os: windows-latest, python: "3.12" }
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: python
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ matrix.python }}
+          activate-environment: true
+      - name: Install build and test dependencies
+        run: >
+          uv pip install "maturin>=1.8,<2" pytest ruff pyright polars pandas pyarrow pyreadstat
+          "pointblank>=1.1.1" greenwood lxml xmlschema odmlib
+      # Test the wheel users get (abi3), not an editable build.
+      - name: Build and install the wheel
+        run: |
+          maturin build --release -m bindings/python/Cargo.toml -o dist
+          uv pip install dist/*.whl
+      - name: ruff and pyright
+        if: matrix.lint
+        working-directory: bindings/python
+        run: |
+          python -m ruff format --check
+          python -m ruff check
+          python -m pyright
+      # Includes the conformance goldens (spec/conformance/), which pin byte-identical output
+      # across platforms.
+      - name: pytest
+        working-directory: bindings/python
+        run: python -m pytest
