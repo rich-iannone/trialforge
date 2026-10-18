@@ -7,6 +7,10 @@
 //! - the first of several doses: Cmax, Tmax and AUCτ;
 //! - the last of several doses: the same plus CL/F over τ, λz and the accumulation ratios.
 //!
+//! A profile with every sample BLQ has Cmax 0 and AUCs of 0, as in PKNCA. Ratios with a zero
+//! denominator (CL/F over τ, the accumulation ratios) are left out: PKNCA gives `Inf`, which
+//! PP can't hold.
+//!
 //! Doses in between have trough samples only. A profile after the first dose takes the
 //! previous dose's τ sample (drawn just before this dose) as its pre-dose value at time 0.
 
@@ -265,7 +269,7 @@ pub fn nca(t: &Timeline, tau: f64, single_doses: bool) -> Vec<(DateTime, Vec<Par
                 push("AUCTAU", auctau, Some("h*ng/mL"), Some((0.0, tau)));
                 push(
                     "CLFTAU",
-                    auctau.map(|a| dose * 1000.0 / a),
+                    auctau.filter(|a| *a > 0.0).map(|a| dose * 1000.0 / a),
                     Some("L/h"),
                     Some((0.0, tau)),
                 );
@@ -274,8 +278,9 @@ pub fn nca(t: &Timeline, tau: f64, single_doses: bool) -> Vec<(DateTime, Vec<Par
                 push("LAMZNPT", hl.map(|h| h.n_points as f64), None, None);
                 push("R2ADJ", hl.map(|h| h.adj_r_squared), None, None);
                 if let (Some((a1, c1)), Some(a), Some(c)) = (first_tau, auctau, cmax) {
-                    push("ARAUC", Some(a / a1), None, Some((0.0, tau)));
-                    push("ARCMAX", Some(c / c1), None, Some((0.0, tau)));
+                    let ratio = |x: f64, first: f64| (first > 0.0).then(|| x / first);
+                    push("ARAUC", ratio(a, a1), None, Some((0.0, tau)));
+                    push("ARCMAX", ratio(c, c1), None, Some((0.0, tau)));
                 }
             }
         } else if k == 0 {
