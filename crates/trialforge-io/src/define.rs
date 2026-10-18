@@ -461,10 +461,10 @@ pub fn to_string(datasets: &[Dataset], info: &DefineInfo<'_>) -> Result<String, 
         ) {
             let mut items: Vec<(String, String)> = Vec::new();
             for (a, b) in pc.iter().zip(param) {
-                if let (Some(a), Some(b)) = (a, b) {
-                    if !items.iter().any(|(x, _)| x == a) {
-                        items.push((a.clone(), b.clone()));
-                    }
+                if let (Some(a), Some(b)) = (a, b)
+                    && !items.iter().any(|(x, _)| x == a)
+                {
+                    items.push((a.clone(), b.clone()));
                 }
             }
             paramcd_lists.push((d.name.clone(), items));
