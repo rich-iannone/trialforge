@@ -29,7 +29,7 @@ pl = ["polars>=1.0"]
 pd = ["pandas>=2.0", "pyarrow>=14"]
 pa = ["pyarrow>=14"]
 # Verification levels 3–4 and the TLF pack.
-verify = ["pointblank", "greenwood"]
+verify = ["pointblank>=1.1.1", "greenwood"]
 tables = ["great-tables"]
 dev = [
     "maturin>=1.8,<2",
@@ -40,7 +40,7 @@ dev = [
     "pandas>=2.0",
     "pyarrow>=14",
     "pyreadstat>=1.2",
-    "pointblank",
+    "pointblank>=1.1.1",
     "greenwood",
     "lxml",
     "xmlschema",
