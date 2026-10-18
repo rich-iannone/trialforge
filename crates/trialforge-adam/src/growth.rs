@@ -52,17 +52,16 @@ pub(crate) fn indicator(measure: Measure, sex: &str, age_days: i64, x: f64) -> O
     let z = (math::pow(x / p.m, p.l) - 1.0) / (p.l * p.s);
     let mut pctl = math::norm_cdf(z) * 100.0;
     let mut sds = z;
-    if measure == Measure::Bmi {
-        if let (Some(p95), Some(sigma)) = (p.p95, p.sigma) {
-            if x >= p95 {
-                pctl = 90.0 + 10.0 * math::norm_cdf((x - p95) / sigma);
-                sds = if pctl >= 100.0 {
-                    8.21
-                } else {
-                    math::norm_inv(pctl / 100.0)
-                };
-            }
-        }
+    if measure == Measure::Bmi
+        && let (Some(p95), Some(sigma)) = (p.p95, p.sigma)
+        && x >= p95
+    {
+        pctl = 90.0 + 10.0 * math::norm_cdf((x - p95) / sigma);
+        sds = if pctl >= 100.0 {
+            8.21
+        } else {
+            math::norm_inv(pctl / 100.0)
+        };
     }
     Some((sds, pctl))
 }
