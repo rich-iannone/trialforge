@@ -521,10 +521,10 @@ pub(crate) fn validate(c: &Controls) -> Result<(), String> {
     if !(c.dose.is_finite() && c.dose > 0.0) {
         return Err("`dose` must be positive".into());
     }
-    if let Some(ch) = c.change {
-        if !ch.iter().all(|x| x.is_finite()) {
-            return Err("`change` must be finite".into());
-        }
+    if let Some(ch) = c.change
+        && !ch.iter().all(|x| x.is_finite())
+    {
+        return Err("`change` must be finite".into());
     }
     let p = |x: f64| x.is_finite() && (0.0..=1.0).contains(&x);
     if !(c.dropout_rate.is_finite() && c.dropout_rate >= 0.0 && c.dropout_rate <= 5.0) {
