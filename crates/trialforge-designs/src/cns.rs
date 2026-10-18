@@ -90,7 +90,7 @@ pub(crate) fn docs() -> Vec<ControlDoc> {
 }
 
 pub(crate) fn validate(c: &Controls) -> Result<(), String> {
-    if !(8..=104).contains(&c.weeks) || c.weeks % 8 != 0 {
+    if !(8..=104).contains(&c.weeks) || !c.weeks.is_multiple_of(8) {
         return Err("`weeks` must be a multiple of 8 between 8 and 104".into());
     }
     if c.doses.is_empty() || c.doses.len() > 4 || !c.doses.iter().all(|d| d.is_finite() && *d > 0.0)
