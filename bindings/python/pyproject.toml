@@ -71,6 +71,8 @@ known-first-party = ["trialforge"]
 
 [tool.pyright]
 include = ["python/trialforge", "tests"]
+# Resolve `trialforge` to the source, not an installed wheel (CI tests the wheel).
+extraPaths = ["python"]
 typeCheckingMode = "strict"
 pythonVersion = "3.10"
 # Keep strict, but relax the "unknown type" family (as greenwood does): they fire on interop
