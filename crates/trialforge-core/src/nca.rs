@@ -86,18 +86,18 @@ impl Profile {
         p
     }
 
-    /// Cmax (`None` if every concentration is zero).
+    /// Cmax: 0 if every concentration is zero (BLQ), as PKNCA's `max(conc)`; `None` for an
+    /// empty profile.
     pub fn cmax(&self) -> Option<f64> {
         self.conc
             .iter()
             .copied()
-            .filter(|c| *c > 0.0)
             .fold(None, |m, c| Some(m.map_or(c, |m: f64| m.max(c))))
     }
 
-    /// First time of Cmax.
+    /// First time of Cmax (`None` if every concentration is zero, as in PKNCA).
     pub fn tmax(&self) -> Option<f64> {
-        let m = self.cmax()?;
+        let m = self.cmax().filter(|m| *m > 0.0)?;
         self.time
             .iter()
             .zip(&self.conc)
@@ -380,6 +380,10 @@ mod tests {
         assert_eq!(p.time, vec![0.0, 1.0, 3.0, 4.0]);
         let z = Profile::new(&[0.0, 1.0, 2.0], &[0.0, 0.0, 0.0]);
         assert_eq!(z.auc(0.0, f64::INFINITY, AucType::Last), Some(0.0));
+        assert_eq!(z.auc(0.0, 2.0, AucType::Last), Some(0.0));
         assert_eq!(z.half_life(), None);
+        // PKNCA 0.12.1 on an all-BLQ profile: cmax 0, tmax NA.
+        assert_eq!(z.cmax(), Some(0.0));
+        assert_eq!(z.tmax(), None);
     }
 }
