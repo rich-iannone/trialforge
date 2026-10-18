@@ -7,11 +7,13 @@ types and output that is verified to be workable.
 trialforge has a Rust core with Python and R bindings. The same spec and seed produce identical
 data in both languages.
 
-> **Status: pre-alpha.** Eight archetypes generate a complete, verified study: trial design
+> **Status: pre-alpha.** Thirteen archetypes generate a complete, verified study: trial design
 > (TA, TE, TV, TI, TS), SDTM (DM, SE, SV, EX, CM, AE + SUPPAE, DS, MH, LB, VS; TU, TR, RS for
-> oncology; PC, PP for pharmacokinetics; FT for functional tests; CE for clinical events) and
-> ADaM (ADSL, ADAE, ADLB, ADVS; ADRS, ADTTE, ADTR; ADPC, ADPP; ADADAS), written as XPT v5, CSV, Dataset-JSON 1.1 or
-> Parquet, with a Define-XML 2.1 `define.xml` for each standard.
+> oncology; PC, PP for pharmacokinetics; FT for functional tests; CE for clinical events; OE, SC
+> for ophthalmology; RE for respiratory; IS, FACE for vaccines) and ADaM (ADSL, ADAE, ADLB,
+> ADVS; ADRS, ADTTE, ADTR; ADPC, ADPP; ADADAS; ADBCVA; ADEXAC, ADRE; ADIS, ADCE, ADFACE), written
+> as XPT v5, CSV, Dataset-JSON 1.1 or Parquet, with a Define-XML 2.1 `define.xml` for each
+> standard.
 
 ## Installation
 
@@ -165,7 +167,8 @@ trialforge generate examples/hypertension.yaml -o out/
 The same `seed` and controls give byte-identical files from Python and R. Every study passes
 trialforge's structural, referential and derivational checks before it is returned
 (`verify()` re-runs them after you modify the data), and its ADaM matches admiral: admiral and
-admiralonco re-derive it from trialforge's SDTM with no differences. PK parameters (PP) match
+its extensions (admiralonco, admiralophtha, admiralpeds, admiralvaccine) re-derive it from
+trialforge's SDTM with no differences. PK parameters (PP) match
 R's PKNCA, recomputed from trialforge's PC.
 
 | Archetype | What it simulates |
