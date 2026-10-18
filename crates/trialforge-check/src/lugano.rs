@@ -110,17 +110,17 @@ pub(crate) fn l1(sdtm: &[Dataset], r: &mut Report) {
                 .map(|t| t.0.zip(t.1).map(|(l, w)| l * w))
                 .collect();
             for (t, p) in v.target.values().zip(&products) {
-                if let Some((row, got)) = t.2 {
-                    if got != *p {
-                        r.add(
-                            L,
-                            RULE,
-                            "TR",
-                            Some("TRSTRESN"),
-                            Some(row),
-                            "PPD is not the product of the diameters".into(),
-                        );
-                    }
+                if let Some((row, got)) = t.2
+                    && got != *p
+                {
+                    r.add(
+                        L,
+                        RULE,
+                        "TR",
+                        Some("TRSTRESN"),
+                        Some(row),
+                        "PPD is not the product of the diameters".into(),
+                    );
                 }
             }
             let complete = products.iter().all(Option::is_some);
