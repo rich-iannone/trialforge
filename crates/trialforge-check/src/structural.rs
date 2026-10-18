@@ -118,19 +118,18 @@ fn dataset(ds: &Dataset, is_sdtm: bool, r: &mut Report) {
                     );
                 }
                 // Controlled terminology.
-                if let Some(cl) = &v.codelist {
-                    if let Some(list) = ct().codelist(cl) {
-                        if !list.contains(x) {
-                            r.add(
-                                L,
-                                "L0.CT",
-                                name,
-                                Some(&c.name),
-                                Some(i),
-                                format!("{x:?} is not in codelist {cl}"),
-                            );
-                        }
-                    }
+                if let Some(cl) = &v.codelist
+                    && let Some(list) = ct().codelist(cl)
+                    && !list.contains(x)
+                {
+                    r.add(
+                        L,
+                        "L0.CT",
+                        name,
+                        Some(&c.name),
+                        Some(i),
+                        format!("{x:?} is not in codelist {cl}"),
+                    );
                 }
                 // ISO 8601.
                 if c.name.ends_with("DTC") && !iso_ok(x) {
@@ -146,19 +145,20 @@ fn dataset(ds: &Dataset, is_sdtm: bool, r: &mut Report) {
             }
         }
         // No study day 0.
-        if c.name.ends_with("DY") && c.name != "VISITDY" {
-            if let Values::Int(vals) = &c.values {
-                for (i, x) in vals.iter().enumerate() {
-                    if *x == Some(0) {
-                        r.add(
-                            L,
-                            "L0.DY",
-                            name,
-                            Some(&c.name),
-                            Some(i),
-                            "study day 0 does not exist".into(),
-                        );
-                    }
+        if c.name.ends_with("DY")
+            && c.name != "VISITDY"
+            && let Values::Int(vals) = &c.values
+        {
+            for (i, x) in vals.iter().enumerate() {
+                if *x == Some(0) {
+                    r.add(
+                        L,
+                        "L0.DY",
+                        name,
+                        Some(&c.name),
+                        Some(i),
+                        "study day 0 does not exist".into(),
+                    );
                 }
             }
         }
@@ -225,17 +225,17 @@ fn dataset(ds: &Dataset, is_sdtm: bool, r: &mut Report) {
     if let (Some(u), Some(seq)) = (t.c("USUBJID"), t.i(&seq_var)) {
         let mut seen: HashMap<(&str, i64), usize> = HashMap::new();
         for i in 0..t.n() {
-            if let (Some(u), Some(s)) = (u[i].as_deref(), seq[i]) {
-                if seen.insert((u, s), i).is_some() {
-                    r.add(
-                        L,
-                        "L0.SEQ",
-                        name,
-                        Some(&seq_var),
-                        Some(i),
-                        format!("{seq_var} {s} repeats for {u}"),
-                    );
-                }
+            if let (Some(u), Some(s)) = (u[i].as_deref(), seq[i])
+                && seen.insert((u, s), i).is_some()
+            {
+                r.add(
+                    L,
+                    "L0.SEQ",
+                    name,
+                    Some(&seq_var),
+                    Some(i),
+                    format!("{seq_var} {s} repeats for {u}"),
+                );
             }
         }
     }
