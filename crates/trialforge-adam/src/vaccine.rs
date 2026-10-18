@@ -721,59 +721,60 @@ pub fn adface(
         }
     }
     // derive_fever_records(): an occurrence record per diary temperature.
-    if let Some(vs) = vs.map(Frame::new) {
-        if vs.has("VSCAT") && !base.iter().any(|r| r.obj == "FEVER") {
-            let (vu, vt, vc, vv, vun, veval, vdtc, vtpt, vtptn, vref) = (
-                vs.chars("USUBJID")?,
-                vs.chars("VSTESTCD")?,
-                vs.chars("VSCAT")?,
-                vs.nums("VSSTRESN")?,
-                vs.chars("VSSTRESU")?,
-                vs.chars("VSEVAL")?,
-                vs.chars("VSDTC")?,
-                vs.chars("VSTPT")?,
-                vs.nums("VSTPTNUM")?,
-                vs.chars("VSTPTREF")?,
-            );
-            for i in 0..vs.n() {
-                if vc[i].as_deref() != Some(REACTOGENICITY) || vt[i].as_deref() != Some("TEMP") {
-                    continue;
-                }
-                let Some(&r) = vu[i].as_deref().and_then(|x| sl_idx.get(x)) else {
-                    continue;
-                };
-                let res = match (vun[i].as_deref(), vv[i]) {
-                    (Some("C"), Some(t)) => Some(if t >= 38.0 { "Y" } else { "N" }.to_string()),
-                    _ => None,
-                };
-                base.push(FaRec {
-                    sl: r,
-                    testcd: "OCCUR".into(),
-                    test: "Occurrence Indicator".into(),
-                    obj: "FEVER".into(),
-                    group: None,
-                    eval: veval[i].clone(),
-                    orres: res.clone(),
-                    aval: sev_to_numeric(res.as_deref(), None),
-                    avalc: res,
-                    temp: vv[i],
-                    site: false,
-                    loc: None,
-                    lat: None,
-                    tptref: vref[i].clone(),
-                    tpt: vtpt[i].clone(),
-                    tptnum: vtptn[i],
-                    adt: dt(&vdtc[i]),
-                    extrt: None,
-                    exdose: None,
-                    paramcd: None,
-                    paramn: None,
-                    anl02: false,
-                    anl03: false,
-                    eventfl: None,
-                    eventdfl: None,
-                });
+    if let Some(vs) = vs.map(Frame::new)
+        && vs.has("VSCAT")
+        && !base.iter().any(|r| r.obj == "FEVER")
+    {
+        let (vu, vt, vc, vv, vun, veval, vdtc, vtpt, vtptn, vref) = (
+            vs.chars("USUBJID")?,
+            vs.chars("VSTESTCD")?,
+            vs.chars("VSCAT")?,
+            vs.nums("VSSTRESN")?,
+            vs.chars("VSSTRESU")?,
+            vs.chars("VSEVAL")?,
+            vs.chars("VSDTC")?,
+            vs.chars("VSTPT")?,
+            vs.nums("VSTPTNUM")?,
+            vs.chars("VSTPTREF")?,
+        );
+        for i in 0..vs.n() {
+            if vc[i].as_deref() != Some(REACTOGENICITY) || vt[i].as_deref() != Some("TEMP") {
+                continue;
             }
+            let Some(&r) = vu[i].as_deref().and_then(|x| sl_idx.get(x)) else {
+                continue;
+            };
+            let res = match (vun[i].as_deref(), vv[i]) {
+                (Some("C"), Some(t)) => Some(if t >= 38.0 { "Y" } else { "N" }.to_string()),
+                _ => None,
+            };
+            base.push(FaRec {
+                sl: r,
+                testcd: "OCCUR".into(),
+                test: "Occurrence Indicator".into(),
+                obj: "FEVER".into(),
+                group: None,
+                eval: veval[i].clone(),
+                orres: res.clone(),
+                aval: sev_to_numeric(res.as_deref(), None),
+                avalc: res,
+                temp: vv[i],
+                site: false,
+                loc: None,
+                lat: None,
+                tptref: vref[i].clone(),
+                tpt: vtpt[i].clone(),
+                tptnum: vtptn[i],
+                adt: dt(&vdtc[i]),
+                extrt: None,
+                exdose: None,
+                paramcd: None,
+                paramn: None,
+                anl02: false,
+                anl03: false,
+                eventfl: None,
+                eventdfl: None,
+            });
         }
     }
     // derive_diam_to_sev_records(): severities of redness and swelling, placed first.
