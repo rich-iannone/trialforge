@@ -55,17 +55,17 @@ pub(crate) fn l1(sdtm: &[Dataset], r: &mut Report) {
                 "PCSTRESN must be missing exactly when the result is <BLQ".into(),
             );
         }
-        if let (Some(v), Some(l)) = (stresn[i], lloq[i]) {
-            if v < l {
-                r.add(
-                    L,
-                    "L1.PK",
-                    "PC",
-                    Some("PCSTRESN"),
-                    Some(i),
-                    format!("{v} is below the LLOQ {l}"),
-                );
-            }
+        if let (Some(v), Some(l)) = (stresn[i], lloq[i])
+            && v < l
+        {
+            r.add(
+                L,
+                "L1.PK",
+                "PC",
+                Some("PCSTRESN"),
+                Some(i),
+                format!("{v} is below the LLOQ {l}"),
+            );
         }
         let (Some(x), Some(reference), Some(t)) = (u[i].as_deref(), dtm(&rft[i]), dtm(&dtc[i]))
         else {
