@@ -116,7 +116,7 @@ pub(crate) fn validate(c: &Controls, n: usize) -> Result<(), String> {
     if !(3..=300).contains(&n) {
         return Err("`n` (the maximum sample size) must be between 3 and 300".into());
     }
-    if !(4..=52).contains(&c.weeks) || c.weeks % 4 != 0 {
+    if !(4..=52).contains(&c.weeks) || !c.weeks.is_multiple_of(4) {
         return Err("`weeks` must be a multiple of 4 between 4 and 52".into());
     }
     if !(0.0..=5.0).contains(&c.dropout_rate) || !(0.0..=20.0).contains(&c.ae_rate_multiplier) {
