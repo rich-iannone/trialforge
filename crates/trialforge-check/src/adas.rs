@@ -129,10 +129,10 @@ pub(crate) fn run(sdtm: &[Dataset], adam: &[Dataset], r: &mut Report) {
                 "CHG is not AVAL - BASE".into(),
             );
         }
-        if anl[i].as_deref() == Some("Y") {
-            if let (Some(w), Some(a)) = (avn[i], aval[i]) {
-                analysis.entry((x, p)).or_default().push((w, a, locf));
-            }
+        if anl[i].as_deref() == Some("Y")
+            && let (Some(w), Some(a)) = (avn[i], aval[i])
+        {
+            analysis.entry((x, p)).or_default().push((w, a, locf));
         }
     }
     for ((x, p), mut v) in analysis {
