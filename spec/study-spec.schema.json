@@ -167,10 +167,15 @@
       "additionalProperties": false,
       "properties": {
         "defects": {
-          "description": "Data-quality defects injected into the clean, verified study, with a manifest (defects.json). \"none\", or a map of defect id to a count or a rate.",
+          "description": "Data-quality defects injected into the clean, verified study, with a manifest (defects.json). \"none\", a profile (\"light\": about five common defects; \"realistic\": rates per eligible record; \"adversarial\": three of every type in its subtlest form), or a map of defect id to a count or a rate.",
           "oneOf": [
             {
-              "const": "none"
+              "enum": [
+                "none",
+                "light",
+                "realistic",
+                "adversarial"
+              ]
             },
             {
               "type": "object",
@@ -183,6 +188,27 @@
                   "$ref": "#/$defs/defectAmount"
                 },
                 "out_of_ct": {
+                  "$ref": "#/$defs/defectAmount"
+                },
+                "orphan_usubjid": {
+                  "$ref": "#/$defs/defectAmount"
+                },
+                "record_after_death": {
+                  "$ref": "#/$defs/defectAmount"
+                },
+                "bad_study_day": {
+                  "$ref": "#/$defs/defectAmount"
+                },
+                "chg_mismatch": {
+                  "$ref": "#/$defs/defectAmount"
+                },
+                "missing_baseline": {
+                  "$ref": "#/$defs/defectAmount"
+                },
+                "trtemfl_wrong": {
+                  "$ref": "#/$defs/defectAmount"
+                },
+                "cnsr_wrong": {
                   "$ref": "#/$defs/defectAmount"
                 }
               }
