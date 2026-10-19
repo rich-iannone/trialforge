@@ -18,6 +18,7 @@ trialforge-adam.workspace = true
 trialforge-calibrate.workspace = true
 trialforge-designs.workspace = true
 trialforge-check.workspace = true
+trialforge-defects.workspace = true
 trialforge-io.workspace = true
 trialforge-hooks.workspace = true
 serde_json = "1.0.154"
