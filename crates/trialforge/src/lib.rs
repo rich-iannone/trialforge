@@ -379,14 +379,15 @@ impl Study {
         Ok(written)
     }
 
-    /// The defect manifest as written to `defects.json`: the request, the seed and every
-    /// defect, with zero-based rows.
+    /// The defect manifest as written to `defects.json`: the request (the profile, if one was
+    /// named, and the amount per type), the seed and every defect, with zero-based rows.
     pub fn defects_json(&self) -> Option<serde_json::Value> {
         let m = self.defects.as_ref()?;
         Some(serde_json::json!({
             "studyid": self.studyid,
             "seed": self.seed,
             "rows": "zero-based",
+            "profile": m.spec.profile,
             "spec": m.spec,
             "defects": m.defects,
         }))
