@@ -79,6 +79,41 @@ fn every_archetype_catches_exactly_its_defects() {
     }
 }
 
+/// Every defect type, each with `amount` (a count or a rate).
+fn every_type(amount: serde_json::Value) -> serde_json::Value {
+    trialforge::defects::CATALOGUE
+        .iter()
+        .map(|t| (t.id.to_string(), amount.clone()))
+        .collect::<serde_json::Map<_, _>>()
+        .into()
+}
+
+#[test]
+fn every_type_is_caught_exactly() {
+    let mut seen = std::collections::BTreeSet::new();
+    for (archetype, _) in ARCHETYPES {
+        for seed in 1..=3 {
+            let s = study(archetype, &opts(40, seed, every_type(json!(4)))).unwrap();
+            seen.extend(s.defects.as_ref().unwrap().defects.iter().map(|d| d.id));
+            assert_exact(&s);
+        }
+    }
+    // Some archetype has a candidate for each type.
+    assert_eq!(seen.len(), trialforge::defects::CATALOGUE.len(), "{seen:?}");
+}
+
+#[test]
+fn profiles_are_caught_exactly() {
+    for (archetype, _) in ARCHETYPES {
+        for p in trialforge::defects::PROFILES {
+            for seed in 1..=2 {
+                let s = study(archetype, &opts(60, seed, json!(p.name))).unwrap();
+                assert_exact(&s);
+            }
+        }
+    }
+}
+
 #[test]
 fn rates_and_counts() {
     let s = study(
@@ -190,4 +225,24 @@ fn manifest_table_and_files() {
     let clean = study("parallel_continuous", &opts(40, 2, json!({}))).unwrap();
     assert!(clean.defects_table(0).is_none());
     assert!(clean.score(&[]).is_err());
+}
+
+/// Many defects of every type, plain and subtle, over many seeds:
+/// `cargo test --release -p trialforge --test defects -- --ignored`.
+#[test]
+#[ignore]
+fn stress_every_type() {
+    for (archetype, _) in ARCHETYPES {
+        for seed in 1..=10 {
+            for request in [
+                every_type(json!(25)),
+                every_type(json!(0.2)),
+                json!("adversarial"),
+                json!("realistic"),
+            ] {
+                let s = study(archetype, &opts(150, seed, request)).unwrap();
+                assert_exact(&s);
+            }
+        }
+    }
 }
