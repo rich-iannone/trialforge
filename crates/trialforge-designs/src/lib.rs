@@ -20,6 +20,7 @@ pub mod vaccine;
 
 use serde::Serialize;
 use serde_json::Value;
+use trialforge_defects::DefectSpec;
 use trialforge_model::Design;
 use trialforge_processes::adas::AdasParams;
 use trialforge_processes::escalation::{EscalationParams, Trace};
@@ -102,6 +103,9 @@ pub struct StudyOptions {
     pub studyid: Option<String>,
     /// Archetype controls as a JSON object (`Value::Null` or `{}` for the defaults).
     pub controls: Value,
+    /// Data-quality defects to inject after the clean study is generated and verified
+    /// (`None` or an empty spec for a clean study).
+    pub defects: Option<DefectSpec>,
 }
 
 impl StudyOptions {
@@ -112,6 +116,7 @@ impl StudyOptions {
             seed,
             studyid: None,
             controls: Value::Null,
+            defects: None,
         }
     }
 }
