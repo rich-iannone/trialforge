@@ -27,6 +27,7 @@ fn os_hazard_ratio_ci_coverage() {
             seed: 1_000 + seed,
             studyid: None,
             controls: json!(null),
+            defects: None,
         };
         let s = study("oncology_solid_tumor", &opts).unwrap();
         os += usize::from(covers(&s.truth, "overall_survival", 0.75));
