@@ -97,6 +97,19 @@ fn run(cli: Cli) -> Result<(), String> {
             for d in study.sdtm.iter().chain(&study.adam) {
                 println!("  {:<7} {:>8} rows  {}", d.name, d.n_rows(), d.label);
             }
+            if let Some(m) = &study.defects {
+                let mut by_type = std::collections::BTreeMap::new();
+                for d in &m.defects {
+                    *by_type.entry(d.id).or_insert(0) += 1;
+                }
+                let parts: Vec<String> =
+                    by_type.iter().map(|(id, k)| format!("{id} {k}")).collect();
+                println!(
+                    "defects: {} injected ({})",
+                    m.defects.len(),
+                    parts.join(", ")
+                );
+            }
             println!("verification: {}", trialforge::verify(&study).summary());
             println!(
                 "{}",
