@@ -27,6 +27,7 @@ trialforge-adam = { path = "crates/trialforge-adam", version = "0.1.0" }
 trialforge-calibrate = { path = "crates/trialforge-calibrate", version = "0.1.0" }
 trialforge-designs = { path = "crates/trialforge-designs", version = "0.1.0" }
 trialforge-check = { path = "crates/trialforge-check", version = "0.1.0" }
+trialforge-defects = { path = "crates/trialforge-defects", version = "0.1.0" }
 trialforge-io = { path = "crates/trialforge-io", version = "0.1.0" }
 trialforge-hooks = { path = "crates/trialforge-hooks", version = "0.1.0" }
 
