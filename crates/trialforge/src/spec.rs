@@ -1,14 +1,14 @@
 //! Study-spec files (`spec/study-spec.schema.json`): JSON or YAML.
 //!
 //! The engine currently consumes `study.archetype`, `study.seed`, `study.studyid`,
-//! `population.n`, `controls` and `outputs`. Sections the schema sketches for later phases
-//! (`design`, `endpoints`, `safety`, `dropout`, `data_quality`) are rejected with a pointer to
-//! `controls`, rather than silently ignored.
+//! `population.n`, `controls`, `data_quality.defects` and `outputs`. Sections the schema
+//! sketches for later phases (`design`, `endpoints`, `safety`, `dropout`) are rejected with a
+//! pointer to `controls`, rather than silently ignored.
 
 use serde::Deserialize;
 use serde_json::Value;
 
-use crate::{Error, StudyOptions};
+use crate::{Error, StudyOptions, defects::DefectSpec};
 
 /// A parsed study spec.
 #[derive(Clone, Debug, PartialEq, Deserialize)]
@@ -25,6 +25,9 @@ pub struct Spec {
     /// Archetype controls (see `controls(archetype)`).
     #[serde(default)]
     pub controls: Value,
+    /// Data-quality defects.
+    #[serde(default)]
+    pub data_quality: DataQualitySection,
     /// What to write.
     #[serde(default)]
     pub outputs: OutputSection,
@@ -36,8 +39,6 @@ pub struct Spec {
     safety: Option<Value>,
     #[serde(default)]
     dropout: Option<Value>,
-    #[serde(default)]
-    data_quality: Option<Value>,
 }
 
 /// `study:`.
@@ -97,6 +98,22 @@ impl Default for PopulationSection {
 
 fn default_n() -> usize {
     300
+}
+
+/// `data_quality:`.
+#[derive(Clone, Debug, Default, PartialEq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DataQualitySection {
+    /// Defects to inject into the clean study: `none`, or a map of defect id to a count (an
+    /// integer) or a rate (see `trialforge_defects::CATALOGUE`).
+    #[serde(default)]
+    pub defects: Option<DefectSpec>,
+    /// Not supported yet.
+    #[serde(default)]
+    partial_dates: Option<Value>,
+    /// Not supported yet.
+    #[serde(default)]
+    missed_visit: Option<Value>,
 }
 
 /// `outputs:`.
@@ -163,11 +180,20 @@ impl Spec {
             ("endpoints", &self.endpoints),
             ("safety", &self.safety),
             ("dropout", &self.dropout),
-            ("data_quality", &self.data_quality),
             ("study.start_date", &self.study.start_date),
         ] {
             if v.is_some() {
                 return Err(later(name));
+            }
+        }
+        for (name, v) in [
+            ("partial_dates", &self.data_quality.partial_dates),
+            ("missed_visit", &self.data_quality.missed_visit),
+        ] {
+            if v.is_some() {
+                return Err(Error::Invalid(format!(
+                    "`data_quality.{name}` is not supported yet; `data_quality.defects` is"
+                )));
             }
         }
         if !self.study.modifiers.is_empty() {
@@ -221,6 +247,7 @@ impl Spec {
             seed: self.study.seed,
             studyid: self.study.studyid.clone(),
             controls: self.controls.clone(),
+            defects: self.data_quality.defects.clone(),
         }
     }
 }
@@ -285,5 +312,23 @@ outputs:
             err("study: {archetype: parallel_continuous, seed: 1}\noutputs: {layout: zip}")
                 .contains("layout")
         );
+        assert!(
+            err("study: {archetype: parallel_continuous, seed: 1}\ndata_quality: {defects: {typo: 1}}")
+                .contains("unknown defect")
+        );
+        assert!(
+            err("study: {archetype: parallel_continuous, seed: 1}\ndata_quality: {missed_visit: 0.1}")
+                .contains("not supported yet")
+        );
+    }
+
+    #[test]
+    fn reads_defects() {
+        let base = "study: {archetype: parallel_continuous, seed: 1}\ndata_quality:\n  defects: ";
+        let spec = Spec::parse(&format!("{base}{{out_of_ct: 2, duplicate_seq: 0.5}}")).unwrap();
+        let d = spec.options().defects.unwrap();
+        assert_eq!(d.defects.len(), 2);
+        let none = Spec::parse(&format!("{base}none")).unwrap();
+        assert!(none.options().defects.unwrap().is_empty());
     }
 }
