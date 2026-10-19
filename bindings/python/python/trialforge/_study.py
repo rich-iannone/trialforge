@@ -46,9 +46,12 @@ def study(
         `"pyarrow"`.
     defects
         Data-quality defects to inject after the clean study is generated and verified:
-        `"none"`, or a mapping of defect id to a count (an integer) or a rate per eligible
-        record (a float in `[0, 1]`), e.g. `{"ae_end_before_start": 3, "out_of_ct": 0.02}`.
-        See `Study.defects` and `Study.score()`.
+        `"none"`; a profile, `"light"` (about five defects of the common kinds),
+        `"realistic"` (rates per eligible record) or `"adversarial"` (three of every type,
+        each in its subtlest form); or a mapping of defect id to a count (an integer) or a
+        rate per eligible record (a float in `[0, 1]`), e.g.
+        `{"ae_end_before_start": 3, "out_of_ct": 0.02}`. See `Study.defects` and
+        `Study.score()`.
     **controls
         Archetype controls, e.g. `indication="hypertension", weeks=12`. See `controls()`.
         Unknown names are an error.
