@@ -1,0 +1,18 @@
+[package]
+name = "trialforge-defects"
+description = "Seeded data-quality defects with a manifest, for testing validators"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+trialforge-core.workspace = true
+trialforge-cdisc.workspace = true
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+
+[lints]
+workspace = true
