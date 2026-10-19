@@ -241,6 +241,7 @@ dependencies = [
  "trialforge-cdisc",
  "trialforge-check",
  "trialforge-core",
+ "trialforge-defects",
  "trialforge-designs",
  "trialforge-hooks",
  "trialforge-io",
@@ -292,6 +293,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "trialforge-defects"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "trialforge-cdisc",
+ "trialforge-core",
+]
+
+[[package]]
 name = "trialforge-designs"
 version = "0.1.0"
 dependencies = [
@@ -299,6 +310,7 @@ dependencies = [
  "serde_json",
  "trialforge-calibrate",
  "trialforge-core",
+ "trialforge-defects",
  "trialforge-model",
  "trialforge-processes",
 ]
