@@ -37,10 +37,11 @@ controls_impl <- function(archetype) .Call(wrap__controls_impl, archetype)
 #' @noRd
 formats_impl <- function() .Call(wrap__formats_impl)
 
-#' Generates a study. `seed`, `studyid` and `controls` are `NA` when not supplied; `controls`
-#' is a JSON object string.
+#' Generates a study. `seed`, `studyid`, `controls` and `defects` are `NA` when not supplied;
+#' `controls` is a JSON object string and `defects` a JSON string (`"none"` or an object of
+#' defect id to count or rate).
 #' @noRd
-study_impl <- function(archetype, n, seed, studyid, controls) .Call(wrap__study_impl, archetype, n, seed, studyid, controls)
+study_impl <- function(archetype, n, seed, studyid, controls, defects) .Call(wrap__study_impl, archetype, n, seed, studyid, controls, defects)
 
 #' Generates a study from JSON or YAML spec text.
 #' @noRd
@@ -51,6 +52,17 @@ study_from_spec_impl <- function(text) .Call(wrap__study_from_spec_impl, text)
 #' @section Methods:
 #'\subsection{Method `seed`}{
 #'Seeds are at most 2^53, so a double holds them exactly.
+#'}
+#'
+#'\subsection{Method `defects_table`}{
+#'The injected defects as a data.frame (rows numbered from 1), or `NULL` for a clean
+#'study.
+#'}
+#'
+#'\subsection{Method `score`}{
+#'Scores findings (parallel vectors; `row` is 1-based, `NA` for none) against the
+#'injected defects. Returns the score as a JSON string, whose `missed` and `unmatched`
+#'indices are 0-based.
 #'}
 #'
 #'\subsection{Method `verify`}{
@@ -74,6 +86,10 @@ RStudy$cutoff_days <- function() .Call(wrap__RStudy__cutoff_days, self)
 RStudy$controls_json <- function() .Call(wrap__RStudy__controls_json, self)
 
 RStudy$truth_json <- function() .Call(wrap__RStudy__truth_json, self)
+
+RStudy$defects_table <- function() .Call(wrap__RStudy__defects_table, self)
+
+RStudy$score <- function(level, rule, dataset, row) .Call(wrap__RStudy__score, self, level, rule, dataset, row)
 
 RStudy$write_submission <- function(path) .Call(wrap__RStudy__write_submission, self, path)
 
