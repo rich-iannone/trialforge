@@ -18,7 +18,7 @@ The paths written, invisibly.
 }
 \description{
 Writes every dataset of a study to the directory \code{path} (created if needed), plus
-\code{truth.json}. Files are named by lower-case dataset name, e.g. \code{dm.xpt}. This is
+\code{truth.json} (and \code{defects.json} for a study with defects). Files are named by lower-case dataset name, e.g. \code{dm.xpt}. This is
 \code{Study.write()} in Python; the name differs because \code{write()} would mask \code{base::write()}.
 }
 \examples{

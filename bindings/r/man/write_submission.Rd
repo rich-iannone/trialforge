@@ -16,7 +16,7 @@ The paths written, invisibly.
 }
 \description{
 Writes \verb{sdtm/} and \verb{adam/} folders to \code{path}, each with one XPT file per dataset and a
-Define-XML 2.1 \code{define.xml}, plus \code{truth.json}.
+Define-XML 2.1 \code{define.xml}, plus \code{truth.json} (and \code{defects.json}).
 }
 \examples{
 trial <- study("parallel_continuous", n = 20, seed = 1)

@@ -4,7 +4,7 @@
 \alias{study}
 \title{Generate a mock study}
 \usage{
-study(archetype, n = 300, seed = NULL, studyid = NULL, ...)
+study(archetype, n = 300, seed = NULL, studyid = NULL, ..., defects = NULL)
 }
 \arguments{
 \item{archetype}{The study type, e.g. \code{"parallel_continuous"}. See \code{\link[=archetypes]{archetypes()}}.}
@@ -18,11 +18,22 @@ and recorded as \verb{$seed} on the result, so the study can always be reproduce
 
 \item{...}{Archetype controls, e.g. \verb{indication = "hypertension", weeks = 12}. See
 \code{\link[=controls]{controls()}}. Unknown names are an error.}
+
+\item{defects}{Data-quality defects to inject after the clean study is generated and
+verified: \code{NULL} or \code{"none"} for none, or a named list of defect id to a count (a whole
+number) or a rate per eligible record (a number strictly between 0 and 1), e.g.
+\code{list(ae_end_before_start = 3, out_of_ct = 0.02)}. Whole numbers are counts, so ask for a
+large count to corrupt every eligible record. See \code{\link[=score]{score()}}.}
 }
 \value{
 A \code{trialforge_study} object: a list with \code{studyid}, \code{archetype}, \code{seed}, \code{cutoff}
-(a \code{Date}), \code{controls}, \code{truth} (targets vs realised values), and \code{sdtm} and \code{adam} (named
-lists of data frames whose columns carry haven-style \code{label} attributes).
+(a \code{Date}), \code{controls}, \code{truth} (targets vs realised values), \code{sdtm} and \code{adam} (named
+lists of data frames whose columns carry haven-style \code{label} attributes), and \code{defects}:
+\code{NULL}, or a data frame with one row per injected defect (\code{id}, \code{dataset}, \code{row},
+\code{paired_row} (another record the defect involves, which a validator may name instead),
+\code{usubjid}, \code{key} (the record's key before the edit, e.g. \code{AESEQ=3}), \code{variable},
+\code{original}, \code{injected} and \code{expected} (the findings it should produce, as
+\verb{RULE DATASET row}, separated by \verb{; })). Rows count from 1, as in \code{\link[=verify]{verify()}}.
 }
 \description{
 Generates a verified mock clinical study: trial design, SDTM and ADaM datasets. Every study
@@ -33,7 +44,10 @@ trial <- study("parallel_continuous", n = 50, seed = 1)
 trial
 head(trial$adam$ADSL)
 trial$truth$endpoint$realised_difference
+
+dirty <- study("parallel_continuous", n = 50, seed = 1, defects = list(out_of_ct = 3))
+dirty$defects[, c("dataset", "row", "variable", "original", "injected")]
 }
 \seealso{
-\code{\link[=write_study]{write_study()}}, \code{\link[=verify]{verify()}}
+\code{\link[=write_study]{write_study()}}, \code{\link[=verify]{verify()}}, \code{\link[=score]{score()}}
 }
