@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/rich-iannone/trialforge/spec/study-spec.schema.json",
   "title": "trialforge study spec",
-  "description": "v0 study spec (JSON or YAML). The engine consumes `study` (archetype, seed, studyid, standards), `population.n`, `controls` and `outputs`. The other sections are reserved for later phases and are rejected with a pointer to `controls` until their engine work lands.",
+  "description": "v0 study spec (JSON or YAML). The engine consumes `study` (archetype, seed, studyid, standards), `population.n`, `controls` and `outputs`. `data_quality.defects` injects seeded data-quality defects. The other sections are reserved for later phases and are rejected with a pointer to `controls` until their engine work lands.",
   "type": "object",
   "required": [
     "study"
@@ -163,7 +163,33 @@
       "type": "object"
     },
     "data_quality": {
-      "type": "object"
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "defects": {
+          "description": "Data-quality defects injected into the clean, verified study, with a manifest (defects.json). \"none\", or a map of defect id to a count or a rate.",
+          "oneOf": [
+            {
+              "const": "none"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "ae_end_before_start": {
+                  "$ref": "#/$defs/defectAmount"
+                },
+                "duplicate_seq": {
+                  "$ref": "#/$defs/defectAmount"
+                },
+                "out_of_ct": {
+                  "$ref": "#/$defs/defectAmount"
+                }
+              }
+            }
+          ]
+        }
+      }
     },
     "outputs": {
       "type": "object",
@@ -197,6 +223,22 @@
     "controls": {
       "description": "Archetype controls (see `controls(archetype)` in either binding). Merged over the archetype's defaults; unknown names are an error.",
       "type": "object"
+    }
+  },
+  "$defs": {
+    "defectAmount": {
+      "description": "A number written without a decimal point is a count of records (all eligible ones if fewer); any other number is a per-record rate in [0, 1].",
+      "anyOf": [
+        {
+          "type": "integer",
+          "minimum": 0
+        },
+        {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      ]
     }
   }
 }
