@@ -83,11 +83,24 @@ def test_rates_and_spec_files() -> None:
     assert from_spec.defects is not None and from_spec.defects.equals(s.defects)
 
 
+@pytest.mark.parametrize("profile", ["light", "realistic", "adversarial"])
+def test_profiles_are_caught_exactly(profile: str, tmp_path: Path) -> None:
+    s = tf.study("cns_alzheimers", n=80, seed=3, defects=profile)
+    assert s.defects is not None and s.defects.height > 0
+    score = s.score(s.verify())
+    assert (score.recall, score.precision) == (1.0, 1.0)
+    s.write(tmp_path, ["csv"])
+    manifest = json.loads((tmp_path / "defects.json").read_text())
+    assert manifest["profile"] == profile
+    # Types the study has no eligible record for are requested but absent.
+    assert set(score.by_type) <= set(manifest["spec"])
+
+
 def test_bad_defects() -> None:
     with pytest.raises(ValueError, match="unknown defect"):
         tf.study("parallel_continuous", n=10, seed=1, defects={"nope": 1})
-    with pytest.raises(ValueError, match="not available yet"):
-        tf.study("parallel_continuous", n=10, seed=1, defects="realistic")
+    with pytest.raises(ValueError, match="light, realistic, adversarial"):
+        tf.study("parallel_continuous", n=10, seed=1, defects="heavy")
     with pytest.raises(ValueError, match="rate"):
         tf.study("parallel_continuous", n=10, seed=1, defects={"out_of_ct": 1.5})
 
