@@ -20,7 +20,9 @@ and recorded as \verb{$seed} on the result, so the study can always be reproduce
 \code{\link[=controls]{controls()}}. Unknown names are an error.}
 
 \item{defects}{Data-quality defects to inject after the clean study is generated and
-verified: \code{NULL} or \code{"none"} for none, or a named list of defect id to a count (a whole
+verified: \code{NULL} or \code{"none"} for none; a profile, \code{"light"} (about five defects of the
+common kinds), \code{"realistic"} (rates per eligible record) or \code{"adversarial"} (three of
+every type, each in its subtlest form); or a named list of defect id to a count (a whole
 number) or a rate per eligible record (a number strictly between 0 and 1), e.g.
 \code{list(ae_end_before_start = 3, out_of_ct = 0.02)}. Whole numbers are counts, so ask for a
 large count to corrupt every eligible record. See \code{\link[=score]{score()}}.}
