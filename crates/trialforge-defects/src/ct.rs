@@ -33,7 +33,7 @@ const VARIABLES: &[(&str, &str)] = &[
 type Candidate<'a> = (&'a str, usize, Vec<(&'static str, &'static Codelist)>);
 
 /// `out_of_ct`: a controlled value becomes a case variant ("Mild") or a typo ("MIDL") that
-/// is not in its codelist.
+/// is not in its codelist (subtle: a case variant wherever one exists).
 pub(crate) fn out_of_ct(cx: &mut Ctx<'_>, stream: Stream, amount: Amount) -> Vec<Defect> {
     let mut candidates: Vec<Candidate<'_>> = Vec::new();
     for ds in cx.sdtm.iter() {
@@ -82,7 +82,7 @@ pub(crate) fn out_of_ct(cx: &mut Ctx<'_>, stream: Stream, amount: Amount) -> Vec
         let original = chars(ds, var).expect("candidate")[i]
             .clone()
             .expect("a candidate holds a term");
-        let Some(injected) = variant(&original, list, &mut d) else {
+        let Some(injected) = variant(&original, list, cx.subtle, &mut d) else {
             continue;
         };
         let seq_var = format!("{name}SEQ");
@@ -110,9 +110,6 @@ pub(crate) fn out_of_ct(cx: &mut Ctx<'_>, stream: Stream, amount: Amount) -> Vec
             value: Cell::Char(Some(injected)),
         });
     }
-    for d in &defects {
-        cx.used.insert((d.dataset.clone(), d.row));
-    }
     for (name, e) in &edits {
         cx.edit_sdtm(name, e);
     }
@@ -120,8 +117,8 @@ pub(crate) fn out_of_ct(cx: &mut Ctx<'_>, stream: Stream, amount: Amount) -> Vec
 }
 
 /// A case variant or a typo of `term` that is not in `list`, each kind with probability one
-/// half (whichever exists, if only one does).
-fn variant(term: &str, list: &Codelist, d: &mut Draws) -> Option<String> {
+/// half or, if `case_only`, a case variant (whichever exists, if only one does).
+fn variant(term: &str, list: &Codelist, case_only: bool, d: &mut Draws) -> Option<String> {
     let outside = |v: &String| v != term && !list.contains(v);
     let mut case: Vec<String> = vec![title_case(term), term.to_ascii_lowercase()];
     case.dedup();
@@ -147,7 +144,7 @@ fn variant(term: &str, list: &Codelist, d: &mut Draws) -> Option<String> {
     }
     typo.dedup();
     typo.retain(outside);
-    let use_case = d.bernoulli(0.5);
+    let use_case = d.bernoulli(0.5) || case_only;
     let from = match (use_case, case.is_empty(), typo.is_empty()) {
         (_, true, true) => return None,
         (true, false, _) | (false, false, true) => &case,
@@ -181,9 +178,11 @@ mod tests {
         for seed in 0..50 {
             let mut d = Draws::new(Stream::root(seed).label("t"));
             for term in &list.terms {
-                let v = variant(term, list, &mut d).expect("a variant exists");
+                let v = variant(term, list, false, &mut d).expect("a variant exists");
                 assert_ne!(&v, term);
                 assert!(!list.contains(&v), "{v}");
+                let c = variant(term, list, true, &mut d).expect("a variant exists");
+                assert!(c.eq_ignore_ascii_case(term) && c != *term, "{c}");
             }
         }
         assert_eq!(
