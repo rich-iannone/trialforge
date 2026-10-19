@@ -11,9 +11,11 @@ from importlib.metadata import PackageNotFoundError, version
 from trialforge._core import MAX_SEED, core_version, stream_seed
 from trialforge._study import (
     Control,
+    DefectScore,
     Finding,
     Output,
     Report,
+    Score,
     Study,
     archetypes,
     controls,
@@ -30,9 +32,11 @@ except PackageNotFoundError:  # pragma: no cover - running from a source tree wi
 __all__ = [
     "MAX_SEED",
     "Control",
+    "DefectScore",
     "Finding",
     "Output",
     "Report",
+    "Score",
     "Study",
     "__version__",
     "archetypes",
