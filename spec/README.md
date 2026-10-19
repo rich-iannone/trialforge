@@ -52,4 +52,8 @@ here.
 | `Study.verify(level=3)` | not available (`verify(trial, level = 3)` errors) | Level 3 runs Pointblank's CDISC conformance engine, which only exists in the Python package; the R `pointblank` package has no SDTMIG rules |
 | `Study.write(formats=["parquet"])` | not available | The Parquet writer is compiled only into the Python build, to keep the R package's vendored crates small |
 | Date-times (e.g. ADPC `ADTM`) are naive timestamps (no time zone) | `POSIXct` with `tzone = "UTC"` | The study clock has no time zone; R needs one, and UTC keeps the clock time unchanged |
+| Rows and indices count from 0: `Finding.row`, the `row`, `paired_row` and `expected` columns of `Study.defects`, `Score.missed` | Count from 1: `verify()` rows, `trial$defects`, `score()$missed` | Each language's own indexing; `defects.json` is zero-based in both (it says so in `"rows"`) |
+| `study(..., defects={"out_of_ct": 1.0})` is a rate of 1 (an integer is a count, a float a rate) | `study(..., defects = list(out_of_ct = 1))` is a count of 1 (a whole number is a count) | R's numbers are doubles, so `1` and `1.0` can't be told apart; a large count corrupts every eligible record |
+| `study(archetype, *, ..., defects=None, **controls)` | `study(archetype, n, seed, studyid, ..., defects = NULL)` | `defects` follows the controls in R so positional calls keep their meaning; it must be named |
+| `Score.by_type` is a dict of `DefectScore` | `score()$by_type` is a data frame with an `id` column | The idiomatic container in each language |
 
