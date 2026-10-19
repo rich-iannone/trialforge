@@ -14,6 +14,7 @@ fn opts(n: usize, seed: u64, controls: serde_json::Value) -> StudyOptions {
         seed,
         studyid: None,
         controls,
+        defects: None,
     }
 }
 
