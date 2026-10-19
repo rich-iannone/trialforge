@@ -11,7 +11,9 @@
 #' @param ... Archetype controls, e.g. `indication = "hypertension", weeks = 12`. See
 #'   [controls()]. Unknown names are an error.
 #' @param defects Data-quality defects to inject after the clean study is generated and
-#'   verified: `NULL` or `"none"` for none, or a named list of defect id to a count (a whole
+#'   verified: `NULL` or `"none"` for none; a profile, `"light"` (about five defects of the
+#'   common kinds), `"realistic"` (rates per eligible record) or `"adversarial"` (three of
+#'   every type, each in its subtlest form); or a named list of defect id to a count (a whole
 #'   number) or a rate per eligible record (a number strictly between 0 and 1), e.g.
 #'   `list(ae_end_before_start = 3, out_of_ct = 0.02)`. Whole numbers are counts, so ask for a
 #'   large count to corrupt every eligible record. See [score()].
