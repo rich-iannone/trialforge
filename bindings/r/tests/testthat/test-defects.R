@@ -59,5 +59,20 @@ test_that("rates, spec files and bad requests", {
   ))
   expect_identical(from_spec$defects, s$defects)
   expect_error(study("parallel_continuous", n = 10, seed = 1, defects = list(nope = 1)), "unknown defect")
-  expect_error(study("parallel_continuous", n = 10, seed = 1, defects = "realistic"), "not available yet")
+  expect_error(study("parallel_continuous", n = 10, seed = 1, defects = "heavy"), "light, realistic, adversarial")
+})
+
+test_that("profiles are caught exactly", {
+  for (profile in c("light", "realistic", "adversarial")) {
+    s <- study("cns_alzheimers", n = 80, seed = 3, defects = profile)
+    expect_gt(nrow(s$defects), 0)
+    sc <- score(s, verify(s))
+    expect_identical(c(sc$recall, sc$precision), c(1, 1), info = profile)
+    dir <- tempfile()
+    write_study(s, dir, "csv")
+    manifest <- jsonlite::fromJSON(file.path(dir, "defects.json"))
+    expect_identical(manifest$profile, profile)
+    # Types the study has no eligible record for are requested but absent.
+    expect_true(all(sc$by_type$id %in% names(manifest$spec)))
+  }
 })
