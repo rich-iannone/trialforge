@@ -28,7 +28,7 @@ mod switching;
 mod table;
 mod vaccine;
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 
 use trialforge_core::Dataset;
 
@@ -76,7 +76,8 @@ impl std::fmt::Display for Finding {
 /// The result of a verification run.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Report {
-    /// Findings (at most [`MAX_PER_RULE`] per rule and dataset).
+    /// Findings: at most [`MAX_PER_RULE`] per rule and dataset from [`run`], all of them from
+    /// [`run_all`].
     pub findings: Vec<Finding>,
     /// Total failures per rule, including those not kept in `findings`.
     pub counts: BTreeMap<&'static str, usize>,
@@ -100,23 +101,25 @@ impl Report {
         row: Option<usize>,
         message: String,
     ) {
-        let total = self.counts.entry(rule).or_insert(0);
-        *total += 1;
-        let kept = self
-            .findings
-            .iter()
-            .filter(|f| f.rule == rule && f.dataset == dataset)
-            .count();
-        if kept < MAX_PER_RULE {
-            self.findings.push(Finding {
-                level,
-                rule,
-                dataset: dataset.to_string(),
-                variable: variable.map(str::to_string),
-                row,
-                message,
-            });
-        }
+        *self.counts.entry(rule).or_insert(0) += 1;
+        self.findings.push(Finding {
+            level,
+            rule,
+            dataset: dataset.to_string(),
+            variable: variable.map(str::to_string),
+            row,
+            message,
+        });
+    }
+
+    /// Keeps the first [`MAX_PER_RULE`] findings per (rule, dataset).
+    fn cap(&mut self) {
+        let mut kept: HashMap<(&'static str, String), usize> = HashMap::new();
+        self.findings.retain(|f| {
+            let k = kept.entry((f.rule, f.dataset.clone())).or_insert(0);
+            *k += 1;
+            *k <= MAX_PER_RULE
+        });
     }
 
     /// A short multi-line summary.
@@ -135,8 +138,17 @@ impl Report {
     }
 }
 
-/// Runs L0–L2 over a study's SDTM and ADaM datasets.
+/// Runs L0–L2 over a study's SDTM and ADaM datasets, keeping at most [`MAX_PER_RULE`]
+/// findings per rule and dataset.
 pub fn run(sdtm: &[Dataset], adam: &[Dataset]) -> Report {
+    let mut r = run_all(sdtm, adam);
+    r.cap();
+    r
+}
+
+/// Runs L0–L2 like [`run`], keeping every finding (for scoring a validator against injected
+/// defects, where each one counts).
+pub fn run_all(sdtm: &[Dataset], adam: &[Dataset]) -> Report {
     let mut r = Report::default();
     structural::run(sdtm, adam, &mut r);
     referential::run(sdtm, adam, &mut r);
