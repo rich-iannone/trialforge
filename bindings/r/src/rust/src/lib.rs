@@ -82,8 +82,9 @@ fn formats_impl() -> Vec<String> {
     trialforge::FORMATS.iter().map(|s| s.to_string()).collect()
 }
 
-/// Generates a study. `seed`, `studyid` and `controls` are `NA` when not supplied; `controls`
-/// is a JSON object string.
+/// Generates a study. `seed`, `studyid`, `controls` and `defects` are `NA` when not supplied;
+/// `controls` is a JSON object string and `defects` a JSON string (`"none"` or an object of
+/// defect id to count or rate).
 /// @noRd
 #[extendr]
 fn study_impl(
@@ -92,6 +93,7 @@ fn study_impl(
     seed: Option<f64>,
     studyid: Option<String>,
     controls: Option<String>,
+    defects: Option<String>,
 ) -> Result<RStudy> {
     let n = as_u64(n, "`n`")? as usize;
     let seed = match seed {
@@ -103,11 +105,20 @@ fn study_impl(
             .map_err(|e| Error::Other(format!("controls are not valid JSON: {e}")))?,
         None => serde_json::Value::Null,
     };
+    let defects = match defects {
+        Some(d) => {
+            let v = serde_json::from_str(&d)
+                .map_err(|e| Error::Other(format!("defects are not valid JSON: {e}")))?;
+            Some(trialforge::defects::DefectSpec::from_value(&v).map_err(Error::Other)?)
+        }
+        None => None,
+    };
     let opts = trialforge::StudyOptions {
         n,
         seed,
         studyid,
         controls,
+        defects,
     };
     trialforge::study(archetype, &opts)
         .map(|inner| RStudy { inner })
@@ -155,6 +166,54 @@ impl RStudy {
 
     fn truth_json(&self) -> String {
         self.inner.truth.to_string()
+    }
+
+    /// The injected defects as a data.frame (rows numbered from 1), or `NULL` for a clean
+    /// study.
+    fn defects_table(&self) -> Result<Robj> {
+        match self.inner.defects_table(1) {
+            Some(ds) => data_frame(&ds),
+            None => Ok(Robj::from(())),
+        }
+    }
+
+    /// Scores findings (parallel vectors; `row` is 1-based, `NA` for none) against the
+    /// injected defects. Returns the score as a JSON string, whose `missed` and `unmatched`
+    /// indices are 0-based.
+    fn score(
+        &self,
+        level: Vec<String>,
+        rule: Vec<String>,
+        dataset: Vec<String>,
+        row: Integers,
+    ) -> Result<String> {
+        let rows: Vec<Option<usize>> = row
+            .iter()
+            .map(|r| match Option::<i32>::from(r) {
+                None => Ok(None),
+                Some(r) => usize::try_from(r - 1)
+                    .map(Some)
+                    .map_err(|_| Error::Other("finding rows must be positive".into())),
+            })
+            .collect::<Result<_>>()?;
+        if [rule.len(), dataset.len(), rows.len()] != [level.len(); 3] {
+            return Err(Error::Other(
+                "`level`, `rule`, `dataset` and `row` must have equal lengths".into(),
+            ));
+        }
+        let observed: Vec<trialforge::defects::Observed<'_>> = (0..level.len())
+            .map(|i| trialforge::defects::Observed {
+                level: &level[i],
+                rule: &rule[i],
+                dataset: &dataset[i],
+                row: rows[i],
+            })
+            .collect();
+        let score = self
+            .inner
+            .score(&observed)
+            .map_err(|e| Error::Other(e.to_string()))?;
+        Ok(serde_json::to_string(&score).expect("scores serialize"))
     }
 
     fn write_submission(&self, path: &str) -> Result<Vec<String>> {
