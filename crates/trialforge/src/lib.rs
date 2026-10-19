@@ -2,8 +2,9 @@
 //!
 //! This facade re-exports the workspace crates and runs the pipeline:
 //! archetype + controls → design → enrollment → subject timelines → SDTM → ADaM → checks →
-//! truth manifest. The Python and R bindings and the CLI depend on this crate alone, so the
-//! internal crate layout can change without touching them.
+//! truth manifest, then, when asked for, seeded data-quality defects. The Python and R
+//! bindings and the CLI depend on this crate alone, so the internal crate layout can change
+//! without touching them.
 
 pub mod spec;
 mod truth;
@@ -16,6 +17,7 @@ pub use trialforge_calibrate as calibrate;
 pub use trialforge_cdisc as cdisc;
 pub use trialforge_check as check;
 pub use trialforge_core as core;
+pub use trialforge_defects as defects;
 pub use trialforge_designs as designs;
 pub use trialforge_hooks as hooks;
 pub use trialforge_io as io;
@@ -57,8 +59,10 @@ pub struct Study {
     pub sdtm: Vec<Dataset>,
     /// ADaM datasets, in standard order.
     pub adam: Vec<Dataset>,
-    /// Targets vs realised values, as JSON.
+    /// Targets vs realised values, as JSON (of the clean study, before any defects).
     pub truth: serde_json::Value,
+    /// The defects injected into `sdtm` and `adam`, if any were requested.
+    pub defects: Option<defects::Manifest>,
 }
 
 /// Anything that can go wrong generating or writing a study.
@@ -224,6 +228,12 @@ pub fn study(archetype: &str, opts: &StudyOptions) -> Result<Study, Error> {
         )));
     }
     let truth = truth::manifest(&resolved, archetype, &sdtm, &adam);
+    // Defects go into the verified datasets, after the truth manifest has described them.
+    let (mut sdtm, mut adam) = (sdtm, adam);
+    let defects =
+        opts.defects.as_ref().filter(|d| !d.is_empty()).map(|spec| {
+            defects::inject(design.stream().label("defects"), spec, &mut sdtm, &mut adam)
+        });
     let last_contact = timelines
         .iter()
         .map(|t| t.last_contact)
@@ -240,6 +250,7 @@ pub fn study(archetype: &str, opts: &StudyOptions) -> Result<Study, Error> {
         sdtm,
         adam,
         truth,
+        defects,
     })
 }
 
@@ -256,9 +267,10 @@ fn strata_of(design: &model::Design, subjects: &[model::Subject]) -> HashMap<Str
         .collect()
 }
 
-/// Re-runs verification levels 0–2 on a study (for example after user post-processing).
+/// Re-runs verification levels 0–2 on a study (for example after user post-processing, or to
+/// find its injected defects). Every finding is kept.
 pub fn verify(study: &Study) -> check::Report {
-    check::run(&study.sdtm, &study.adam)
+    check::run_all(&study.sdtm, &study.adam)
 }
 
 impl Study {
@@ -278,7 +290,8 @@ impl Study {
     }
 
     /// Writes a submission-style package: `dir/sdtm/` and `dir/adam/`, each with one XPT file
-    /// per dataset and a `define.xml`, plus `dir/truth.json`. Returns the paths written.
+    /// per dataset and a `define.xml`, plus `dir/truth.json` (and `dir/defects.json` when the
+    /// study has defects). Returns the paths written.
     pub fn write_submission(&self, dir: &Path) -> Result<Vec<std::path::PathBuf>, Error> {
         let mut written = Vec::new();
         for (sub, sets, standard) in [
@@ -299,13 +312,7 @@ impl Study {
             std::fs::write(&define, self.define_xml(standard)?).map_err(Error::Io)?;
             written.push(define);
         }
-        let truth = dir.join("truth.json");
-        std::fs::write(
-            &truth,
-            serde_json::to_string_pretty(&self.truth).expect("truth serializes") + "\n",
-        )
-        .map_err(Error::Io)?;
-        written.push(truth);
+        written.extend(self.write_manifests(dir)?);
         Ok(written)
     }
 
@@ -317,8 +324,9 @@ impl Study {
             .find(|d| d.name.eq_ignore_ascii_case(name))
     }
 
-    /// Writes every dataset to `dir` (created if needed) in each of `formats`. Files are named
-    /// by lower-case dataset name, e.g. `dm.xpt`. Returns the paths written.
+    /// Writes every dataset to `dir` (created if needed) in each of `formats`, plus
+    /// `truth.json` (and `defects.json` when the study has defects). Files are named by
+    /// lower-case dataset name, e.g. `dm.xpt`. Returns the paths written.
     pub fn write(&self, dir: &Path, formats: &[&str]) -> Result<Vec<std::path::PathBuf>, Error> {
         if let Some(bad) = formats.iter().find(|f| !FORMATS.contains(f)) {
             return Err(Error::Invalid(format!(
@@ -367,13 +375,94 @@ impl Study {
                 written.push(path);
             }
         }
-        let truth = dir.join("truth.json");
-        std::fs::write(
-            &truth,
-            serde_json::to_string_pretty(&self.truth).expect("truth serializes") + "\n",
-        )
-        .map_err(Error::Io)?;
-        written.push(truth);
+        written.extend(self.write_manifests(dir)?);
+        Ok(written)
+    }
+
+    /// The defect manifest as written to `defects.json`: the request, the seed and every
+    /// defect, with zero-based rows.
+    pub fn defects_json(&self) -> Option<serde_json::Value> {
+        let m = self.defects.as_ref()?;
+        Some(serde_json::json!({
+            "studyid": self.studyid,
+            "seed": self.seed,
+            "rows": "zero-based",
+            "spec": m.spec,
+            "defects": m.defects,
+        }))
+    }
+
+    /// The injected defects as a table, one row per defect; `expected` lists the expected
+    /// findings as `RULE DATASET row`, separated by `; `. Rows are numbered from `first_row`
+    /// (0 in Rust and Python, 1 in R).
+    pub fn defects_table(&self, first_row: usize) -> Option<Dataset> {
+        let m = self.defects.as_ref()?;
+        let number = |r: usize| (r + first_row) as i64;
+        let char_col = |name: &str, label: &str, f: &dyn Fn(&defects::Defect) -> Option<String>| {
+            Column::new(name, label, Values::Char(m.defects.iter().map(f).collect()))
+        };
+        let columns = vec![
+            char_col("id", "Defect type", &|d| Some(d.id.to_string())),
+            char_col("dataset", "Dataset", &|d| Some(d.dataset.clone())),
+            Column::new(
+                "row",
+                "Row",
+                Values::Int(m.defects.iter().map(|d| Some(number(d.row))).collect()),
+            ),
+            Column::new(
+                "paired_row",
+                "Paired row",
+                Values::Int(m.defects.iter().map(|d| d.paired_row.map(number)).collect()),
+            ),
+            char_col("usubjid", "Unique Subject Identifier", &|d| {
+                d.usubjid.clone()
+            }),
+            char_col("key", "Record key", &|d| d.key.clone()),
+            char_col("variable", "Variable", &|d| Some(d.variable.clone())),
+            char_col("original", "Original value", &|d| d.original.clone()),
+            char_col("injected", "Injected value", &|d| d.injected.clone()),
+            char_col("expected", "Expected findings", &|d| {
+                Some(
+                    d.expected
+                        .iter()
+                        .map(|e| match e.row {
+                            Some(r) => format!("{} {} {}", e.rule, e.dataset, number(r)),
+                            None => format!("{} {}", e.rule, e.dataset),
+                        })
+                        .collect::<Vec<_>>()
+                        .join("; "),
+                )
+            }),
+        ];
+        Some(Dataset::new("DEFECTS", "Injected defects", columns).expect("equal-length columns"))
+    }
+
+    /// Scores a validator's findings against the injected defects (precision and recall, per
+    /// defect type). Fails if the study has no defects.
+    pub fn score(&self, findings: &[defects::Observed<'_>]) -> Result<defects::Score, Error> {
+        let m = self.defects.as_ref().ok_or_else(|| {
+            Error::Invalid("this study has no injected defects; generate it with `defects`".into())
+        })?;
+        Ok(defects::score(&m.defects, findings))
+    }
+
+    /// Writes `truth.json` and, when the study has defects, `defects.json` to `dir`.
+    fn write_manifests(&self, dir: &Path) -> Result<Vec<std::path::PathBuf>, Error> {
+        let mut written = Vec::new();
+        let files = [
+            ("truth.json", Some(self.truth.clone())),
+            ("defects.json", self.defects_json()),
+        ];
+        for (name, value) in files {
+            let Some(value) = value else { continue };
+            let path = dir.join(name);
+            std::fs::write(
+                &path,
+                serde_json::to_string_pretty(&value).expect("manifests serialize") + "\n",
+            )
+            .map_err(Error::Io)?;
+            written.push(path);
+        }
         Ok(written)
     }
 }
