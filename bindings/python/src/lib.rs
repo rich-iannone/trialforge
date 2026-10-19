@@ -58,9 +58,10 @@ fn formats() -> Vec<&'static str> {
 }
 
 /// Generates a study. `seed=None` draws a fresh seed (recorded on the result); `controls` is a
-/// JSON object string of archetype controls.
+/// JSON object string of archetype controls; `defects` is a JSON string (`"none"` or a map of
+/// defect id to count or rate).
 #[pyfunction]
-#[pyo3(signature = (archetype, n, seed=None, studyid=None, controls=None))]
+#[pyo3(signature = (archetype, n, seed=None, studyid=None, controls=None, defects=None))]
 fn study(
     py: Python<'_>,
     archetype: &str,
@@ -68,17 +69,29 @@ fn study(
     seed: Option<u64>,
     studyid: Option<String>,
     controls: Option<&str>,
+    defects: Option<&str>,
 ) -> PyResult<Study> {
+    let json = |what: &str, text: &str| -> PyResult<serde_json::Value> {
+        serde_json::from_str(text)
+            .map_err(|e| PyValueError::new_err(format!("{what} are not valid JSON: {e}")))
+    };
     let controls = match controls {
-        Some(c) => serde_json::from_str(c)
-            .map_err(|e| PyValueError::new_err(format!("controls are not valid JSON: {e}")))?,
+        Some(c) => json("controls", c)?,
         None => serde_json::Value::Null,
+    };
+    let defects = match defects {
+        Some(d) => Some(
+            trialforge::defects::DefectSpec::from_value(&json("defects", d)?)
+                .map_err(PyValueError::new_err)?,
+        ),
+        None => None,
     };
     let opts = StudyOptions {
         n,
         seed: seed.unwrap_or_else(trialforge::random_seed),
         studyid,
         controls,
+        defects,
     };
     let inner = py
         .detach(|| trialforge::study(archetype, &opts))
@@ -145,6 +158,13 @@ impl Study {
         self.inner.truth.to_string()
     }
 
+    /// The defect manifest (as written to `defects.json`), as a JSON string; `None` for a clean
+    /// study.
+    #[getter]
+    fn defects_json(&self) -> Option<String> {
+        self.inner.defects_json().map(|v| v.to_string())
+    }
+
     #[getter]
     fn sdtm_names(&self) -> Vec<String> {
         self.inner.sdtm.iter().map(|d| d.name.clone()).collect()
@@ -166,16 +186,46 @@ impl Study {
         Ok(ArrowTable { batch })
     }
 
-    /// Writes every dataset to `path` in each of `formats`, plus `truth.json`; returns the
-    /// paths written.
+    /// The injected defects as an Arrow table (zero-based `row`); `None` for a clean study.
+    fn defects_table(&self) -> PyResult<Option<ArrowTable>> {
+        self.inner
+            .defects_table(0)
+            .map(|ds| {
+                trialforge::io::arrow::to_record_batch(&ds)
+                    .map(|batch| ArrowTable { batch })
+                    .map_err(|e| PyRuntimeError::new_err(e.to_string()))
+            })
+            .transpose()
+    }
+
+    /// Scores findings `[(level, rule, dataset, row)]` (zero-based rows) against the injected
+    /// defects; returns the score as a JSON string.
+    fn score(&self, findings: Vec<(String, String, String, Option<usize>)>) -> PyResult<String> {
+        let observed: Vec<trialforge::defects::Observed<'_>> = findings
+            .iter()
+            .map(
+                |(level, rule, dataset, row)| trialforge::defects::Observed {
+                    level,
+                    rule,
+                    dataset,
+                    row: *row,
+                },
+            )
+            .collect();
+        let score = self.inner.score(&observed).map_err(to_py_err)?;
+        Ok(serde_json::to_string(&score).expect("scores serialize"))
+    }
+
+    /// Writes every dataset to `path` in each of `formats`, plus `truth.json` (and
+    /// `defects.json`); returns the paths written.
     fn write(&self, py: Python<'_>, path: PathBuf, formats: Vec<String>) -> PyResult<Vec<PathBuf>> {
         let formats: Vec<&str> = formats.iter().map(String::as_str).collect();
         py.detach(|| self.inner.write(&path, &formats))
             .map_err(to_py_err)
     }
 
-    /// Writes `path/sdtm/` and `path/adam/` (XPT + define.xml each) and `path/truth.json`;
-    /// returns the paths written.
+    /// Writes `path/sdtm/` and `path/adam/` (XPT + define.xml each) and `path/truth.json` (and
+    /// `path/defects.json`); returns the paths written.
     fn write_submission(&self, py: Python<'_>, path: PathBuf) -> PyResult<Vec<PathBuf>> {
         py.detach(|| self.inner.write_submission(&path))
             .map_err(to_py_err)
