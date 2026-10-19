@@ -104,8 +104,9 @@ fn default_n() -> usize {
 #[derive(Clone, Debug, Default, PartialEq, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct DataQualitySection {
-    /// Defects to inject into the clean study: `none`, or a map of defect id to a count (an
-    /// integer) or a rate (see `trialforge_defects::CATALOGUE`).
+    /// Defects to inject into the clean study: `none`, a profile (`light`, `realistic`,
+    /// `adversarial`), or a map of defect id to a count (an integer) or a rate (see
+    /// `trialforge_defects::CATALOGUE` and `PROFILES`).
     #[serde(default)]
     pub defects: Option<DefectSpec>,
     /// Not supported yet.
