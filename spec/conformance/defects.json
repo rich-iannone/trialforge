@@ -1,0 +1,1089 @@
+{
+  "description": "Golden defect manifests of study(archetype, n, seed, defects=..., **controls). Both bindings check: defects.json as written (zero-based rows) equals `manifest`; Study.defects / trial$defects holds the same defects (R counts rows from 1); the XPT files of the datasets holding defects hash to `xpt_md5`; and scoring verify()'s L0-L2 findings gives `score`. Any change to generation, injection or the XPT writer changes these; regenerate deliberately.",
+  "cases": [
+    {
+      "archetype": "respiratory_exacerbation",
+      "n": 60,
+      "seed": 20261020,
+      "controls": {},
+      "defects": "adversarial",
+      "manifest": {
+        "defects": [
+          {
+            "dataset": "AE",
+            "expected": [
+              {
+                "dataset": "AE",
+                "row": 19,
+                "rule": "L1.ORDER"
+              },
+              {
+                "dataset": "ADAE",
+                "row": 19,
+                "rule": "L2.ADAE"
+              }
+            ],
+            "id": "ae_end_before_start",
+            "injected": "2025-02-21",
+            "key": "AESEQ=1",
+            "original": "2025-03-01",
+            "paired_row": null,
+            "row": 19,
+            "usubjid": "SIMRES01-211002",
+            "variable": "AEENDTC"
+          },
+          {
+            "dataset": "AE",
+            "expected": [
+              {
+                "dataset": "AE",
+                "row": 22,
+                "rule": "L1.ORDER"
+              },
+              {
+                "dataset": "ADAE",
+                "row": 22,
+                "rule": "L2.ADAE"
+              }
+            ],
+            "id": "ae_end_before_start",
+            "injected": "2025-03-15",
+            "key": "AESEQ=2",
+            "original": "2025-03-22",
+            "paired_row": null,
+            "row": 22,
+            "usubjid": "SIMRES01-212001",
+            "variable": "AEENDTC"
+          },
+          {
+            "dataset": "AE",
+            "expected": [
+              {
+                "dataset": "AE",
+                "row": 51,
+                "rule": "L1.ORDER"
+              },
+              {
+                "dataset": "ADAE",
+                "row": 51,
+                "rule": "L2.ADAE"
+              }
+            ],
+            "id": "ae_end_before_start",
+            "injected": "2025-06-20",
+            "key": "AESEQ=2",
+            "original": "2025-08-12",
+            "paired_row": null,
+            "row": 51,
+            "usubjid": "SIMRES01-224003",
+            "variable": "AEENDTC"
+          },
+          {
+            "dataset": "CM",
+            "expected": [
+              {
+                "dataset": "CM",
+                "row": 26,
+                "rule": "L0.SEQ"
+              }
+            ],
+            "id": "duplicate_seq",
+            "injected": "2",
+            "key": "CMSEQ=3",
+            "original": "3",
+            "paired_row": 25,
+            "row": 26,
+            "usubjid": "SIMRES01-204001",
+            "variable": "CMSEQ"
+          },
+          {
+            "dataset": "DS",
+            "expected": [
+              {
+                "dataset": "DS",
+                "row": 202,
+                "rule": "L0.SEQ"
+              }
+            ],
+            "id": "duplicate_seq",
+            "injected": "2",
+            "key": "DSSEQ=3",
+            "original": "3",
+            "paired_row": 201,
+            "row": 202,
+            "usubjid": "SIMRES01-225002",
+            "variable": "DSSEQ"
+          },
+          {
+            "dataset": "MH",
+            "expected": [
+              {
+                "dataset": "MH",
+                "row": 226,
+                "rule": "L0.SEQ"
+              }
+            ],
+            "id": "duplicate_seq",
+            "injected": "1",
+            "key": "MHSEQ=2",
+            "original": "2",
+            "paired_row": 225,
+            "row": 226,
+            "usubjid": "SIMRES01-225001",
+            "variable": "MHSEQ"
+          },
+          {
+            "dataset": "CM",
+            "expected": [
+              {
+                "dataset": "CM",
+                "row": 164,
+                "rule": "L0.CT"
+              }
+            ],
+            "id": "out_of_ct",
+            "injected": "Oral",
+            "key": "CMSEQ=1",
+            "original": "ORAL",
+            "paired_row": null,
+            "row": 164,
+            "usubjid": "SIMRES01-228003",
+            "variable": "CMROUTE"
+          },
+          {
+            "dataset": "LB",
+            "expected": [
+              {
+                "dataset": "LB",
+                "row": 1046,
+                "rule": "L0.CT"
+              }
+            ],
+            "id": "out_of_ct",
+            "injected": "serum",
+            "key": "LBSEQ=27",
+            "original": "SERUM",
+            "paired_row": null,
+            "row": 1046,
+            "usubjid": "SIMRES01-208001",
+            "variable": "LBSPEC"
+          },
+          {
+            "dataset": "LB",
+            "expected": [
+              {
+                "dataset": "LB",
+                "row": 4685,
+                "rule": "L0.CT"
+              }
+            ],
+            "id": "out_of_ct",
+            "injected": "Serum",
+            "key": "LBSEQ=26",
+            "original": "SERUM",
+            "paired_row": null,
+            "row": 4685,
+            "usubjid": "SIMRES01-230001",
+            "variable": "LBSPEC"
+          },
+          {
+            "dataset": "CM",
+            "expected": [
+              {
+                "dataset": "CM",
+                "row": 95,
+                "rule": "L1.SUBJ"
+              }
+            ],
+            "id": "orphan_usubjid",
+            "injected": "SIMRES01-216008",
+            "key": "CMSEQ=1",
+            "original": "SIMRES01-216002",
+            "paired_row": null,
+            "row": 95,
+            "usubjid": "SIMRES01-216002",
+            "variable": "USUBJID"
+          },
+          {
+            "dataset": "MH",
+            "expected": [
+              {
+                "dataset": "MH",
+                "row": 10,
+                "rule": "L1.SUBJ"
+              }
+            ],
+            "id": "orphan_usubjid",
+            "injected": "SIMRES01-202009",
+            "key": "MHSEQ=2",
+            "original": "SIMRES01-202001",
+            "paired_row": null,
+            "row": 10,
+            "usubjid": "SIMRES01-202001",
+            "variable": "USUBJID"
+          },
+          {
+            "dataset": "MH",
+            "expected": [
+              {
+                "dataset": "MH",
+                "row": 90,
+                "rule": "L1.SUBJ"
+              }
+            ],
+            "id": "orphan_usubjid",
+            "injected": "SIMRES01-250002",
+            "key": "MHSEQ=1",
+            "original": "SIMRES01-210002",
+            "paired_row": null,
+            "row": 90,
+            "usubjid": "SIMRES01-210002",
+            "variable": "USUBJID"
+          },
+          {
+            "dataset": "SE",
+            "expected": [
+              {
+                "dataset": "SE",
+                "row": 3,
+                "rule": "L1.DY"
+              }
+            ],
+            "id": "bad_study_day",
+            "injected": "365",
+            "key": "SESEQ=2",
+            "original": "366",
+            "paired_row": null,
+            "row": 3,
+            "usubjid": "SIMRES01-201002",
+            "variable": "SEENDY"
+          },
+          {
+            "dataset": "SV",
+            "expected": [
+              {
+                "dataset": "SV",
+                "row": 63,
+                "rule": "L1.DY"
+              }
+            ],
+            "id": "bad_study_day",
+            "injected": "142",
+            "key": null,
+            "original": "143",
+            "paired_row": null,
+            "row": 63,
+            "usubjid": "SIMRES01-203001",
+            "variable": "SVENDY"
+          },
+          {
+            "dataset": "LB",
+            "expected": [
+              {
+                "dataset": "LB",
+                "row": 2734,
+                "rule": "L1.DY"
+              }
+            ],
+            "id": "bad_study_day",
+            "injected": "81",
+            "key": "LBSEQ=55",
+            "original": "82",
+            "paired_row": null,
+            "row": 2734,
+            "usubjid": "SIMRES01-218001",
+            "variable": "LBDY"
+          },
+          {
+            "dataset": "ADLB",
+            "expected": [
+              {
+                "dataset": "ADLB",
+                "row": 1858,
+                "rule": "L2.BDS"
+              }
+            ],
+            "id": "chg_mismatch",
+            "injected": "0.59",
+            "key": "PARAMCD=SODIUM, SRCSEQ=39",
+            "original": "2",
+            "paired_row": null,
+            "row": 1858,
+            "usubjid": "SIMRES01-214001",
+            "variable": "CHG"
+          },
+          {
+            "dataset": "ADVS",
+            "expected": [
+              {
+                "dataset": "ADVS",
+                "row": 947,
+                "rule": "L2.BDS"
+              }
+            ],
+            "id": "chg_mismatch",
+            "injected": "-1.671",
+            "key": "PARAMCD=WEIGHT, SRCSEQ=57",
+            "original": "-0.9",
+            "paired_row": null,
+            "row": 947,
+            "usubjid": "SIMRES01-208003",
+            "variable": "CHG"
+          },
+          {
+            "dataset": "ADVS",
+            "expected": [
+              {
+                "dataset": "ADVS",
+                "row": 2558,
+                "rule": "L2.BDS"
+              }
+            ],
+            "id": "chg_mismatch",
+            "injected": "1.242",
+            "key": "PARAMCD=WEIGHT, SRCSEQ=56",
+            "original": "0.5",
+            "paired_row": null,
+            "row": 2558,
+            "usubjid": "SIMRES01-223001",
+            "variable": "CHG"
+          },
+          {
+            "dataset": "ADLB",
+            "expected": [
+              {
+                "dataset": "ADLB",
+                "row": 3213,
+                "rule": "L2.BDS"
+              }
+            ],
+            "id": "missing_baseline",
+            "injected": null,
+            "key": "PARAMCD=HGB, SRCSEQ=54",
+            "original": "Y",
+            "paired_row": null,
+            "row": 3213,
+            "usubjid": "SIMRES01-222002",
+            "variable": "ABLFL"
+          },
+          {
+            "dataset": "ADLB",
+            "expected": [
+              {
+                "dataset": "ADLB",
+                "row": 4033,
+                "rule": "L2.BDS"
+              }
+            ],
+            "id": "missing_baseline",
+            "injected": null,
+            "key": "PARAMCD=BILI, SRCSEQ=14",
+            "original": "Y",
+            "paired_row": null,
+            "row": 4033,
+            "usubjid": "SIMRES01-225003",
+            "variable": "ABLFL"
+          },
+          {
+            "dataset": "ADVS",
+            "expected": [
+              {
+                "dataset": "ADVS",
+                "row": 698,
+                "rule": "L2.BDS"
+              }
+            ],
+            "id": "missing_baseline",
+            "injected": null,
+            "key": "PARAMCD=WEIGHT, SRCSEQ=52",
+            "original": "Y",
+            "paired_row": null,
+            "row": 698,
+            "usubjid": "SIMRES01-205002",
+            "variable": "ABLFL"
+          },
+          {
+            "dataset": "ADAE",
+            "expected": [
+              {
+                "dataset": "ADAE",
+                "row": 6,
+                "rule": "L2.ADAE"
+              }
+            ],
+            "id": "trtemfl_wrong",
+            "injected": null,
+            "key": "AESEQ=1",
+            "original": "Y",
+            "paired_row": null,
+            "row": 6,
+            "usubjid": "SIMRES01-204001",
+            "variable": "TRTEMFL"
+          },
+          {
+            "dataset": "ADAE",
+            "expected": [
+              {
+                "dataset": "ADAE",
+                "row": 45,
+                "rule": "L2.ADAE"
+              }
+            ],
+            "id": "trtemfl_wrong",
+            "injected": null,
+            "key": "AESEQ=2",
+            "original": "Y",
+            "paired_row": null,
+            "row": 45,
+            "usubjid": "SIMRES01-223003",
+            "variable": "TRTEMFL"
+          },
+          {
+            "dataset": "ADAE",
+            "expected": [
+              {
+                "dataset": "ADAE",
+                "row": 59,
+                "rule": "L2.ADAE"
+              }
+            ],
+            "id": "trtemfl_wrong",
+            "injected": null,
+            "key": "AESEQ=1",
+            "original": "Y",
+            "paired_row": null,
+            "row": 59,
+            "usubjid": "SIMRES01-228001",
+            "variable": "TRTEMFL"
+          },
+          {
+            "dataset": "ADTTE",
+            "expected": [
+              {
+                "dataset": "ADTTE",
+                "row": 21,
+                "rule": "L2.ADEXAC"
+              }
+            ],
+            "id": "cnsr_wrong",
+            "injected": "1",
+            "key": "PARAMCD=TTFEXAC",
+            "original": "0",
+            "paired_row": null,
+            "row": 21,
+            "usubjid": "SIMRES01-212001",
+            "variable": "CNSR"
+          },
+          {
+            "dataset": "ADTTE",
+            "expected": [
+              {
+                "dataset": "ADTTE",
+                "row": 49,
+                "rule": "L2.ADEXAC"
+              }
+            ],
+            "id": "cnsr_wrong",
+            "injected": "1",
+            "key": "PARAMCD=TTFEXAC",
+            "original": "0",
+            "paired_row": null,
+            "row": 49,
+            "usubjid": "SIMRES01-225001",
+            "variable": "CNSR"
+          },
+          {
+            "dataset": "ADTTE",
+            "expected": [
+              {
+                "dataset": "ADTTE",
+                "row": 58,
+                "rule": "L2.ADEXAC"
+              }
+            ],
+            "id": "cnsr_wrong",
+            "injected": "0",
+            "key": "PARAMCD=TTFEXAC",
+            "original": "1",
+            "paired_row": null,
+            "row": 58,
+            "usubjid": "SIMRES01-228005",
+            "variable": "CNSR"
+          }
+        ],
+        "profile": "adversarial",
+        "rows": "zero-based",
+        "seed": 20261020,
+        "spec": {
+          "ae_end_before_start": 3,
+          "bad_study_day": 3,
+          "chg_mismatch": 3,
+          "cnsr_wrong": 3,
+          "duplicate_seq": 3,
+          "missing_baseline": 3,
+          "orphan_usubjid": 3,
+          "out_of_ct": 3,
+          "record_after_death": 3,
+          "trtemfl_wrong": 3
+        },
+        "studyid": "SIMRES01"
+      },
+      "xpt_md5": {
+        "se.xpt": "0b4e2312e8d26c56d39f34ebf8bbbadf",
+        "sv.xpt": "7128c963a7affbb8d597a611508c55d9",
+        "cm.xpt": "7c43abb422a73b9758e4c78cdc6a6e94",
+        "ae.xpt": "597e26fa2ff17478521763b8ac43cb4b",
+        "ds.xpt": "8d51a1087f863609fe45bdd17fca86a8",
+        "mh.xpt": "dd1f3aa1f0f582caf765773e56e8499b",
+        "lb.xpt": "7690e759006568449310f23785067cd4",
+        "adae.xpt": "ef4650f829405bd3567718746b03e196",
+        "adlb.xpt": "2859c8d459a5cf4bfe767776b49673f3",
+        "advs.xpt": "96d20dcf3b3ba28184ab0a9a1fd012c4",
+        "adtte.xpt": "1fb60082cf040e6890794280b95cbb7e"
+      },
+      "score": {
+        "injected": 27,
+        "detected": 27,
+        "findings": 33,
+        "matched": 33
+      }
+    },
+    {
+      "archetype": "oncology_solid_tumor",
+      "n": 40,
+      "seed": 20261020,
+      "controls": {},
+      "defects": {
+        "record_after_death": 2,
+        "cnsr_wrong": 0.02,
+        "bad_study_day": 1
+      },
+      "manifest": {
+        "defects": [
+          {
+            "dataset": "DS",
+            "expected": [
+              {
+                "dataset": "DS",
+                "row": 50,
+                "rule": "L1.DEATH"
+              },
+              {
+                "dataset": "DS",
+                "row": 50,
+                "rule": "L1.PART"
+              },
+              {
+                "dataset": "DS",
+                "row": 50,
+                "rule": "L1.EPOCH"
+              }
+            ],
+            "id": "record_after_death",
+            "injected": "2024-11-02",
+            "key": "DSSEQ=3",
+            "original": "2023-10-12",
+            "paired_row": null,
+            "row": 50,
+            "usubjid": "SIMONC02-112001",
+            "variable": "DSSTDTC"
+          },
+          {
+            "dataset": "DS",
+            "expected": [
+              {
+                "dataset": "DS",
+                "row": 94,
+                "rule": "L1.DEATH"
+              },
+              {
+                "dataset": "DS",
+                "row": 94,
+                "rule": "L1.PART"
+              },
+              {
+                "dataset": "DS",
+                "row": 94,
+                "rule": "L1.EPOCH"
+              }
+            ],
+            "id": "record_after_death",
+            "injected": "2023-10-08",
+            "key": "DSSEQ=3",
+            "original": "2023-07-24",
+            "paired_row": null,
+            "row": 94,
+            "usubjid": "SIMONC02-121001",
+            "variable": "DSSTDTC"
+          },
+          {
+            "dataset": "DM",
+            "expected": [
+              {
+                "dataset": "DM",
+                "row": 15,
+                "rule": "L1.DY"
+              }
+            ],
+            "id": "bad_study_day",
+            "injected": "-23",
+            "key": null,
+            "original": "-24",
+            "paired_row": null,
+            "row": 15,
+            "usubjid": "SIMONC02-114001",
+            "variable": "DMDY"
+          },
+          {
+            "dataset": "ADTTE",
+            "expected": [
+              {
+                "dataset": "ADTTE",
+                "row": 32,
+                "rule": "L2.ADTTE"
+              }
+            ],
+            "id": "cnsr_wrong",
+            "injected": "1",
+            "key": "PARAMCD=PFS",
+            "original": "0",
+            "paired_row": null,
+            "row": 32,
+            "usubjid": "SIMONC02-111001",
+            "variable": "CNSR"
+          }
+        ],
+        "profile": null,
+        "rows": "zero-based",
+        "seed": 20261020,
+        "spec": {
+          "bad_study_day": 1,
+          "cnsr_wrong": 0.02,
+          "record_after_death": 2
+        },
+        "studyid": "SIMONC02"
+      },
+      "xpt_md5": {
+        "dm.xpt": "ac8bc736bb7b8e58ed59d99da707b479",
+        "ds.xpt": "081ff9df9019ef2e9b0da699473ed153",
+        "adtte.xpt": "cdfc7d9e1f3758423d9f885ba76a2db2"
+      },
+      "score": {
+        "injected": 4,
+        "detected": 4,
+        "findings": 8,
+        "matched": 8
+      }
+    },
+    {
+      "archetype": "cns_alzheimers",
+      "n": 80,
+      "seed": 20261020,
+      "controls": {},
+      "defects": "realistic",
+      "manifest": {
+        "defects": [
+          {
+            "dataset": "AE",
+            "expected": [
+              {
+                "dataset": "AE",
+                "row": 43,
+                "rule": "L1.ORDER"
+              },
+              {
+                "dataset": "ADAE",
+                "row": 43,
+                "rule": "L2.ADAE"
+              }
+            ],
+            "id": "ae_end_before_start",
+            "injected": "2025-01-28",
+            "key": "AESEQ=2",
+            "original": "2025-02-16",
+            "paired_row": null,
+            "row": 43,
+            "usubjid": "SIMCNS01-223003",
+            "variable": "AEENDTC"
+          },
+          {
+            "dataset": "LB",
+            "expected": [
+              {
+                "dataset": "LB",
+                "row": 5960,
+                "rule": "L0.CT"
+              }
+            ],
+            "id": "out_of_ct",
+            "injected": "ESRUM",
+            "key": "LBSEQ=61",
+            "original": "SERUM",
+            "paired_row": null,
+            "row": 5960,
+            "usubjid": "SIMCNS01-222002",
+            "variable": "LBSPEC"
+          },
+          {
+            "dataset": "LB",
+            "expected": [
+              {
+                "dataset": "LB",
+                "row": 7552,
+                "rule": "L0.CT"
+              }
+            ],
+            "id": "out_of_ct",
+            "injected": "Serum",
+            "key": "LBSEQ=73",
+            "original": "SERUM",
+            "paired_row": null,
+            "row": 7552,
+            "usubjid": "SIMCNS01-225006",
+            "variable": "LBSPEC"
+          },
+          {
+            "dataset": "AE",
+            "expected": [
+              {
+                "dataset": "AE",
+                "row": 41,
+                "rule": "L1.SUBJ"
+              },
+              {
+                "dataset": "AE",
+                "row": 41,
+                "rule": "L1.EPOCH"
+              },
+              {
+                "dataset": "SUPPAE",
+                "row": 41,
+                "rule": "L1.SUPP"
+              },
+              {
+                "dataset": "ADAE",
+                "row": 41,
+                "rule": "L2.ADAE"
+              }
+            ],
+            "id": "orphan_usubjid",
+            "injected": "SIMCNS01-282005",
+            "key": "AESEQ=2",
+            "original": "SIMCNS01-222005",
+            "paired_row": null,
+            "row": 41,
+            "usubjid": "SIMCNS01-222005",
+            "variable": "USUBJID"
+          },
+          {
+            "dataset": "MH",
+            "expected": [
+              {
+                "dataset": "MH",
+                "row": 87,
+                "rule": "L1.SUBJ"
+              }
+            ],
+            "id": "orphan_usubjid",
+            "injected": "SIMCNS01-205101",
+            "key": "MHSEQ=3",
+            "original": "SIMCNS01-205001",
+            "paired_row": null,
+            "row": 87,
+            "usubjid": "SIMCNS01-205001",
+            "variable": "USUBJID"
+          },
+          {
+            "dataset": "LB",
+            "expected": [
+              {
+                "dataset": "LB",
+                "row": 7515,
+                "rule": "L1.DY"
+              }
+            ],
+            "id": "bad_study_day",
+            "injected": "186",
+            "key": "LBSEQ=36",
+            "original": "187",
+            "paired_row": null,
+            "row": 7515,
+            "usubjid": "SIMCNS01-225006",
+            "variable": "LBDY"
+          },
+          {
+            "dataset": "LB",
+            "expected": [
+              {
+                "dataset": "LB",
+                "row": 8901,
+                "rule": "L1.DY"
+              },
+              {
+                "dataset": "LB",
+                "row": 8901,
+                "rule": "L0.DY"
+              }
+            ],
+            "id": "bad_study_day",
+            "injected": "0",
+            "key": "LBSEQ=62",
+            "original": "1",
+            "paired_row": null,
+            "row": 8901,
+            "usubjid": "SIMCNS01-230001",
+            "variable": "LBDY"
+          },
+          {
+            "dataset": "VS",
+            "expected": [
+              {
+                "dataset": "VS",
+                "row": 1135,
+                "rule": "L1.DY"
+              }
+            ],
+            "id": "bad_study_day",
+            "injected": "182",
+            "key": "VSSEQ=60",
+            "original": "183",
+            "paired_row": null,
+            "row": 1135,
+            "usubjid": "SIMCNS01-208002",
+            "variable": "VSDY"
+          },
+          {
+            "dataset": "FT",
+            "expected": [
+              {
+                "dataset": "FT",
+                "row": 578,
+                "rule": "L1.DY"
+              }
+            ],
+            "id": "bad_study_day",
+            "injected": "61",
+            "key": "FTSEQ=18",
+            "original": "62",
+            "paired_row": null,
+            "row": 578,
+            "usubjid": "SIMCNS01-205001",
+            "variable": "FTDY"
+          },
+          {
+            "dataset": "ADLB",
+            "expected": [
+              {
+                "dataset": "ADLB",
+                "row": 3693,
+                "rule": "L2.BDS"
+              }
+            ],
+            "id": "missing_baseline",
+            "injected": null,
+            "key": "PARAMCD=ALP, SRCSEQ=14",
+            "original": "Y",
+            "paired_row": null,
+            "row": 3693,
+            "usubjid": "SIMCNS01-214003",
+            "variable": "ABLFL"
+          },
+          {
+            "dataset": "ADLB",
+            "expected": [
+              {
+                "dataset": "ADLB",
+                "row": 5565,
+                "rule": "L2.BDS"
+              }
+            ],
+            "id": "missing_baseline",
+            "injected": null,
+            "key": "PARAMCD=CREAT, SRCSEQ=26",
+            "original": "Y",
+            "paired_row": null,
+            "row": 5565,
+            "usubjid": "SIMCNS01-221002",
+            "variable": "ABLFL"
+          },
+          {
+            "dataset": "ADLB",
+            "expected": [
+              {
+                "dataset": "ADLB",
+                "row": 5607,
+                "rule": "L2.BDS"
+              }
+            ],
+            "id": "missing_baseline",
+            "injected": null,
+            "key": "PARAMCD=CHOL, SRCSEQ=68",
+            "original": "Y",
+            "paired_row": null,
+            "row": 5607,
+            "usubjid": "SIMCNS01-221002",
+            "variable": "ABLFL"
+          }
+        ],
+        "profile": "realistic",
+        "rows": "zero-based",
+        "seed": 20261020,
+        "spec": {
+          "ae_end_before_start": 0.02,
+          "bad_study_day": 0.0001,
+          "chg_mismatch": 0.0001,
+          "cnsr_wrong": 0.005,
+          "duplicate_seq": 0.001,
+          "missing_baseline": 0.0005,
+          "orphan_usubjid": 0.002,
+          "out_of_ct": 0.0001,
+          "record_after_death": 0.02,
+          "trtemfl_wrong": 0.01
+        },
+        "studyid": "SIMCNS01"
+      },
+      "xpt_md5": {
+        "ae.xpt": "410abe12188a650e869bbabc9041885c",
+        "mh.xpt": "2e7240926d316e8cfc1ea577e699a54a",
+        "lb.xpt": "21f00176bd90c8273b96d4285946f818",
+        "vs.xpt": "c1e86eb020058f91d0aa272554a98c88",
+        "ft.xpt": "a66a012601e6b1e14cc1547ddc806a40",
+        "adlb.xpt": "305693a2d0d217fcd765f193d3c592f5"
+      },
+      "score": {
+        "injected": 12,
+        "detected": 12,
+        "findings": 18,
+        "matched": 18
+      }
+    },
+    {
+      "archetype": "parallel_continuous",
+      "n": 60,
+      "seed": 20261020,
+      "controls": {},
+      "defects": "light",
+      "manifest": {
+        "defects": [
+          {
+            "dataset": "AE",
+            "expected": [
+              {
+                "dataset": "AE",
+                "row": 40,
+                "rule": "L1.ORDER"
+              },
+              {
+                "dataset": "ADAE",
+                "row": 40,
+                "rule": "L2.ADAE"
+              }
+            ],
+            "id": "ae_end_before_start",
+            "injected": "2025-04-12",
+            "key": "AESEQ=2",
+            "original": "2025-06-10",
+            "paired_row": null,
+            "row": 40,
+            "usubjid": "SIMPAR01-224003",
+            "variable": "AEENDTC"
+          },
+          {
+            "dataset": "SE",
+            "expected": [
+              {
+                "dataset": "SE",
+                "row": 114,
+                "rule": "L0.SEQ"
+              }
+            ],
+            "id": "duplicate_seq",
+            "injected": "1",
+            "key": "SESEQ=2",
+            "original": "2",
+            "paired_row": 113,
+            "row": 114,
+            "usubjid": "SIMPAR01-221002",
+            "variable": "SESEQ"
+          },
+          {
+            "dataset": "DS",
+            "expected": [
+              {
+                "dataset": "DS",
+                "row": 211,
+                "rule": "L0.CT"
+              }
+            ],
+            "id": "out_of_ct",
+            "injected": "disposition event",
+            "key": "DSSEQ=4",
+            "original": "DISPOSITION EVENT",
+            "paired_row": null,
+            "row": 211,
+            "usubjid": "SIMPAR01-226001",
+            "variable": "DSCAT"
+          },
+          {
+            "dataset": "LB",
+            "expected": [
+              {
+                "dataset": "LB",
+                "row": 1860,
+                "rule": "L0.CT"
+              }
+            ],
+            "id": "out_of_ct",
+            "injected": "SERUUM",
+            "key": "LBSEQ=25",
+            "original": "SERUM",
+            "paired_row": null,
+            "row": 1860,
+            "usubjid": "SIMPAR01-208003",
+            "variable": "LBSPEC"
+          },
+          {
+            "dataset": "SE",
+            "expected": [
+              {
+                "dataset": "SE",
+                "row": 14,
+                "rule": "L1.DY"
+              }
+            ],
+            "id": "bad_study_day",
+            "injected": "184",
+            "key": "SESEQ=3",
+            "original": "185",
+            "paired_row": null,
+            "row": 14,
+            "usubjid": "SIMPAR01-202003",
+            "variable": "SEENDY"
+          }
+        ],
+        "profile": "light",
+        "rows": "zero-based",
+        "seed": 20261020,
+        "spec": {
+          "ae_end_before_start": 1,
+          "bad_study_day": 1,
+          "duplicate_seq": 1,
+          "out_of_ct": 2
+        },
+        "studyid": "SIMPAR01"
+      },
+      "xpt_md5": {
+        "se.xpt": "f71ab1c1d8b4292bde6a57f943e57085",
+        "ae.xpt": "c8d3a557a20c09d6facb3748f54228a2",
+        "ds.xpt": "7d1adfa35dd55f41b3d68a8675b14ab3",
+        "lb.xpt": "f0130fe7cc1304a6eee0013ebba1ca36"
+      },
+      "score": {
+        "injected": 5,
+        "detected": 5,
+        "findings": 7,
+        "matched": 7
+      }
+    }
+  ]
+}
