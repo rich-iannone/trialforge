@@ -10,6 +10,10 @@ here, the Python and R packages must agree on it exactly.
   - `study_xpt.json`: for reference `study(archetype, n, seed, **controls)` calls, the row count of each
     dataset, the MD5 of each XPT file written and of each define.xml. Both bindings write through the Rust writer
     and hash the bytes themselves, which proves Python and R produce identical files.
+  - `defects.json`: for reference `study(..., defects=...)` calls (profiles and maps of counts
+    and rates), the `defects.json` manifest each writes, the MD5 of the XPT file of each
+    dataset holding a defect, and the score of `verify()`'s findings. Both bindings also check
+    their defect table (`Study.defects`, `trial$defects`) against the manifest.
 - `designs/`: per-archetype semantics, i.e. controls, defaults, derived truths and expected
   conformance warnings. Empty so far.
 - `derivations/`: ADaM derivation rules, each with the admiral function it mirrors. These rules
@@ -36,6 +40,34 @@ for case in doc["cases"]:
     }
     case["define_md5"] = {
         std: hashlib.md5(s.define_xml(std).encode()).hexdigest() for std in ("sdtm", "adam")
+    }
+path.write_text(json.dumps(doc, indent=2) + "\n")
+PY
+```
+
+To regenerate `defects.json` likewise:
+
+```bash
+.venv/bin/python - <<'PY'
+import hashlib, json, pathlib, tempfile
+import trialforge as tf
+path = pathlib.Path("spec/conformance/defects.json")
+doc = json.loads(path.read_text())
+for case in doc["cases"]:
+    s = tf.study(
+        case["archetype"], n=case["n"], seed=case["seed"], defects=case["defects"],
+        **case["controls"],
+    )
+    out = pathlib.Path(tempfile.mkdtemp())
+    written = s.write(out)
+    case["manifest"] = json.loads((out / "defects.json").read_text())
+    dirty = {d["dataset"].lower() + ".xpt" for d in case["manifest"]["defects"]}
+    case["xpt_md5"] = {
+        p.name: hashlib.md5(p.read_bytes()).hexdigest() for p in written if p.name in dirty
+    }
+    score = s.score(s.verify())
+    case["score"] = {
+        k: getattr(score, k) for k in ("injected", "detected", "findings", "matched")
     }
 path.write_text(json.dumps(doc, indent=2) + "\n")
 PY
