@@ -214,6 +214,83 @@ Coding uses open dictionaries: MedDRA System Organ Class names with common Prefe
 MedDRA codes), and RxNorm ingredients with ATC classes. Bring-your-own MedDRA and WHODrug are
 planned.
 
+## Testing a validator with seeded defects
+
+A clean study is a poor test of a validation pipeline: there is nothing to find. With
+`defects=`, trialforge generates and verifies the clean study, then corrupts copies of its
+datasets and records every change: where it is, what it was, and which findings a validator
+should report.
+
+```python
+dirty = tf.study("parallel_continuous", n=300, seed=1, defects="realistic")
+dirty.defects.group_by("id", maintain_order=True).len()
+```
+
+```text
+shape: (8, 2)
+┌─────────────────────┬─────┐
+│ id                  ┆ len │
+│ ---                 ┆ --- │
+│ str                 ┆ u32 │
+╞═════════════════════╪═════╡
+│ ae_end_before_start ┆ 8   │
+│ duplicate_seq       ┆ 2   │
+│ out_of_ct           ┆ 6   │
+│ orphan_usubjid      ┆ 5   │
+│ bad_study_day       ┆ 8   │
+│ chg_mismatch        ┆ 4   │
+│ missing_baseline    ┆ 1   │
+│ trtemfl_wrong       ┆ 2   │
+└─────────────────────┴─────┘
+```
+
+`trial.defects` has one row per defect: the dataset and row, the subject, the record's key,
+the variable, its original and injected values, and the expected findings. `write()` adds
+the same manifest as `defects.json`. `score()` matches a validator's findings against it and
+reports recall and precision, overall and per defect type:
+
+```python
+score = dirty.score(dirty.verify())       # verify(level=3) scores Pointblank's rules too
+score.recall, score.precision
+```
+
+```text
+(1.0, 1.0)
+```
+
+| Defect | What it does |
+|---|---|
+| `ae_end_before_start` | AEENDTC moved to before AESTDTC |
+| `duplicate_seq` | a record's --SEQ set to that of the subject's previous record |
+| `out_of_ct` | a controlled term replaced by a case variant or typo outside its codelist |
+| `orphan_usubjid` | an AE, CM or MH record's USUBJID changed to a subject not in DM |
+| `record_after_death` | an AE end or disposition date moved to after DTHDTC |
+| `bad_study_day` | a --DY counted as if there were a day 0 |
+| `chg_mismatch` | a BDS CHG that isn't AVAL − BASE |
+| `missing_baseline` | ABLFL cleared on a baseline record |
+| `trtemfl_wrong` | ADAE TRTEMFL flipped |
+| `cnsr_wrong` | ADTTE CNSR flipped |
+
+Ask for a profile (`"light"`, about five common defects; `"realistic"`, rates per eligible
+record; `"adversarial"`, three of every type, each in its subtlest form, such as a date one
+day off or a case-only CT difference), or for counts and rates per type:
+`defects={"out_of_ct": 5, "ae_end_before_start": 0.02}`. A defect stays in the dataset it
+was injected into: ADaM is not re-derived from the corrupted SDTM, so a validator that
+cross-checks the two sees the disagreement. trialforge's own checks find every defect and
+nothing else, for every archetype and profile. In R:
+
+```r
+dirty <- study("parallel_continuous", n = 300, seed = 1, defects = "realistic")
+score(dirty, verify(dirty))
+```
+
+```text
+<trialforge_score> recall 100.0% (36 of 36 defects), precision 100.0% (53 of 53 findings)
+```
+
+The printed score goes on to list the same counts per defect type. R rows count from 1 and Python's from 0; `defects.json` is zero-based in both. In a spec
+file, the same request goes under `data_quality: {defects: realistic}`.
+
 ## Layout
 
 | Path | What |
