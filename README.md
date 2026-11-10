@@ -24,7 +24,7 @@ easiest way to get one). The first build takes a few minutes.
 Python (≥ 3.10):
 
 ```bash
-pip install "trialforge[pl] @ git+https://github.com/rich-iannone/trialforge#subdirectory=bindings/python"
+pip install "trialforge[pl] @ git+https://github.com/rich-iannone/trialforge#subdirectory=python"
 ```
 
 The `pl` extra installs Polars, the default output backend; use `pd` for pandas or `pa` for
@@ -34,7 +34,7 @@ R (≥ 4.2):
 
 ```r
 # install.packages("remotes")
-remotes::install_github("rich-iannone/trialforge", subdir = "bindings/r", build = FALSE)
+remotes::install_github("rich-iannone/trialforge", subdir = "r", build = FALSE)
 ```
 
 `build = FALSE` matters: the R package compiles the engine crates from elsewhere in the
@@ -296,8 +296,8 @@ file, the same request goes under `data_quality: {defects: realistic}`.
 | Path | What |
 |---|---|
 | `crates/` | Rust workspace. `trialforge` is the facade crate; `trialforge-*` are the engine crates. |
-| `bindings/python/` | Python package (pyo3 + maturin). |
-| `bindings/r/` | R package (extendr). |
+| `python/` | Python package (pyo3 + maturin). |
+| `r/` | R package (extendr). |
 | `spec/` | Language-neutral contracts: the study-spec JSON Schema and golden conformance cases that both bindings replay. |
 
 ## Development
