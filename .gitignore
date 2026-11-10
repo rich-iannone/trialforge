@@ -224,9 +224,9 @@ __marimo__/
 .Rhistory
 .RData
 *.Rcheck/
-bindings/r/src/*.o
-bindings/r/src/*.so
-bindings/r/src/*.dll
+r/src/*.o
+r/src/*.so
+r/src/*.dll
 
 # Rust
 **/*.rs.bk
