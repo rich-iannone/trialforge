@@ -42,7 +42,7 @@ def main() -> int:
     if STAGE.exists():
         shutil.rmtree(STAGE)
     ignore = shutil.ignore_patterns("target", "*.o", "*.so", "*.dll", ".cargo", "vendor", "Makevars")
-    shutil.copytree(ROOT / "bindings" / "r", STAGE, ignore=ignore)
+    shutil.copytree(ROOT / "r", STAGE, ignore=ignore)
     rust = STAGE / "src" / "rust"
     for crate in sorted((ROOT / "crates").iterdir()):
         if crate.is_dir() and crate.name not in SKIP_CRATES:
