@@ -382,9 +382,9 @@ def test_dataset_json_round_trip(
 
 
 def test_study_from_spec_matches_study(tmp_path: Path) -> None:
-    yaml = (Path(__file__).resolve().parents[3] / "examples" / "hypertension.yaml").read_text()
+    yaml = (Path(__file__).resolve().parents[2] / "examples" / "hypertension.yaml").read_text()
     from_file = tf.study_from_spec(
-        Path(__file__).resolve().parents[3] / "examples" / "hypertension.yaml"
+        Path(__file__).resolve().parents[2] / "examples" / "hypertension.yaml"
     )
     from_text = tf.study_from_spec(yaml)
     direct = tf.study(

@@ -51,8 +51,7 @@ dev = [
 Repository = "https://github.com/rich-iannone/trialforge"
 
 [tool.maturin]
-# The Python package lives in python/; the extension module is trialforge._core.
-python-source = "python"
+# The Python package is trialforge/, next to Cargo.toml; the extension module is trialforge._core.
 module-name = "trialforge._core"
 features = ["pyo3/extension-module"]
 
@@ -70,9 +69,9 @@ select = ["E", "F", "I", "UP", "B"]
 known-first-party = ["trialforge"]
 
 [tool.pyright]
-include = ["python/trialforge", "tests"]
+include = ["trialforge", "tests"]
 # Resolve `trialforge` to the source, not an installed wheel (CI tests the wheel).
-extraPaths = ["python"]
+extraPaths = ["."]
 typeCheckingMode = "strict"
 pythonVersion = "3.10"
 # Keep strict, but relax the "unknown type" family (as greenwood does): they fire on interop
@@ -83,5 +82,5 @@ reportUnknownMemberType = false
 reportUnknownArgumentType = false
 reportUnknownVariableType = false
 # The dev venv lives at the repository root (see the Makefile).
-venvPath = "../.."
+venvPath = ".."
 venv = ".venv"

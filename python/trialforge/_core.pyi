@@ -1,4 +1,4 @@
-"""Type stubs for the Rust extension module (bindings/python/src/lib.rs)."""
+"""Type stubs for the Rust extension module (python/src/lib.rs)."""
 
 from collections.abc import Sequence
 from pathlib import Path

@@ -10,7 +10,7 @@ digest_md5 <- function(text) {
   unname(tools::md5sum(f))
 }
 
-spec_path <- function(name) test_path("..", "..", "..", "..", "spec", "conformance", name)
+spec_path <- function(name) test_path("..", "..", "..", "spec", "conformance", name)
 
 test_that("RNG stream seeds match the shared golden cases", {
   path <- spec_path("rng_streams.json")

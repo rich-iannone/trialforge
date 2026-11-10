@@ -9,7 +9,7 @@ import pytest
 
 import trialforge
 
-SPEC = Path(__file__).resolve().parents[3] / "spec" / "conformance"
+SPEC = Path(__file__).resolve().parents[2] / "spec" / "conformance"
 
 
 def _cases(name: str) -> list[dict[str, Any]]:

@@ -108,7 +108,7 @@ test_that("write_submission() writes SDTM and ADaM folders with define.xml", {
 })
 
 test_that("study_from_spec() matches study() for the same settings", {
-  path <- test_path("..", "..", "..", "..", "examples", "hypertension.yaml")
+  path <- test_path("..", "..", "..", "examples", "hypertension.yaml")
   skip_if_not(file.exists(path), "examples/ is not available")
   from_file <- study_from_spec(path)
   direct <- study("parallel_continuous", n = 240, seed = 20261013, studyid = "HTN001",
