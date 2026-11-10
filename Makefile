@@ -1,12 +1,12 @@
-# trialforge monorepo: the Rust core lives in crates/, the Python package in bindings/python and
-# the R package in bindings/r. Both bindings replay the shared conformance cases in spec/.
+# trialforge monorepo: the Rust core lives in crates/, the Python package in python/ and the R
+# package in r/. Both packages replay the shared conformance cases in spec/.
 # Targets name their language (`rs-*`, `py-*`, `r-*`), and the bare names (`test`, `check`,
 # `install`) run all three.
 
 PYTHON ?= $(CURDIR)/.venv/bin/python
 RSCRIPT ?= Rscript
-PY_DIR := bindings/python
-R_DIR := bindings/r
+PY_DIR := python
+R_DIR := r
 
 .PHONY: help
 help: ## Show this help message
@@ -159,4 +159,4 @@ r-install: ## Install the R package from the source tree (in place, so the core 
 clean: ## Remove Rust, Python and R build artifacts
 	cargo clean
 	rm -rf $(R_DIR)/src/rust/target $(R_DIR)/src/*.o $(R_DIR)/src/*.so $(R_DIR)/src/*.dll
-	rm -f $(PY_DIR)/python/trialforge/_core*.so $(PY_DIR)/python/trialforge/_core*.pyd
+	rm -f $(PY_DIR)/trialforge/_core*.so $(PY_DIR)/trialforge/_core*.pyd
