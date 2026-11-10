@@ -26,7 +26,7 @@ jobs:
       - name: rustfmt
         run: |
           cargo fmt --all --check
-          cargo fmt --manifest-path bindings/r/src/rust/Cargo.toml --check
+          cargo fmt --manifest-path r/src/rust/Cargo.toml --check
       - name: clippy
         run: |
           cargo clippy --workspace --exclude trialforge-python --all-targets --all-features -- -D warnings
@@ -76,17 +76,18 @@ jobs:
       # Test the wheel users get (abi3), not an editable build.
       - name: Build and install the wheel
         run: |
-          maturin build --release -m bindings/python/Cargo.toml -o dist
+          maturin build --release -m python/Cargo.toml -o dist
           uv pip install dist/*.whl
       - name: ruff and pyright
         if: matrix.lint
-        working-directory: bindings/python
+        working-directory: python
         run: |
           python -m ruff format --check
           python -m ruff check
           python -m pyright
       # Includes the conformance goldens (spec/conformance/), which pin byte-identical output
-      # across platforms.
+      # across platforms. `pytest`, not `python -m pytest`: the latter puts the working directory
+      # on sys.path, and the source trialforge/ (with no compiled _core) would shadow the wheel.
       - name: pytest
-        working-directory: bindings/python
-        run: python -m pytest
+        working-directory: python
+        run: pytest
