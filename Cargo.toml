@@ -1,12 +1,12 @@
 [workspace]
 resolver = "3"
-members = ["crates/*", "bindings/python"]
+members = ["crates/*", "python"]
 # The Python extension only links when built by maturin (it resolves libpython symbols at load
 # time), so plain `cargo build` / `cargo test` cover the pure-Rust crates.
 default-members = ["crates/*"]
 # The R package's crate is built by R (rextendr) and vendored for CRAN, so it stays outside the
 # workspace and depends on the facade crate by path.
-exclude = ["bindings/r/src/rust"]
+exclude = ["r/src/rust"]
 
 [workspace.package]
 version = "0.1.0"
