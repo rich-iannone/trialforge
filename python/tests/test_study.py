@@ -1,5 +1,7 @@
 import datetime
 import math
+import re
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -257,6 +259,26 @@ def test_outputs() -> None:
     assert table.schema.metadata[b"label"] == b"Subject-Level Analysis Dataset"
     with pytest.raises(ValueError, match="output"):
         adsl("spark")  # pyright: ignore[reportArgumentType]
+
+
+@pytest.mark.parametrize(
+    ("output", "missing", "extra"),
+    [
+        ("polars", "polars", "pl"),
+        ("pandas", "pandas", "pd"),
+        ("pandas", "pyarrow", "pd"),
+        ("pyarrow", "pyarrow", "pa"),
+    ],
+)
+def test_missing_backend(
+    output: tf.Output, missing: str, extra: str, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    # A None entry in sys.modules makes `import` raise ImportError.
+    monkeypatch.setitem(sys.modules, missing, None)
+    trial = tf.study("parallel_continuous", n=20, seed=1, output=output)
+    with pytest.raises(ImportError, match=re.escape(f"pip install 'trialforge[{extra}]'")):
+        _ = trial.sdtm["DM"]
+    assert trial.write(tmp_path)
 
 
 def test_seed_handling() -> None:
