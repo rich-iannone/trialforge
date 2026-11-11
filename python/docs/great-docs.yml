@@ -1,0 +1,87 @@
+# Great Docs Configuration
+# See https://posit-dev.github.io/great-docs/user-guide/configuration.html
+
+parser: numpy
+
+site_url: "https://rich-iannone.github.io/trialforge/"
+
+dynamic: true
+
+# The package root (python/) isn't the repository root, so name the source directory for the
+# reference's source links.
+source:
+  path: python/trialforge
+
+# The R package's pkgdown site is published under r/ of this site. r_site/ holds a stand-in page
+# that adds the "R" navbar link. `make docs` and the docs workflow replace r/ with the pkgdown build.
+custom_pages:
+  dir: r_site
+  output: r
+
+# Releases are recorded in CHANGELOG.md at the repository root, not as GitHub Releases.
+changelog:
+  enabled: false
+
+# Lucide icons prepended to user-guide sidebar entries (keyed by page title).
+nav_icons:
+  sidebar:
+    "Get started": compass
+    "Installation": download
+    "Quick start": rocket
+    "Archetypes and controls": layout-grid
+    "The truth manifest": target
+    "Writing files": file-output
+    "Verification": shield-check
+    "Seeded defects": bug
+    "Study specs": file-code
+    "Reproducibility": repeat
+
+authors:
+  - name: Richard Iannone
+    role: Maintainer
+    email: riannone@me.com
+    github: rich-iannone
+    orcid: 0000-0003-3925-190X
+
+# API Reference Structure
+reference:
+  - title: Generating a study
+    desc:
+      study() generates a verified study from an archetype and its controls, and
+      study_from_spec() from a JSON or YAML study spec. Both return a Study, which holds the
+      SDTM and ADaM datasets, the truth manifest, and methods to write, verify and score them.
+    contents:
+      - study
+      - study_from_spec
+      - name: Study
+        members: true
+
+  - title: Archetypes and controls
+    desc: The study types trialforge can generate, the controls each accepts, and the file formats.
+    contents:
+      - archetypes
+      - controls
+      - name: Control
+        members: true
+      - formats
+
+  - title: Verification and scoring
+    desc:
+      Study.verify() returns a Report of findings; Study.score() matches a report's findings
+      against a study's injected defects.
+    contents:
+      - name: Report
+        members: true
+      - name: Finding
+        members: true
+      - name: Score
+        members: true
+      - name: DefectScore
+        members: true
+
+  - title: Determinism
+    desc: The seeds behind every random draw, and the version of the Rust core.
+    contents:
+      - stream_seed
+      - MAX_SEED
+      - core_version
