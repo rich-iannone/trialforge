@@ -1,0 +1,90 @@
+---
+title: Study specs
+guide-section: "Reproducible requests"
+---
+
+A study spec describes a study request in a JSON or YAML file: the archetype, the seed, the number
+of subjects, the controls, any defects, and the outputs. It is the same request as a `tf.study()`
+call, in a form you can keep under version control, share, and run from Python, R or the command
+line. The format is defined by a [JSON Schema](https://github.com/rich-iannone/trialforge/blob/main/spec/study-spec.schema.json).
+
+## A spec
+
+This one asks for a 12-week hypertension study with 240 subjects, written as a submission package:
+
+```yaml
+spec_version: 0
+study:
+  archetype: parallel_continuous
+  studyid: HTN001
+  seed: 20261013
+  standards: { sdtmig: "3.4", adamig: "1.3", define: "2.1" }
+population:
+  n: 240
+controls:
+  indication: hypertension
+  weeks: 12
+  change: [-4, -11]
+  dropout_rate: 0.12
+outputs:
+  layout: submission
+```
+
+- `study`{.gd-no-link}: the archetype, the seed and optionally `studyid`{.gd-no-link}.
+`standards`, when given, must name the versions this build supports: SDTMIG 3.4, ADaMIG 1.3,
+Define-XML 2.1 and the 2024-09-27 CDISC controlled terminology.
+- `population`: `n`, the number of randomised subjects.
+- `controls`{.gd-no-link}: the archetype's controls, merged over its defaults (see
+[Archetypes and controls](03-archetypes.qmd)).
+- `data_quality`: `defects`{.gd-no-link}, a profile name or a mapping of defect types to counts
+and rates (see [Seeded defects](07-defects.qmd)).
+- `outputs`: for the command-line tool, the `layout` (`submission` or `flat`) and, for `flat`, the
+`formats`{.gd-no-link}.
+
+The schema also sketches sections for later releases (`design`, `endpoints`, `safety`, `dropout`).
+A spec that uses them is an error rather than being silently ignored.
+
+## From Python
+
+`tf.study_from_spec()` takes a path to a JSON or YAML file, the text itself, or a dict:
+
+```{python}
+import trialforge as tf
+
+spec = """
+study:
+  archetype: parallel_continuous
+  seed: 1
+population:
+  n: 300
+controls:
+  indication: hypertension
+  weeks: 12
+"""
+from_spec = tf.study_from_spec(spec)
+from_spec
+```
+
+It is the same study as the equivalent `tf.study()` call:
+
+```{python}
+direct = tf.study("parallel_continuous", n=300, seed=1, indication="hypertension", weeks=12)
+from_spec.define_xml("adam") == direct.define_xml("adam") and from_spec.truth == direct.truth
+```
+
+The `outputs` section is for the command-line tool; from Python, write files with `Study.write()`
+or `Study.write_submission()`.
+
+## From the command line
+
+The `trialforge` command-line tool generates a study from a spec and writes it as the spec's
+`outputs` section asks:
+
+```bash
+trialforge generate examples/hypertension.yaml -o out/
+trialforge summary examples/hypertension.yaml   # datasets and truth manifest, nothing written
+trialforge archetypes
+trialforge controls parallel_continuous
+```
+
+It is built from the repository with `cargo install --path crates/trialforge-cli`.
