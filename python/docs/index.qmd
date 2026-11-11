@@ -1,0 +1,74 @@
+---
+title: ""
+toc: false
+---
+
+```{python}
+#| echo: false
+#| output: false
+import great_docs as gd
+
+gd.enable_tbl_preview(n_head=5, n_tail=0)
+```
+
+## Synthetic CDISC clinical-trial data
+
+trialforge generates complete mock clinical studies: the trial design datasets, SDTM, ADaM and a
+Define-XML 2.1 `define.xml` for each standard. You choose a study type (an *archetype*) and set
+interpretable controls (the indication, the treatment duration, a target hazard ratio or response
+rate), and trialforge simulates the subjects and writes their data the way a real study would.
+
+Synthetic data is useful wherever real patient data can't go: testing a validation pipeline,
+building and demonstrating TLF programs, teaching CDISC standards, or exercising tools on study
+designs you don't have data for.
+
+> **Status: pre-alpha.** The API may change between releases.
+
+## Why trialforge?
+
+- **Complete studies**: trial design (TA, TE, TV, TI, TS), SDTM and ADaM for thirteen study
+types, from a parallel-group hypertension study to oncology, pharmacokinetics, vaccines and
+ophthalmology.
+- **Verified output**: every study passes trialforge's structural, referential and derivational
+checks before it is returned, and its ADaM matches admiral: admiral and its extensions re-derive
+it from trialforge's SDTM with no differences. PK parameters match PKNCA.
+- **Interpretable controls**: where a control is a clinical target (a median, hazard ratio or
+response rate), trialforge calibrates its latent model to it and reports the target next to the
+value the study realised.
+- **Reproducible**: the same archetype, controls and seed give byte-identical files on every
+platform, from Python and from [R](r/index.html).
+- **Seeded defects**: corrupt a verified study on purpose, with a record of every change, and
+score how many a validator finds.
+
+## A first look
+
+Generate a 12-week hypertension study with 300 subjects:
+
+```{python}
+import trialforge as tf
+
+trial = tf.study("parallel_continuous", n=300, seed=1, indication="hypertension", weeks=12)
+trial
+```
+
+`trial.sdtm` and `trial.adam` map dataset names to DataFrames (Polars by default):
+
+```{python}
+trial.sdtm["DM"].select("USUBJID", "AGE", "SEX", "RACE", "ARM", "RFSTDTC")
+```
+
+The truth manifest records what the study was built to show and what it realised:
+
+```{python}
+endpoint = trial.truth["endpoint"]
+{k: endpoint[k] for k in ("target_difference", "realised_difference")}
+```
+
+Write it out as a submission-style package, with XPT files and a `define.xml` for SDTM and ADaM:
+
+```python
+trial.write_submission("out/")
+```
+
+The [user guide](user-guide/get-started.qmd) explains each step, and the
+[reference](reference/) documents every function.
