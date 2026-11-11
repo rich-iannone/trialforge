@@ -1,0 +1,50 @@
+# The site is published under r/ of the Python documentation site.
+url: https://rich-iannone.github.io/trialforge/r/
+
+template:
+  bootstrap: 5
+
+navbar:
+  structure:
+    left: [reference, python]
+    right: [search, github]
+  components:
+    python:
+      text: Python
+      href: ../index.html
+
+reference:
+  - title: Generating a study
+    desc: >
+      `study()` generates a verified study from an archetype and its controls, and
+      `study_from_spec()` from a JSON or YAML study spec.
+    contents:
+      - study
+      - study_from_spec
+
+  - title: Archetypes and controls
+    desc: The study types trialforge can generate, and the controls each accepts.
+    contents:
+      - archetypes
+      - controls
+
+  - title: Writing files
+    contents:
+      - write_submission
+      - write_study
+      - define_xml
+      - formats
+
+  - title: Verification and scoring
+    desc: >
+      `verify()` re-runs trialforge's checks on a study's datasets; `score()` matches a
+      validator's findings against the defects injected into a study.
+    contents:
+      - verify
+      - score
+
+  - title: Determinism
+    desc: The seeds behind every random draw, and the version of the Rust core.
+    contents:
+      - stream_seed
+      - core_version
