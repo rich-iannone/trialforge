@@ -17,9 +17,21 @@ classifiers = [
     "Development Status :: 2 - Pre-Alpha",
     "Intended Audience :: Science/Research",
     "Intended Audience :: Healthcare Industry",
+    "Intended Audience :: Developers",
+    "Operating System :: MacOS",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX :: Linux",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Rust",
     "Topic :: Scientific/Engineering :: Medical Science Apps.",
+    "Topic :: Software Development :: Testing",
     "Typing :: Typed",
 ]
 dependencies = []
@@ -48,12 +60,17 @@ dev = [
 ]
 
 [project.urls]
+Homepage = "https://github.com/rich-iannone/trialforge"
 Repository = "https://github.com/rich-iannone/trialforge"
+Issues = "https://github.com/rich-iannone/trialforge/issues"
+Changelog = "https://github.com/rich-iannone/trialforge/blob/main/CHANGELOG.md"
 
 [tool.maturin]
 # The Python package is trialforge/, next to Cargo.toml; the extension module is trialforge._core.
 module-name = "trialforge._core"
 features = ["pyo3/extension-module"]
+# Keep bytecode from a local development install out of wheels and the sdist.
+exclude = ["trialforge/**/__pycache__/**", "trialforge/**/*.pyc"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
