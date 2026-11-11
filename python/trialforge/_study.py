@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import datetime
+import importlib
 import json
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
@@ -83,6 +84,23 @@ def study_from_spec(
     else:
         text = spec
     return Study(_core.study_from_spec(text), output)
+
+
+_EXTRAS = {"pl": "polars", "pd": "pandas", "pa": "pyarrow"}
+
+
+def _backend(module: str, extra: str) -> Any:
+    """Import a DataFrame backend, or explain which extra installs it."""
+    try:
+        return importlib.import_module(module)
+    except ImportError as e:
+        others = " or ".join(f"output={o!r}" for o in _OUTPUTS if o != _EXTRAS[extra])
+        raise ImportError(
+            f"output={_EXTRAS[extra]!r} needs {module}, which is not installed. Install it with "
+            f"pip install 'trialforge[{extra}]', or pass {others} to study() if you have that "
+            "backend instead. Writing files (Study.write(), Study.write_submission()) needs "
+            "no backend."
+        ) from e
 
 
 def archetypes() -> dict[str, str]:
@@ -302,13 +320,14 @@ class Study:
 
     def _convert(self, table: _core.ArrowTable) -> Any:
         if self._output == "polars":
-            import polars as pl
-
+            pl = _backend("polars", "pl")
             return pl.DataFrame(table)
-        import pyarrow as pa
-
+        pa = _backend("pyarrow", "pa" if self._output == "pyarrow" else "pd")
         arrow = pa.table(table)
-        return arrow if self._output == "pyarrow" else arrow.to_pandas()
+        if self._output == "pyarrow":
+            return arrow
+        _backend("pandas", "pd")
+        return arrow.to_pandas()
 
     def __repr__(self) -> str:
         names = ", ".join([*self._core.sdtm_names, *self._core.adam_names])
