@@ -43,6 +43,16 @@ pa = ["pyarrow>=14"]
 # Verification levels 3–4 and the TLF pack.
 verify = ["pointblank>=1.1.1", "greenwood"]
 tables = ["great-tables"]
+# Executing the documentation site's pages (Great Docs itself installs from git; see the Makefile).
+docs = [
+    "jupyter",
+    "nbclient",
+    "nbformat",
+    "polars>=1.0",
+    "pandas>=2.0",
+    "pyarrow>=14",
+    "pointblank>=1.1.1",
+]
 dev = [
     "maturin>=1.8,<2",
     "pytest>=8",
@@ -61,6 +71,7 @@ dev = [
 
 [project.urls]
 Homepage = "https://github.com/rich-iannone/trialforge"
+Documentation = "https://rich-iannone.github.io/trialforge/"
 Repository = "https://github.com/rich-iannone/trialforge"
 Issues = "https://github.com/rich-iannone/trialforge/issues"
 Changelog = "https://github.com/rich-iannone/trialforge/blob/main/CHANGELOG.md"
@@ -69,8 +80,13 @@ Changelog = "https://github.com/rich-iannone/trialforge/blob/main/CHANGELOG.md"
 # The Python package is trialforge/, next to Cargo.toml; the extension module is trialforge._core.
 module-name = "trialforge._core"
 features = ["pyo3/extension-module"]
-# Keep bytecode from a local development install out of wheels and the sdist.
-exclude = ["trialforge/**/__pycache__/**", "trialforge/**/*.pyc"]
+# Keep bytecode from a local development install out of wheels and the sdist, and the
+# documentation site's sources out of the sdist.
+exclude = [
+    "trialforge/**/__pycache__/**",
+    "trialforge/**/*.pyc",
+    { path = "docs/**", format = "sdist" },
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
