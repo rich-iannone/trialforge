@@ -228,6 +228,15 @@ r/src/*.o
 r/src/*.so
 r/src/*.dll
 
+# Documentation builds (Great Docs in python/docs/, pkgdown in r/docs/). Notebook outputs are
+# not frozen: every build re-executes the pages against the current package.
+python/docs/_site/
+python/docs/_quarto/
+python/docs/_freeze/
+python/docs/.cache/
+.great-docs-cache/
+r/docs/
+
 # Rust
 **/*.rs.bk
 
