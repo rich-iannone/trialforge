@@ -1,7 +1,7 @@
 """trialforge: synthetic CDISC clinical-trial data from declarative study specs.
 
-Pre-alpha. `study("parallel_continuous", ...)` and `study("oncology_solid_tumor", ...)`
-generate a verified SDTM + ADaM study; see `archetypes()` and `controls()`.
+Pre-alpha. `study("parallel_continuous", ...)` generates a verified trial design, SDTM and ADaM
+study; `archetypes()` lists the study types and `controls()` what each accepts.
 """
 
 from __future__ import annotations
