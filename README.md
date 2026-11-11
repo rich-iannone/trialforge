@@ -7,6 +7,9 @@ types and output that is verified to be workable.
 trialforge has a Rust core with Python and R bindings. The same spec and seed produce identical
 data in both languages.
 
+Documentation: [Python](https://rich-iannone.github.io/trialforge/) (user guide and reference)
+and [R](https://rich-iannone.github.io/trialforge/r/) (reference).
+
 > **Status: pre-alpha.** Thirteen archetypes generate a complete, verified study: trial design
 > (TA, TE, TV, TI, TS), SDTM (DM, SE, SV, EX, CM, AE + SUPPAE, DS, MH, LB, VS; TU, TR, RS for
 > oncology; PC, PP for pharmacokinetics; FT for functional tests; CE for clinical events; OE, SC
