@@ -1,0 +1,30 @@
+name: Dry run (Python release)
+
+# Everything a Python release does except publishing: builds, tests and checks the wheels and
+# sdist (`python-dist.yml`), and reports whether the version could be published. Run it from the
+# Actions tab before tagging `py-vX.Y.Z`; the files are left as artifacts of the run.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dist:
+    uses: ./.github/workflows/python-dist.yml
+
+  version:
+    name: Check the version is unpublished
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      # PyPI never accepts the same version twice, so a release of this version would fail.
+      - run: |
+          version=$(python3 -c 'import tomllib; print(tomllib.load(open("Cargo.toml", "rb"))["workspace"]["package"]["version"])')
+          status=$(curl -s -o /dev/null -w '%{http_code}' "https://pypi.org/pypi/trialforge/$version/json")
+          if [ "$status" = 200 ]; then
+            echo "::error::trialforge $version is already on PyPI; bump the workspace version"
+            exit 1
+          fi
+          echo "trialforge $version is not on PyPI yet; a release would tag py-v$version"

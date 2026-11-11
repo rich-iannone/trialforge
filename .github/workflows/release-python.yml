@@ -1,101 +1,39 @@
 name: Release (Python)
 
-# Builds the abi3 wheels and the sdist, tests them, and publishes them to PyPI on a version tag
-# (`v0.1.0`, matching the workspace version in Cargo.toml). A manual run builds and tests only.
+# Publishes trialforge to PyPI on a version tag (`py-v0.1.0`, matching the workspace version in
+# Cargo.toml), once the wheels and sdist have been built, tested and checked
+# (`python-dist.yml`). To try all of that without publishing, run `dry-run-python.yml`. R
+# releases are tagged `r-v0.1.0` after CRAN accepts them, with no workflow.
 #
 # Publishing uses a PyPI API token in the repository secret `PYPI_API_TOKEN`.
 
 on:
   push:
-    tags: ["v*"]
-  workflow_dispatch:
+    tags: ["py-v*"]
 
 permissions:
   contents: read
 
-env:
-  CARGO_TERM_COLOR: always
-
 jobs:
-  sdist:
-    name: sdist
+  version:
+    name: Check the tag matches the version
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - name: Check the tag matches the version
-        if: startsWith(github.ref, 'refs/tags/')
-        run: |
+      - run: |
           version=$(python3 -c 'import tomllib; print(tomllib.load(open("Cargo.toml", "rb"))["workspace"]["package"]["version"])')
-          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+          if [ "py-v$version" != "$GITHUB_REF_NAME" ]; then
             echo "::error::tag $GITHUB_REF_NAME does not match the workspace version $version"
             exit 1
           fi
-      - uses: PyO3/maturin-action@v1
-        with:
-          command: sdist
-          args: --out dist -m python/Cargo.toml
-      # Users without a matching wheel build from this, so check that it builds and imports.
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: astral-sh/setup-uv@v6
-        with:
-          python-version: "3.12"
-          activate-environment: true
-      - name: Build and install the sdist
-        run: |
-          uv pip install dist/*.tar.gz polars
-          python -c "import trialforge as tf; print(tf.study('parallel_continuous', n=20, seed=1))"
-      - uses: actions/upload-artifact@v4
-        with:
-          name: sdist
-          path: dist/*.tar.gz
 
-  wheels:
-    name: Wheel (${{ matrix.os }}, ${{ matrix.target }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - { os: ubuntu-latest, target: x86_64, test: true }
-          - { os: ubuntu-latest, target: aarch64 }
-          - { os: macos-latest, target: aarch64, test: true }
-          - { os: macos-latest, target: x86_64 }
-          - { os: windows-latest, target: x64, test: true }
-    defaults:
-      run:
-        shell: bash
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-python@v6
-        with:
-          python-version: "3.12"
-      # One abi3 wheel per platform covers every Python >= 3.10.
-      - uses: PyO3/maturin-action@v1
-        with:
-          target: ${{ matrix.target }}
-          args: --release --out dist -m python/Cargo.toml
-          manylinux: auto
-      # The full suite, including the conformance goldens, on each platform the runner can
-      # execute natively (the cross-compiled wheels are not run).
-      - uses: astral-sh/setup-uv@v6
-        if: matrix.test
-        with:
-          python-version: "3.12"
-          activate-environment: true
-      - name: Test the wheel
-        if: matrix.test
-        run: |
-          uv pip install dist/*.whl pytest polars pandas pyarrow pyreadstat "pointblank>=1.1.1" greenwood lxml xmlschema odmlib
-          cd python && pytest
-      - uses: actions/upload-artifact@v4
-        with:
-          name: wheel-${{ matrix.os }}-${{ matrix.target }}
-          path: dist/*.whl
+  dist:
+    needs: version
+    uses: ./.github/workflows/python-dist.yml
 
   publish:
     name: Publish to PyPI
-    needs: [sdist, wheels]
-    if: startsWith(github.ref, 'refs/tags/v')
+    needs: dist
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
