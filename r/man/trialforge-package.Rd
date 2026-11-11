@@ -6,7 +6,18 @@
 \alias{trialforge-package}
 \title{trialforge: synthetic CDISC clinical-trial data}
 \description{
-Pre-alpha scaffold.
+Generates complete, verified mock clinical studies (trial design, SDTM, ADaM and define.xml)
+from a study archetype and its controls. Start with \code{\link[=study]{study()}}; \code{\link[=archetypes]{archetypes()}} lists the study
+types and \code{\link[=controls]{controls()}} what each accepts.
+}
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://rich-iannone.github.io/trialforge/r/}
+  \item \url{https://github.com/rich-iannone/trialforge}
+  \item Report bugs at \url{https://github.com/rich-iannone/trialforge/issues}
+}
+
 }
 \author{
 \strong{Maintainer}: Richard Iannone \email{riannone@me.com}
