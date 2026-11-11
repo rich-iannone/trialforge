@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from importlib.metadata import PackageNotFoundError, version
 
-from trialforge._core import MAX_SEED, core_version, stream_seed
+from trialforge._seeds import MAX_SEED, core_version, stream_seed
 from trialforge._study import (
     Control,
     DefectScore,
