@@ -1,0 +1,64 @@
+---
+title: Verification
+guide-section: "Using the output"
+---
+
+Synthetic data is only useful if it is workable: if the SDTM is conformant, the domains agree with
+each other, and the ADaM really follows from the SDTM. trialforge checks all of this on every study
+it generates, and a study that fails a check is an error rather than a result.
+
+## The levels
+
+- **Level 0, structural**: metadata conformance (dataset and variable names, labels, types and
+lengths), controlled terminology, keys and ISO 8601 dates.
+- **Level 1, referential and temporal**: subjects, dates, visits, epochs, exposure, disposition and
+supplemental qualifiers agree across domains. Tumour responses follow RECIST 1.1 (or Lugano 2014)
+from the measurements, and PK concentrations are consistent with dosing.
+- **Level 2, derivational**: the ADaM datasets are recomputed from the SDTM by an independent
+implementation and compared with the generated ones.
+- **Level 3, conformance**: Pointblank's SDTMIG 3.4 conformance rules, including its define.xml
+checks, run on the written SDTM package. This one is optional and needs
+`pip install 'trialforge[verify]'`.
+
+Levels 0 to 2 run inside `tf.study()`. Beyond them, trialforge is tested against the R packages the
+industry uses: admiral and its extensions re-derive the ADaM from trialforge's SDTM with no
+differences, and PKNCA recomputes the same PK parameters from the concentrations.
+
+## Verifying a study
+
+`Study.verify()` re-runs the checks and returns a `Report`:
+
+```{python}
+import trialforge as tf
+
+trial = tf.study("parallel_continuous", n=100, seed=1)
+trial.verify()
+```
+
+`level=3` adds Pointblank's rules:
+
+```{python}
+report = trial.verify(level=3)
+report.passed, len(report.findings)
+```
+
+## Findings
+
+Each failed check is a `Finding`, naming its level, rule, dataset, variable and (zero-based) row.
+A generated study never has any, so to see some, ask for a few [seeded defects](07-defects.qmd):
+
+```{python}
+dirty = tf.study(
+    "parallel_continuous", n=100, seed=1, defects={"out_of_ct": 2, "ae_end_before_start": 1}
+)
+report = dirty.verify()
+report.passed
+```
+
+```{python}
+for finding in report.findings:
+    print(finding)
+```
+
+The AE end date moved before the start date breaks a level-1 ordering rule in AE, and, since ADaM
+was derived before the defect was injected, two level-2 derivations in ADAE no longer match it.
