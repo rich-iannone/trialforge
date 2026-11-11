@@ -1,0 +1,104 @@
+---
+title: Quick start
+guide-section: "Getting started"
+---
+
+```{python}
+#| echo: false
+#| output: false
+import great_docs as gd
+
+gd.enable_tbl_preview(n_head=6, n_tail=2)
+```
+
+This is a short tour: generate a study, look at its SDTM and ADaM, check it against its targets,
+and write it out. The rest of the guide covers each step in depth.
+
+## Generate a study
+
+`tf.study()` takes an archetype (the study type), the number of subjects, a seed and the
+archetype's controls. Here is a 12-week, placebo-controlled hypertension study with 300 subjects:
+
+```{python}
+import polars as pl
+import trialforge as tf
+
+trial = tf.study("parallel_continuous", n=300, seed=1, indication="hypertension", weeks=12)
+trial
+```
+
+The result is a `Study`. Its summary lists every dataset: the trial design datasets (TA, TE, TV, TI,
+TS), the SDTM domains, and the ADaM datasets derived from them. The study has already passed
+trialforge's checks; a study that fails one is an error, never a result.
+
+## Look at the SDTM
+
+`trial.sdtm` maps domain names to DataFrames (Polars unless you pass `output="pandas"` or
+`output="pyarrow"`). Demographics:
+
+```{python}
+trial.sdtm["DM"].select("USUBJID", "AGE", "SEX", "RACE", "ARM", "RFSTDTC")
+```
+
+Adverse events are coded to MedDRA System Organ Class names and Preferred Terms:
+
+```{python}
+trial.sdtm["AE"].select("USUBJID", "AEDECOD", "AEBODSYS", "AESEV", "AESTDTC", "AEENDTC")
+```
+
+## Look at the ADaM
+
+`trial.adam` holds the analysis datasets, derived from the SDTM as admiral would derive them. One
+subject's systolic blood pressure in ADVS, with its baseline and change from baseline:
+
+```{python}
+trial.adam["ADVS"].filter(
+    pl.col("PARAMCD") == "SYSBP", pl.col("USUBJID") == "SIMPAR01-201001"
+).select("USUBJID", "TRTP", "AVISIT", "AVAL", "BASE", "CHG")
+```
+
+The mean change at week 12, by treatment:
+
+```{python}
+(
+    trial.adam["ADVS"]
+    .filter(pl.col("PARAMCD") == "SYSBP", pl.col("AVISIT") == "WEEK 12", pl.col("ANL01FL") == "Y")
+    .group_by("TRTP", maintain_order=True)
+    .agg(n=pl.len(), mean_chg=pl.col("CHG").mean().round(1))
+)
+```
+
+## Compare targets with what was realised
+
+The controls set the targets: the `hypertension` preset expects a mean change of -4 mmHg on placebo
+and -12 mmHg on Drug A. The truth manifest reports those targets next to what this study's ADaM
+shows:
+
+```{python}
+endpoint = trial.truth["endpoint"]
+{k: endpoint[k] for k in ("target_difference", "realised_difference")}
+```
+
+With 300 subjects, the realised difference is close to the target but not equal to it, as in a real
+study.
+
+## Write it out
+
+`write_submission()` writes a submission-style package: `sdtm/` and `adam/`, each with one XPT file
+per dataset and a Define-XML 2.1 `define.xml`, plus `truth.json`:
+
+```python
+trial.write_submission("out/")
+```
+
+`write()` writes every dataset to one directory in any of the supported formats:
+
+```{python}
+tf.formats()
+```
+
+## Next steps
+
+- [Archetypes and controls](03-archetypes.qmd): the thirteen study types and what you can set.
+- [The truth manifest](04-truth.qmd): targets, calibration and realised values.
+- [Seeded defects](07-defects.qmd): corrupt a study on purpose to test a validator.
