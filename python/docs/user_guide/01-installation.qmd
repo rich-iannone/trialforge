@@ -1,0 +1,45 @@
+---
+title: Installation
+guide-section: "Getting started"
+---
+
+trialforge targets Python 3.10+. Once it is released on PyPI:
+
+```bash
+pip install "trialforge[pl]"
+```
+
+Until then, install it from GitHub. This compiles the Rust engine from source, so it needs a Rust
+toolchain (1.88 or later; [rustup](https://rustup.rs) is the easiest way to get one), and the
+first build takes a few minutes:
+
+```bash
+pip install "trialforge[pl] @ git+https://github.com/rich-iannone/trialforge#subdirectory=python"
+```
+
+With uv, use `uv pip install` or `uv add` with the same requirement.
+
+## Optional extras
+
+The package itself has no Python dependencies. Datasets come back as DataFrames, so install a
+backend with an extra; writing files needs none.
+
+| Extra | Adds |
+|---|---|
+| `pl` | Polars, the default `output=` |
+| `pd` | pandas (with PyArrow, which the conversion goes through) |
+| `pa` | PyArrow |
+| `verify`{.gd-no-link} | Pointblank, for `Study.verify(level=3)` |
+
+If the backend for the `output=` you ask for is missing, the error names the extra that installs it.
+
+## Wheels
+
+Released wheels cover Python 3.10 and later (one abi3 wheel per platform) on Linux (x86_64 and
+aarch64), macOS (Intel and Apple silicon) and Windows (x86_64). Elsewhere pip builds from the
+source distribution, which needs the same Rust toolchain.
+
+## R
+
+The R package is built on the same engine and gives byte-identical data for the same request. See
+its [documentation](../r/index.html) for installation and usage.
