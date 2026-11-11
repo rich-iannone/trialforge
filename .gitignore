@@ -234,4 +234,5 @@ r/src/*.dll
 # Top-level planning and agent docs
 /*.md
 !README.md
+!CHANGELOG.md
 .DS_Store
