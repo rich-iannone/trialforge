@@ -1,0 +1,109 @@
+---
+title: Seeded defects
+guide-section: "Testing validators"
+---
+
+```{python}
+#| echo: false
+#| output: false
+import great_docs as gd
+
+gd.enable_tbl_preview(n_head=6, n_tail=2)
+```
+
+A clean study is a poor test of a validation pipeline: there is nothing to find. With `defects=`,
+trialforge generates and verifies the clean study, then corrupts copies of its datasets and records
+every change: where it is, what it was, and which findings a validator should report.
+`Study.score()` matches a validator's findings against that record.
+
+## Asking for defects
+
+Ask for a profile:
+
+- `"light"`: about five defects of the common kinds.
+- `"realistic"`: rates per eligible record.
+- `"adversarial"`: three of every type, each in its subtlest form, such as a date a day or two off
+or a controlled term that differs only in case.
+
+Or ask for counts (integers) and rates per eligible record (floats in `[0, 1]`) per defect type,
+such as `defects={"out_of_ct": 5, "ae_end_before_start": 0.02}`.
+
+```{python}
+import polars as pl
+import trialforge as tf
+
+dirty = tf.study("parallel_continuous", n=300, seed=1, defects="realistic")
+dirty.defects.group_by("id", maintain_order=True).len()
+```
+
+## The defect types
+
+| Defect | What it does |
+|---|---|
+| `ae_end_before_start` | AEENDTC moved to before AESTDTC |
+| `duplicate_seq` | a record's `--SEQ` set to that of the subject's previous record |
+| `out_of_ct` | a controlled term replaced by a case variant or typo outside its codelist |
+| `orphan_usubjid` | an AE, CM or MH record's USUBJID changed to a subject not in DM |
+| `record_after_death` | an AE end or disposition date moved to after DTHDTC |
+| `bad_study_day` | a `--DY` counted as if there were a day 0 |
+| `chg_mismatch` | a BDS CHG that isn't AVAL − BASE |
+| `missing_baseline` | ABLFL cleared on a baseline record |
+| `trtemfl_wrong` | ADAE TRTEMFL flipped |
+| `cnsr_wrong` | ADTTE CNSR flipped |
+
+A defect stays in the dataset it was injected into: ADaM is not re-derived from the corrupted SDTM,
+so a validator that cross-checks the two sees the disagreement.
+
+## The defect record
+
+`Study.defects` has one row per defect: the dataset and its (zero-based) row, the subject, the
+record's key, the variable, its original and injected values, and the findings it should produce.
+`Study.write()` writes the same record as `defects.json`.
+
+```{python}
+dirty.defects.select("id", "dataset", "row", "key", "variable", "original", "injected")
+```
+
+## Scoring a validator
+
+`Study.score()` takes a `Report` and matches its findings against the defects. trialforge's own
+checks find every defect and nothing else:
+
+```{python}
+score = dirty.score(dirty.verify())
+score.recall, score.precision
+```
+
+The score breaks down by defect type, and lists the defects no finding matched (`missed`) and the
+findings no defect explains (`unmatched`):
+
+```{python}
+score.by_type["out_of_ct"]
+```
+
+To score another validator, turn its findings into a `Report`. A finding from a level other than
+trialforge's own (`L0` to `L2`) matches a defect when it names the defect's dataset and row. Here a
+minimal validator looks for AE records that end before they start:
+
+```{python}
+ae = dirty.sdtm["AE"].with_row_index("row")
+flagged = ae.filter(
+    pl.col("AEENDTC").str.slice(0, 10) < pl.col("AESTDTC").str.slice(0, 10)
+)["row"].to_list()
+
+findings = [
+    tf.Finding("mine", "AE_ORDER", "AE", "AEENDTC", row, "AE ends before it starts")
+    for row in flagged
+]
+mine = dirty.score(tf.Report(passed=not findings, findings=findings))
+mine.recall, mine.precision
+```
+
+It finds every `ae_end_before_start` defect, with no false positives, but nothing of the other
+types, hence its low overall recall:
+
+```{python}
+mine.by_type["ae_end_before_start"]
+```
+
+`Study.verify(level=3)` scores Pointblank's conformance rules alongside trialforge's own.
