@@ -1,0 +1,73 @@
+---
+title: Writing files
+guide-section: "Using the output"
+---
+
+A study's datasets are available in memory as DataFrames (`Study.sdtm`, `Study.adam`), and can be
+written to files the way a sponsor would deliver them. Writing needs no DataFrame backend.
+
+```{python}
+import tempfile
+from pathlib import Path
+
+import trialforge as tf
+
+trial = tf.study("parallel_continuous", n=100, seed=1)
+out = Path(tempfile.mkdtemp())
+```
+
+## A submission package
+
+`Study.write_submission()` writes `sdtm/` and `adam/` folders, each with one SAS transport (XPT v5)
+file per dataset and a Define-XML 2.1 `define.xml`, plus the [truth manifest](04-truth.qmd) as
+`truth.json`:
+
+```{python}
+written = trial.write_submission(out / "submission")
+sorted(str(p.relative_to(out)) for p in written)
+```
+
+The XPT files carry the dataset and variable labels, and the define.xml documents every dataset and
+variable: its label, type, length, controlled terminology and, for ADaM, its origin and derivation
+method.
+
+## Other formats
+
+`Study.write()` writes every dataset into one directory, in one or more formats:
+
+```{python}
+tf.formats()
+```
+
+- `xpt`: SAS transport version 5, the format regulators accept.
+- `csv`: one CSV file per dataset.
+- `dataset-json`: CDISC Dataset-JSON 1.1.
+- `parquet`: Apache Parquet.
+
+```{python}
+written = trial.write(out / "files", formats=["csv", "dataset-json"])
+sorted(p.name for p in written)[:6]
+```
+
+Files are named by the lower-case dataset name, such as `dm.xpt`. `truth.json` is written with
+them, and a study with [defects](07-defects.qmd) also gets `defects.json`.
+
+## define.xml as text
+
+`Study.define_xml()` returns the Define-XML 2.1 document for either standard as a string, without
+writing anything:
+
+```{python}
+print(trial.define_xml("adam")[:600])
+```
+
+## DataFrames
+
+`Study.sdtm` and `Study.adam` are dictionaries of DataFrames of the `output` type you chose in
+`tf.study()`: Polars (the default), pandas or PyArrow. Columns keep their SDTM and ADaM types:
+dates in SDTM are ISO 8601 text (`--DTC`), and ADaM dates and datetimes are proper date types.
+
+```{python}
+pandas_trial = tf.study("parallel_continuous", n=100, seed=1, output="pandas")
+pandas_trial.adam["ADSL"][["USUBJID", "TRT01P", "TRTSDT", "TRTEDT"]].head()
+```
