@@ -25,3 +25,5 @@ First release.
   a validator's recall and precision.
 - The same seed and controls give byte-identical files from Python and R, on every platform.
 - A `trialforge` command-line tool (`generate`, `summary`, `archetypes`, `controls`).
+- Documentation at https://rich-iannone.github.io/trialforge/: a user guide and the Python API
+  reference, with the R reference under `r/`.
