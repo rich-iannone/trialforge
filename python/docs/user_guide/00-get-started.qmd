@@ -1,0 +1,45 @@
+---
+title: Get started
+guide-section: "Getting started"
+---
+
+trialforge generates synthetic CDISC clinical-trial data: a complete mock study with trial design
+datasets, SDTM, ADaM and Define-XML, from a study type and a handful of controls. Its engine is
+written in Rust and shared by the Python package and the [R package](../r/index.html), so the
+same request gives the same data in both languages.
+
+## The pipeline
+
+Every study is built the same way:
+
+1. **Design**: the archetype and its controls give the arms, visit schedule, sites and trial
+design datasets (TA, TE, TV, TI, TS).
+2. **Enrollment**: subjects are enrolled across sites and randomised to arms.
+3. **Subject courses**: a disease and treatment model simulates each subject's course: visits,
+measurements, adverse events, tumour assessments, PK concentrations, clinical events, and when
+they discontinue or die.
+4. **SDTM**: the courses are written as SDTM domains, coded with open dictionaries and controlled
+terminology.
+5. **ADaM**: the analysis datasets are derived from the SDTM datasets alone, as a real study's
+programmers would derive them, following admiral's templates.
+6. **Verification**: trialforge checks the study's structure, the references between datasets and
+the ADaM derivations. A study that fails a check is an error, never a result.
+7. **Truth manifest**: what the study was built to show (its targets) and what the generated data
+realised.
+
+Optionally, seeded **defects** are then injected into copies of the verified datasets, for testing
+a validator.
+
+## How this guide is organized
+
+- **Getting started**: [Installation](01-installation.qmd) and a [Quick start](02-quick-start.qmd)
+tour.
+- **Generating studies**: the [archetypes and their controls](03-archetypes.qmd), and the
+[truth manifest](04-truth.qmd) that reports targets against realised values.
+- **Using the output**: [writing files](05-writing-files.qmd) (XPT, CSV, Dataset-JSON, Parquet and
+define.xml) and [verification](06-verification.qmd).
+- **Testing validators**: [seeded defects](07-defects.qmd) and how to score a validator's findings.
+- **Reproducible requests**: [study specs](08-study-specs.qmd), JSON or YAML files that describe a
+study, and [reproducibility](09-reproducibility.qmd): seeds and what stays stable.
+
+The [reference](../reference/) documents every function and class.
