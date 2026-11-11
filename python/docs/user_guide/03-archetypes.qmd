@@ -1,0 +1,92 @@
+---
+title: Archetypes and controls
+guide-section: "Generating studies"
+---
+
+An *archetype* is a study type: a design (arms, visits, periods or cohorts), a model of how
+subjects' courses unfold, and the SDTM and ADaM datasets a study of that type would have. Its
+*controls* are the settings you can change, each with a default, so `tf.study("vaccine")` alone
+gives a complete, plausible study.
+
+## The archetypes
+
+`tf.archetypes()` lists them with one-line descriptions:
+
+```{python}
+import trialforge as tf
+
+tf.archetypes()
+```
+
+| Archetype | What it simulates |
+|---|---|
+| `parallel_continuous` | Randomised, double-blind study with a continuous endpoint: `type_2_diabetes` (HbA1c), `hypertension` (SBP) or `obesity` (weight); placebo-controlled, or active-controlled with a non-inferiority margin |
+| `dose_ranging_ph2` | Phase 2 dose-ranging study (placebo and several doses) with a sigmoid Emax dose-response; the truth manifest refits the Emax model |
+| `cv_outcomes` | Event-driven cardiovascular outcomes trial: recurrent MI and stroke, CV death and competing non-CV death in CE; time to first MACE and its components in ADTTE; the study ends at a target number of events |
+| `cns_alzheimers` | Placebo-controlled study in mild to moderate Alzheimer's disease: ADAS-Cog (11) items (FT) from an IRT model of cognitive decline, prorated totals and LOCF analysis |
+| `oncology_solid_tumor` | Randomised solid-tumour study: RECIST 1.1 tumour assessments, confirmed response, progression and death, calibrated to target medians, hazard ratios and response rates |
+| `heme_lymphoma` | Randomised study in relapsed or refractory DLBCL: Lugano 2014 lesions, CT- and PET-CT-based responses, ADRS, PFS and OS calibrated to targets |
+| `phase1_sad_mad` | First-in-human single or multiple ascending dose study in healthy volunteers: dose cohorts with placebo, intensive PK (1- or 2-compartment population model), NCA, dose proportionality |
+| `crossover_be` | Crossover bioequivalence (2x2 or 2x2x4 replicate) or food-effect study: periods and washouts, per-period PK and NCA, the BE analysis of AUC and Cmax |
+| `dose_escalation` | Phase 1 dose escalation in advanced solid tumours with a 3+3, BOIN or mTPI-2 design: cohorts chosen from DLTs, the DLT-evaluable population and the selected MTD |
+| `pediatric_growth` | Once-weekly vs daily growth hormone in children: height, weight and BMI on the CDC 2000 charts, growth z-scores and percentiles, annualized height velocity |
+| `respiratory_exacerbation` | Placebo-controlled COPD study: moderate and severe exacerbations in CE (negative binomial counts), FEV1 in RE |
+| `vaccine` | Placebo-controlled one- or two-dose vaccine study: neutralising antibody titres (IS), 7-day reactogenicity diaries (FACE, CE, VS) |
+| `ophthalmology` | Active-controlled non-inferiority study of intravitreal Drug A in neovascular AMD: study and fellow eye visual acuity and retinal thickness |
+
+## Controls
+
+`tf.controls()` lists an archetype's controls, each with a description and its default:
+
+```{python}
+tf.controls("parallel_continuous")
+```
+
+Pass controls to `tf.study()` as keyword arguments. Anything you leave out keeps its default:
+
+```{python}
+trial = tf.study("parallel_continuous", n=200, seed=1, indication="obesity", weeks=52)
+trial.controls
+```
+
+`Study.controls` is the full set the study used, defaults included, so it records the whole request.
+
+Controls are checked before anything is generated. A misspelt name is an error that lists the valid
+ones, and so is a value of the wrong type or out of range:
+
+```{python}
+try:
+    tf.study("parallel_continuous", n=200, seed=1, wekks=52)
+except ValueError as e:
+    print(e)
+```
+
+## Controls that are clinical targets
+
+Some controls are clinical targets rather than model parameters: a median survival, a hazard ratio
+or a response rate. trialforge calibrates its latent model so that the study is expected to hit the
+target, and the [truth manifest](04-truth.qmd) reports the target next to what the generated data
+realised. The oncology controls are of this kind:
+
+```{python}
+[c.name for c in tf.controls("oncology_solid_tumor")]
+```
+
+## Modifiers of event-driven studies
+
+`oncology_solid_tumor` and `heme_lymphoma` take a crossover-on-progression modifier
+(`crossover_prob`, `crossover_os_hr`): control subjects who progress may switch to Drug A, in a
+`CONTINUATION TREATMENT` element, and their survival follows the Drug A hazard from then on.
+
+Event-driven studies can also be cut early. `interim_months` on the oncology archetypes and
+`interim_events` on `cv_outcomes` give an interim snapshot of the same study, with the same subjects
+and courses, cut at the earlier date. Subjects randomised after the cut are absent, TS records the
+interim cutoff, and `trial.truth["interim"]` reports it.
+
+## Other arguments
+
+- `n`: the number of randomised subjects.
+- `seed`{.gd-no-link}: the root seed (see [Reproducibility](09-reproducibility.qmd)).
+- `studyid`{.gd-no-link}: `STUDYID`; each archetype has a default, such as `SIMPAR01`.
+- `output`: the DataFrame type of `Study.sdtm` and `Study.adam`.
+- `defects`{.gd-no-link}: data-quality defects to inject (see [Seeded defects](07-defects.qmd)).
