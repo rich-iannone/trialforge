@@ -7,6 +7,8 @@ types and output that is verified to be workable.
 trialforge's engine is written in Rust. This is the Python package; an R package built on the
 same engine gives byte-identical data from the same spec and seed. Source, issues and the R
 package are at [github.com/rich-iannone/trialforge](https://github.com/rich-iannone/trialforge).
+The documentation, a user guide and the API reference, is at
+[rich-iannone.github.io/trialforge](https://rich-iannone.github.io/trialforge/).
 
 > **Status: pre-alpha.** The API may change between releases.
 
