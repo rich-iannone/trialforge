@@ -1,7 +1,7 @@
 # trialforge monorepo: the Rust core lives in crates/, the Python package in python/ and the R
 # package in r/. Both packages replay the shared conformance cases in spec/.
 # Targets name their language (`rs-*`, `py-*`, `r-*`), and the bare names (`test`, `check`,
-# `install`) run all three.
+# `install`, `docs`) run all of them.
 
 PYTHON ?= $(CURDIR)/.venv/bin/python
 RSCRIPT ?= Rscript
@@ -25,6 +25,26 @@ test: rs-test py-test r-test ## Run the Rust, Python and R test suites
 
 .PHONY: check
 check: rs-check py-check r-test ## Run every lint, type check and test suite (the pre-push gate)
+
+# The published site is the Great Docs build with the pkgdown site under r/, which replaces the
+# stand-in page from python/docs/r_site/. The docs workflow assembles it the same way. It's put
+# together in build/site, because Great Docs won't rebuild into a _site holding other content.
+DOCS_SITE := build/site
+
+.PHONY: docs
+docs: py-docs r-site ## Build the Python and R docs into one site at build/site
+	rm -rf $(DOCS_SITE)
+	mkdir -p $(dir $(DOCS_SITE))
+	cp -R $(PY_DIR)/docs/_site $(DOCS_SITE)
+	rm -rf $(DOCS_SITE)/r
+	cp -R $(R_DIR)/docs $(DOCS_SITE)/r
+
+.PHONY: docs-serve
+docs-serve: ## Serve the site that `make docs` built, at http://localhost:8000
+	@$(PYTHON) -m http.server 8000 --directory $(DOCS_SITE)
+
+.PHONY: docs-preview
+docs-preview: docs docs-serve ## Build the Python and R docs into one site and serve it
 
 # -- Rust ---------------------------------------------------------------------------------------
 
@@ -75,6 +95,31 @@ py-check: ## Python gate: ruff, pyright, pytest
 	cd $(PY_DIR) && $(PYTHON) -m ruff check
 	cd $(PY_DIR) && $(PYTHON) -m pyright
 	cd $(PY_DIR) && $(PYTHON) -m pytest
+
+# The site's pages execute their code (against the package py-install built), so Quarto needs the
+# project venv's Jupyter kernel.
+JUPYTER_PATH := $(CURDIR)/.venv/share/jupyter
+
+# Number of Quarto processes that render pages at once (a number, or `auto` for one per CPU).
+# Override with `make py-docs DOCS_JOBS=1` to render one page at a time.
+DOCS_JOBS ?= auto
+
+# CI builds with Great Docs from GitHub main, so install the same version locally, with what the
+# pages need to execute (the `docs` extra).
+.PHONY: py-docs-install
+py-docs-install: .venv ## Install Great Docs from GitHub main and the docs extra into .venv (matches CI)
+	uv pip install --python "$(PYTHON)" jupyter nbclient nbformat polars pandas pyarrow "pointblank>=1.1.1"
+	uv pip install --python "$(PYTHON)" --reinstall "git+https://github.com/posit-dev/great-docs.git@main"
+
+.PHONY: py-docs
+py-docs: ## Build the Python documentation site into python/docs/_site (run py-install first)
+	cd $(PY_DIR) && JUPYTER_PATH="$(JUPYTER_PATH)" $(CURDIR)/.venv/bin/great-docs build --jobs $(DOCS_JOBS)
+
+# `preview` builds the site first when it hasn't been built, and reads the job count from the
+# environment for that build.
+.PHONY: py-docs-preview
+py-docs-preview: ## Preview the Python documentation site locally
+	cd $(PY_DIR) && JUPYTER_PATH="$(JUPYTER_PATH)" GREAT_DOCS_RENDER_JOBS=$(DOCS_JOBS) $(CURDIR)/.venv/bin/great-docs preview
 
 # -- R ------------------------------------------------------------------------------------------
 
@@ -153,10 +198,23 @@ r-admiral: ## Compare our ADaM with admiral's derivations from our SDTM (needs `
 r-install: ## Install the R package from the source tree (in place, so the core path resolves)
 	R CMD INSTALL --no-multiarch $(R_DIR)
 
+# pkgdown documents the installed package: install it in place first (pkgdown's own install would
+# build it away from the repo, where the core path doesn't resolve). Without a pandoc, use
+# Quarto's.
+.PHONY: r-site
+r-site: r-install ## Build the R package's pkgdown site into r/docs/
+	@if [ -z "$$RSTUDIO_PANDOC" ] && ! command -v pandoc >/dev/null 2>&1 \
+		&& command -v quarto >/dev/null 2>&1; then \
+		export RSTUDIO_PANDOC="$$(quarto --paths | head -n 1)/tools"; \
+	fi; \
+	$(RSCRIPT) -e 'pkgdown::build_site("$(R_DIR)", install = FALSE, new_process = FALSE, preview = FALSE)'
+
 # -- Housekeeping -------------------------------------------------------------------------------
 
 .PHONY: clean
-clean: ## Remove Rust, Python and R build artifacts
+clean: ## Remove Rust, Python, R and documentation build artifacts
 	cargo clean
 	rm -rf $(R_DIR)/src/rust/target $(R_DIR)/src/*.o $(R_DIR)/src/*.so $(R_DIR)/src/*.dll
 	rm -f $(PY_DIR)/trialforge/_core*.so $(PY_DIR)/trialforge/_core*.pyd
+	rm -rf $(DOCS_SITE) $(PY_DIR)/docs/_site $(PY_DIR)/docs/_quarto $(PY_DIR)/docs/_freeze
+	rm -rf $(PY_DIR)/docs/.cache $(PY_DIR)/.great-docs-cache $(R_DIR)/docs
