@@ -7,7 +7,7 @@ name = "trialforge"
 description = "Synthetic CDISC clinical-trial data (SDTM, ADaM, define.xml) from declarative study specs."
 readme = "README.md"
 license = "MIT"
-license-files = ["LICENSE"]
+license-files = ["LICENSE", "NOTICE.md"]
 authors = [{ name = "Richard Iannone", email = "riannone@me.com" }]
 maintainers = [{ name = "Richard Iannone", email = "riannone@me.com" }]
 dynamic = ["version"]
