@@ -102,11 +102,11 @@ The truth manifest records what the study was built to show and what it realized
 
 ```python
 e = trial.truth["endpoint"]
-{k: e[k] for k in ("target_difference", "realised_difference")}
+{k: e[k] for k in ("target_difference", "realized_difference")}
 ```
 
 ```text
-{'target_difference': -8.0, 'realised_difference': -7.2283}
+{'target_difference': -8.0, 'realized_difference': -7.2283}
 ```
 
 ```python
