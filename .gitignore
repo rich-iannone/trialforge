@@ -244,4 +244,5 @@ r/docs/
 /*.md
 !README.md
 !CHANGELOG.md
+!NOTICE.md
 .DS_Store
