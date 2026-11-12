@@ -226,7 +226,7 @@ class Study:
 
     @cached_property
     def truth(self) -> dict[str, Any]:
-        """The truth manifest: targets and the values realised in the generated ADaM."""
+        """The truth manifest: targets and the values realized in the generated ADaM."""
         return json.loads(self._core.truth_json)
 
     @cached_property

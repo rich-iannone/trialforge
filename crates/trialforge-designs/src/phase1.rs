@@ -93,7 +93,7 @@ pub(crate) fn docs() -> Vec<ControlDoc> {
         ),
         ControlDoc::new(
             "placebo_fraction",
-            "Share of each cohort randomised to placebo",
+            "Share of each cohort randomized to placebo",
         ),
         ControlDoc::new("mad_days", "Days of once-daily dosing in the MAD part"),
         ControlDoc::new(

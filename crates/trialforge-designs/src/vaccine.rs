@@ -76,16 +76,16 @@ pub(crate) fn docs() -> Vec<ControlDoc> {
         ControlDoc::new("interval_days", "Days between vaccinations (21 to 84)"),
         ControlDoc::new(
             "gmt",
-            "Geometric mean neutralising titre 28 days after the last dose (vaccine arm)",
+            "Geometric mean neutralizing titer 28 days after the last dose (vaccine arm)",
         ),
         ControlDoc::new("seropositive", "Share of subjects seropositive at baseline"),
         ControlDoc::new(
             "first_dose_fraction",
-            "Share of the log-titre rise reached after the first of two doses",
+            "Share of the log-titer rise reached after the first of two doses",
         ),
         ControlDoc::new(
             "titer_sd",
-            "SD of individual log10 titres after vaccination",
+            "SD of individual log10 titers after vaccination",
         ),
         ControlDoc::new(
             "reactogenicity",

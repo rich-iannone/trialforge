@@ -81,7 +81,7 @@ pub(crate) fn docs() -> Vec<ControlDoc> {
         ),
         ControlDoc::new(
             "severe_fraction",
-            "Share of exacerbations that are severe (hospitalised)",
+            "Share of exacerbations that are severe (hospitalized)",
         ),
         ControlDoc::new(
             "prior_exacerbations_rr",

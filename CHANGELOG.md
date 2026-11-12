@@ -20,7 +20,7 @@ First release.
   returned; `verify()` re-runs them, and `verify(level=3)` (Python) adds Pointblank's SDTMIG
   conformance rules. ADaM matches admiral and its extensions, and PP matches PKNCA.
 - Clinical targets (medians, hazard ratios, response rates, effect sizes) are calibrated, and
-  the truth manifest (`truth`) reports target and realised values.
+  the truth manifest (`truth`) reports target and realized values.
 - Seeded data-quality defects (`defects=`), with a manifest of every change and `score()` for
   a validator's recall and precision.
 - The same seed and controls give byte-identical files from Python and R, on every platform.

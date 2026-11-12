@@ -2,7 +2,7 @@
 
 trialforge's own code is licensed under the MIT License (see `LICENSE`). The packages also contain
 material from the third parties listed here, which remains under its owners' terms. None of these
-organisations is affiliated with trialforge or endorses it.
+organizations is affiliated with trialforge or endorses it.
 
 <!--
   DRAFT for the pre-release licensing review (PLAN.md §11 and §16.2). Comments like this one mark
@@ -38,7 +38,7 @@ https://evs.nci.nih.gov/ftp1/CDISC/. The file's `source` column records where ea
 taken from.
 
 <!--
-  Confirm: the NCI Thesaurus licence (believed to be CC BY 4.0, which requires this attribution)
+  Confirm: the NCI Thesaurus license (believed to be CC BY 4.0, which requires this attribution)
   and any CDISC terms specific to CT.
 -->
 
@@ -138,7 +138,7 @@ The controlled terminology terms marked `pointblank` (507 of the 859) were taken
 Controlled Terminology subset bundled with Pointblank, https://github.com/posit-dev/pointblank.
 The SDTM and ADaM metadata were written for trialforge and are only cross-checked against
 Pointblank's templates. trialforge is an independent project, not a product of Posit Software,
-PBC, which holds the copyright to Pointblank. Pointblank's licence:
+PBC, which holds the copyright to Pointblank. Pointblank's license:
 
     MIT License
 
@@ -169,12 +169,12 @@ choice that includes the MIT License, trialforge uses it under MIT; ryu is used 
 
 <!--
   This table reflects Cargo.lock at 0.1.0. MIT and Apache-2.0 both require shipping each crate's
-  licence text (with its copyright lines) alongside the binary, and the table alone doesn't do
+  license text (with its copyright lines) alongside the binary, and the table alone doesn't do
   that. Before the release, generate the full texts (for example with cargo-about) into a file
   the wheels include, and regenerate it whenever Cargo.lock changes.
 -->
 
-| Crate | Version | Licence |
+| Crate | Version | License |
 |---|---|---|
 | ahash | 0.8.12 | MIT OR Apache-2.0 |
 | arrow-array | 59.3.0 | Apache-2.0 AND MIT |

@@ -80,7 +80,7 @@ pub(crate) fn docs() -> Vec<ControlDoc> {
         ),
         ControlDoc::new(
             "age_range",
-            "Age range at enrolment in years (3 to 15): [youngest, oldest]",
+            "Age range at enrollment in years (3 to 15): [youngest, oldest]",
         ),
         ControlDoc::new("dose", "Drug A dose in mg/kg, once weekly"),
         ControlDoc::new("comparator_dose", "Somatropin dose in mg/kg, once daily"),

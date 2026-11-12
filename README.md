@@ -98,7 +98,7 @@ shape: (7, 6)
 └─────────────────┴──────────────┴───────────┴───────┴───────┴───────┘
 ```
 
-The truth manifest records what the study was built to show and what it realised:
+The truth manifest records what the study was built to show and what it realized:
 
 ```python
 e = trial.truth["endpoint"]
@@ -176,18 +176,18 @@ R's PKNCA, recomputed from trialforge's PC.
 
 | Archetype | What it simulates |
 |---|---|
-| `parallel_continuous` | Randomised, double-blind study with a continuous endpoint: `type_2_diabetes` (HbA1c), `hypertension` (SBP) or `obesity` (weight); placebo-controlled, or active-controlled with a non-inferiority margin |
+| `parallel_continuous` | Randomized, double-blind study with a continuous endpoint: `type_2_diabetes` (HbA1c), `hypertension` (SBP) or `obesity` (weight); placebo-controlled, or active-controlled with a non-inferiority margin |
 | `dose_ranging_ph2` | Phase 2 dose-ranging study (placebo and several doses) with a sigmoid Emax dose-response; the truth manifest refits the Emax model |
 | `cv_outcomes` | Event-driven cardiovascular outcomes trial: recurrent MI and stroke, CV death and competing non-CV death in CE; time to first MACE and its components in ADTTE; the study ends at a target number of events |
 | `cns_alzheimers` | Placebo-controlled study in mild to moderate Alzheimer's disease: ADAS-Cog (11) items (FT) from an IRT model of cognitive decline, prorated totals and LOCF analysis |
-| `oncology_solid_tumor` | Randomised solid-tumour study: RECIST 1.1 tumour assessments, confirmed response, progression and death, calibrated to target medians, hazard ratios and response rates |
+| `oncology_solid_tumor` | Randomized solid-tumor study: RECIST 1.1 tumor assessments, confirmed response, progression and death, calibrated to target medians, hazard ratios and response rates |
 | `phase1_sad_mad` | First-in-human single or multiple ascending dose study in healthy volunteers: dose cohorts with placebo, intensive PK (1- or 2-compartment population model), NCA, dose proportionality |
 | `crossover_be` | Crossover bioequivalence (2x2 or 2x2x4 replicate) or food-effect study: periods and washouts, per-period PK and NCA, the BE analysis of AUC and Cmax |
-| `dose_escalation` | Phase 1 dose escalation in advanced solid tumours with a 3+3, BOIN or mTPI-2 design: cohorts chosen from DLTs, DLT flags in SUPPAE and ADAE, the DLT-evaluable population, the selected MTD and the design's operating characteristics |
-| `heme_lymphoma` | Randomised study in relapsed or refractory DLBCL: Lugano 2014 lesions (perpendicular diameters, SPD, FDG-PET Deauville score), CT- and PET-CT-based responses, ADRS (admiralonco), PFS and OS calibrated to targets |
-| `pediatric_growth` | Once-weekly vs daily growth hormone in children: height, weight and BMI on the CDC 2000 charts, growth z-scores and percentiles in ADVS (admiralpeds), annualized height velocity |
+| `dose_escalation` | Phase 1 dose escalation in advanced solid tumors with a 3+3, BOIN or mTPI-2 design: cohorts chosen from DLTs, DLT flags in SUPPAE and ADAE, the DLT-evaluable population, the selected MTD and the design's operating characteristics |
+| `heme_lymphoma` | Randomized study in relapsed or refractory DLBCL: Lugano 2014 lesions (perpendicular diameters, SPD, FDG-PET Deauville score), CT- and PET-CT-based responses, ADRS (admiralonco), PFS and OS calibrated to targets |
+| `pediatric_growth` | Once-weekly vs. daily growth hormone in children: height, weight and BMI on the CDC 2000 charts, growth z-scores and percentiles in ADVS (admiralpeds), annualized height velocity |
 | `respiratory_exacerbation` | Placebo-controlled COPD study: moderate and severe exacerbations in CE (negative binomial counts), FEV1 in RE; ADEXAC, time to first exacerbation, ADRE |
-| `vaccine` | Placebo-controlled one- or two-dose vaccine study: neutralising antibody titres (IS), 7-day reactogenicity diaries (FACE, CE, VS); ADIS, ADCE and ADFACE following admiralvaccine |
+| `vaccine` | Placebo-controlled one- or two-dose vaccine study: neutralizing antibody titers (IS), 7-day reactogenicity diaries (FACE, CE, VS); ADIS, ADCE and ADFACE following admiralvaccine |
 | `ophthalmology` | Active-controlled non-inferiority study of intravitreal Drug A in neovascular AMD: study and fellow eye visual acuity (ETDRS letters) and retinal thickness in OE, the study eye in SC, ADBCVA following admiralophtha |
 
 `oncology_solid_tumor` and `heme_lymphoma` take a crossover-on-progression modifier
@@ -196,12 +196,12 @@ R's PKNCA, recomputed from trialforge's PC.
 
 Event-driven studies can also be cut early (multiple cuts): `interim_months` on the oncology
 archetypes and `interim_events` on `cv_outcomes` give an interim snapshot of the same study,
-with the same subjects and courses, cut at the earlier date. Subjects randomised after the cut
+with the same subjects and courses, cut at the earlier date. Subjects randomized after the cut
 are absent, TS records the interim cutoff, and `trial.truth["interim"]` reports it.
 
 Oncology controls are clinical targets (`os_median_months`, `os_hr`, `pfs_median_months`,
 `pfs_hr`, `orr`, …); trialforge calibrates its latent model to them, and `trial.truth` reports
-what the generated study realised (Kaplan-Meier medians, stratified Cox hazard ratios with 95%
+what the generated study realized (Kaplan-Meier medians, stratified Cox hazard ratios with 95%
 CIs, confirmed response rates) next to the targets.
 
 ```python

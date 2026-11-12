@@ -12,7 +12,7 @@ it generates, and a study that fails a check is an error rather than a result.
 - **Level 0, structural**: metadata conformance (dataset and variable names, labels, types and
 lengths), controlled terminology, keys and ISO 8601 dates.
 - **Level 1, referential and temporal**: subjects, dates, visits, epochs, exposure, disposition and
-supplemental qualifiers agree across domains. Tumour responses follow RECIST 1.1 (or Lugano 2014)
+supplemental qualifiers agree across domains. Tumor responses follow RECIST 1.1 (or Lugano 2014)
 from the measurements, and PK concentrations are consistent with dosing.
 - **Level 2, derivational**: the ADaM datasets are recomputed from the SDTM by an independent
 implementation and compared with the generated ones.

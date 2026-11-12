@@ -19,7 +19,7 @@
 #'   large count to corrupt every eligible record. See [score()].
 #'
 #' @return A `trialforge_study` object: a list with `studyid`, `archetype`, `seed`, `cutoff`
-#'   (a `Date`), `controls`, `truth` (targets vs realised values), `sdtm` and `adam` (named
+#'   (a `Date`), `controls`, `truth` (targets vs. realized values), `sdtm` and `adam` (named
 #'   lists of data frames whose columns carry haven-style `label` attributes), and `defects`:
 #'   `NULL`, or a data frame with one row per injected defect (`id`, `dataset`, `row`,
 #'   `paired_row` (another record the defect involves, which a validator may name instead),

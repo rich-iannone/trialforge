@@ -14,9 +14,9 @@ Every study is built the same way:
 
 1. **Design**: the archetype and its controls give the arms, visit schedule, sites and trial
 design datasets (TA, TE, TV, TI, TS).
-2. **Enrollment**: subjects are enrolled across sites and randomised to arms.
+2. **Enrollment**: subjects are enrolled across sites and randomized to arms.
 3. **Subject courses**: a disease and treatment model simulates each subject's course: visits,
-measurements, adverse events, tumour assessments, PK concentrations, clinical events, and when
+measurements, adverse events, tumor assessments, PK concentrations, clinical events, and when
 they discontinue or die.
 4. **SDTM**: the courses are written as SDTM domains, coded with open dictionaries and controlled
 terminology.
@@ -25,7 +25,7 @@ programmers would derive them, following admiral's templates.
 6. **Verification**: trialforge checks the study's structure, the references between datasets and
 the ADaM derivations. A study that fails a check is an error, never a result.
 7. **Truth manifest**: what the study was built to show (its targets) and what the generated data
-realised.
+realized.
 
 Optionally, seeded **defects** are then injected into copies of the verified datasets, for testing
 a validator.
@@ -35,7 +35,7 @@ a validator.
 - **Getting started**: [Installation](01-installation.qmd) and a [Quick start](02-quick-start.qmd)
 tour.
 - **Generating studies**: the [archetypes and their controls](03-archetypes.qmd), and the
-[truth manifest](04-truth.qmd) that reports targets against realised values.
+[truth manifest](04-truth.qmd) that reports targets against realized values.
 - **Using the output**: [writing files](05-writing-files.qmd) (XPT, CSV, Dataset-JSON, Parquet and
 define.xml) and [verification](06-verification.qmd).
 - **Testing validators**: [seeded defects](07-defects.qmd) and how to score a validator's findings.

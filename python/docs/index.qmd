@@ -34,7 +34,7 @@ checks before it is returned, and its ADaM matches admiral: admiral and its exte
 it from trialforge's SDTM with no differences. PK parameters match PKNCA.
 - **Interpretable controls**: where a control is a clinical target (a median, hazard ratio or
 response rate), trialforge calibrates its latent model to it and reports the target next to the
-value the study realised.
+value the study realized.
 - **Reproducible**: the same archetype, controls and seed give byte-identical files on every
 platform, from Python and from [R](r/index.html).
 - **Seeded defects**: corrupt a verified study on purpose, with a record of every change, and
@@ -57,7 +57,7 @@ trial
 trial.sdtm["DM"].select("USUBJID", "AGE", "SEX", "RACE", "ARM", "RFSTDTC")
 ```
 
-The truth manifest records what the study was built to show and what it realised:
+The truth manifest records what the study was built to show and what it realized:
 
 ```{python}
 endpoint = trial.truth["endpoint"]

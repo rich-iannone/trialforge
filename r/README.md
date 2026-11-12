@@ -9,10 +9,10 @@ trialforge is pre-alpha. It currently provides:
 
 - thirteen archetypes, from parallel-group studies with a continuous endpoint to oncology
   (RECIST 1.1 and Lugano 2014), first-in-human PK, crossover bioequivalence, dose escalation,
-  cardiovascular outcomes, Alzheimer's disease, paediatric growth, COPD exacerbations, vaccines
+  cardiovascular outcomes, Alzheimer's disease, pediatric growth, COPD exacerbations, vaccines
   and ophthalmology; `archetypes()` lists them and `controls()` what each accepts
 - clinical targets as controls (median survival, hazard ratios, response rates), with the latent
-  model calibrated to them and a truth manifest of target vs realised values
+  model calibrated to them and a truth manifest of target vs. realized values
 - ADaM derived from the SDTM following admiral and its extensions, and PK parameters matching
   PKNCA
 - XPT v5, CSV and Dataset-JSON 1.1 files, with a Define-XML 2.1 `define.xml` for each standard
@@ -73,4 +73,4 @@ building a source tarball first would leave them behind.
 trialforge is developed alongside a Python package of the same name, in the same repository, and
 the [Python documentation](https://rich-iannone.github.io/trialforge/) shares this site. Its user
 guide covers the archetypes, the truth manifest, verification, seeded defects and study specs;
-the R functions have the same names and behaviour.
+the R functions have the same names and behavior.

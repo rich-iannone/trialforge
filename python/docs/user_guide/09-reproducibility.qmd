@@ -54,7 +54,7 @@ tf.stream_seed(1, ["subject", 17, "ae"])
 
 ## Across platforms and languages
 
-trialforge doesn't use the platform's maths library for random values (implementations differ in
+trialforge doesn't use the platform's math library for random values (implementations differ in
 the last bit from one system to the next) but a pure-Rust one, and its random draws are defined by
 the engine, not by Python or R. Golden test cases pin the XPT bytes of reference studies, and the
 test suites of both packages check them.

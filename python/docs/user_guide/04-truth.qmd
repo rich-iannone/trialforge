@@ -7,10 +7,10 @@ Real studies don't come with an answer key. Synthetic ones can: `Study.truth` re
 was built to show and what its generated data actually shows, so you can check an analysis program
 against known values.
 
-## Targets and realised values
+## Targets and realized values
 
 For a parallel-group study, the manifest has the target mean change from baseline in each arm, and
-the mean change the study's ADaM realised at the end of treatment:
+the mean change the study's ADaM realized at the end of treatment:
 
 ```{python}
 import trialforge as tf
@@ -19,10 +19,10 @@ trial = tf.study("parallel_continuous", n=300, seed=1, indication="hypertension"
 trial.truth["endpoint"]
 ```
 
-The realised values are computed from the generated ADaM datasets, so an analysis that reproduces
+The realized values are computed from the generated ADaM datasets, so an analysis that reproduces
 them reads the data correctly. They differ from the targets by sampling error, as a real study's
 estimates differ from the true effect. The manifest also records the request itself (archetype,
-seed, controls) and other realised quantities, such as treatment-emergent AE incidence:
+seed, controls) and other realized quantities, such as treatment-emergent AE incidence:
 
 ```{python}
 list(trial.truth)
@@ -32,7 +32,7 @@ list(trial.truth)
 
 Where a control is a clinical target, trialforge solves for the latent model parameters that give
 it. In the oncology archetypes, overall survival and progression follow Weibull proportional
-hazards models linked by a Gaussian copula, and tumour courses follow RECIST 1.1. The medians and
+hazards models linked by a Gaussian copula, and tumor courses follow RECIST 1.1. The medians and
 hazard ratios have exact solutions; confirmed response rates (which depend on the assessment
 schedule and the confirmation rule) are calibrated by simulation on a fixed 40,000-subject cohort.
 
@@ -41,7 +41,7 @@ onc = tf.study("oncology_solid_tumor", n=400, seed=1, os_hr=0.7, orr=[0.4, 0.2])
 onc.truth["targets"]
 ```
 
-The realised values are what a standard analysis of this study's ADaM gives: Kaplan-Meier medians
+The realized values are what a standard analysis of this study's ADaM gives: Kaplan-Meier medians
 and a stratified Cox hazard ratio with its 95% confidence interval.
 
 ```{python}
@@ -64,7 +64,7 @@ onc.truth["calibration"]
 ## Interim cuts
 
 An interim cut of an event-driven study reports its cutoff date and how many subjects had been
-randomised by then:
+randomized by then:
 
 ```{python}
 tf.study("oncology_solid_tumor", n=400, seed=1, interim_months=12).truth["interim"]

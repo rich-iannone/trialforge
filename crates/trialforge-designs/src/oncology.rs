@@ -122,7 +122,7 @@ pub(crate) fn docs() -> Vec<ControlDoc> {
         ),
         ControlDoc::new(
             "cutoff_months",
-            "Data cutoff, in months after the first randomisation",
+            "Data cutoff, in months after the first randomization",
         ),
         ControlDoc::new(
             "crossover_prob",
@@ -134,7 +134,7 @@ pub(crate) fn docs() -> Vec<ControlDoc> {
         ),
         ControlDoc::new(
             "interim_months",
-            "Interim snapshot: data cutoff in months after the first randomisation (multiple cuts of the same study); null for the final analysis",
+            "Interim snapshot: data cutoff in months after the first randomization (multiple cuts of the same study); null for the final analysis",
         ),
     ]
 }

@@ -54,7 +54,7 @@ shape: (5, 6)
 
 `trial.sdtm` and `trial.adam` map dataset names to DataFrames (`output="pandas"` or
 `output="pyarrow"` in `tf.study()` returns those types instead). ADaM is derived from the SDTM,
-and the truth manifest records what the study was built to show and what it realised:
+and the truth manifest records what the study was built to show and what it realized:
 
 ```python
 e = trial.truth["endpoint"]
@@ -83,18 +83,18 @@ parameters match PKNCA.
 
 | Archetype | What it simulates |
 |---|---|
-| `parallel_continuous` | Randomised study with a continuous endpoint (HbA1c, SBP or weight), placebo- or active-controlled |
+| `parallel_continuous` | Randomized study with a continuous endpoint (HbA1c, SBP or weight), placebo- or active-controlled |
 | `dose_ranging_ph2` | Phase 2 dose-ranging study with a sigmoid Emax dose-response |
 | `cv_outcomes` | Event-driven cardiovascular outcomes trial: MACE and its components, recurrent events |
 | `cns_alzheimers` | Alzheimer's disease study with ADAS-Cog (11) items from an IRT model |
-| `oncology_solid_tumor` | Solid-tumour study: RECIST 1.1, confirmed response, PFS and OS calibrated to targets |
+| `oncology_solid_tumor` | Solid-tumor study: RECIST 1.1, confirmed response, PFS and OS calibrated to targets |
 | `heme_lymphoma` | Relapsed or refractory DLBCL: Lugano 2014 responses, PFS and OS |
 | `phase1_sad_mad` | First-in-human single or multiple ascending dose study with population PK and NCA |
 | `crossover_be` | Crossover bioequivalence or food-effect study with per-period PK |
 | `dose_escalation` | Phase 1 oncology dose escalation (3+3, BOIN or mTPI-2) with DLTs |
 | `pediatric_growth` | Growth hormone study with CDC 2000 growth z-scores and height velocity |
 | `respiratory_exacerbation` | COPD study: exacerbations (negative binomial) and FEV1 |
-| `vaccine` | One- or two-dose vaccine study: antibody titres and reactogenicity diaries |
+| `vaccine` | One- or two-dose vaccine study: antibody titers and reactogenicity diaries |
 | `ophthalmology` | Intravitreal treatment of neovascular AMD: visual acuity and retinal thickness per eye |
 
 ## Testing a validator with seeded defects

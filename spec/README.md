@@ -1,6 +1,6 @@
 # spec/
 
-Language-neutral contracts shared by the Rust core and both bindings. If behaviour is defined
+Language-neutral contracts shared by the Rust core and both bindings. If behavior is defined
 here, the Python and R packages must agree on it exactly.
 
 - `study-spec.schema.json`: the study spec. This is v0, a draft.

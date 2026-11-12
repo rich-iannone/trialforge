@@ -29,7 +29,7 @@ large count to corrupt every eligible record. See \code{\link[=score]{score()}}.
 }
 \value{
 A \code{trialforge_study} object: a list with \code{studyid}, \code{archetype}, \code{seed}, \code{cutoff}
-(a \code{Date}), \code{controls}, \code{truth} (targets vs realised values), \code{sdtm} and \code{adam} (named
+(a \code{Date}), \code{controls}, \code{truth} (targets vs. realized values), \code{sdtm} and \code{adam} (named
 lists of data frames whose columns carry haven-style \code{label} attributes), and \code{defects}:
 \code{NULL}, or a data frame with one row per injected defect (\code{id}, \code{dataset}, \code{row},
 \code{paired_row} (another record the defect involves, which a validator may name instead),

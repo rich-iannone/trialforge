@@ -37,15 +37,15 @@ use trialforge_processes::vaccine::VaccineParams;
 pub const ARCHETYPES: &[(&str, &str)] = &[
     (
         "parallel_continuous",
-        "Randomised, double-blind, placebo-controlled parallel study with a continuous endpoint (HbA1c, SBP or weight)",
+        "Randomized, double-blind, placebo-controlled parallel study with a continuous endpoint (HbA1c, SBP or weight)",
     ),
     (
         "heme_lymphoma",
-        "Randomised study in relapsed or refractory DLBCL: Lugano 2014 CT and PET-CT responses (TU, TR, RS), ADRS, PFS and OS",
+        "Randomized study in relapsed or refractory DLBCL: Lugano 2014 CT and PET-CT responses (TU, TR, RS), ADRS, PFS and OS",
     ),
     (
         "oncology_solid_tumor",
-        "Randomised solid-tumour study (SIMONC01-like): RECIST 1.1 tumour assessments, response, progression and survival",
+        "Randomized solid-tumor study (SIMONC01-like): RECIST 1.1 tumor assessments, response, progression and survival",
     ),
     (
         "cns_alzheimers",
@@ -61,7 +61,7 @@ pub const ARCHETYPES: &[(&str, &str)] = &[
     ),
     (
         "dose_escalation",
-        "Phase 1 dose escalation in advanced solid tumours (3+3, BOIN or mTPI-2): DLTs in SUPPAE, DLT-evaluable population, MTD",
+        "Phase 1 dose escalation in advanced solid tumors (3+3, BOIN or mTPI-2): DLTs in SUPPAE, DLT-evaluable population, MTD",
     ),
     (
         "dose_ranging_ph2",
@@ -73,7 +73,7 @@ pub const ARCHETYPES: &[(&str, &str)] = &[
     ),
     (
         "pediatric_growth",
-        "Active-controlled study of once-weekly Drug A vs daily somatropin in children with growth hormone deficiency: height velocity, CDC growth z-scores",
+        "Active-controlled study of once-weekly Drug A vs. daily somatropin in children with growth hormone deficiency: height velocity, CDC growth z-scores",
     ),
     (
         "phase1_sad_mad",
@@ -81,7 +81,7 @@ pub const ARCHETYPES: &[(&str, &str)] = &[
     ),
     (
         "vaccine",
-        "Placebo-controlled vaccine study: neutralising antibody titres (IS), 7-day reactogenicity diaries (CE, FACE), ADIS/ADCE/ADFACE",
+        "Placebo-controlled vaccine study: neutralizing antibody titers (IS), 7-day reactogenicity diaries (CE, FACE), ADIS/ADCE/ADFACE",
     ),
     (
         "respiratory_exacerbation",

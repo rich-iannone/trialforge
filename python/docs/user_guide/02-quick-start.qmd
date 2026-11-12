@@ -68,7 +68,7 @@ The mean change at week 12, by treatment:
 )
 ```
 
-## Compare targets with what was realised
+## Compare targets with what was realized
 
 The controls set the targets: the `hypertension` preset expects a mean change of -4 mmHg on placebo
 and -12 mmHg on Drug A. The truth manifest reports those targets next to what this study's ADaM
@@ -79,7 +79,7 @@ endpoint = trial.truth["endpoint"]
 {k: endpoint[k] for k in ("target_difference", "realised_difference")}
 ```
 
-With 300 subjects, the realised difference is close to the target but not equal to it, as in a real
+With 300 subjects, the realized difference is close to the target but not equal to it, as in a real
 study.
 
 ## Write it out
@@ -100,5 +100,5 @@ tf.formats()
 ## Next steps
 
 - [Archetypes and controls](03-archetypes.qmd): the thirteen study types and what you can set.
-- [The truth manifest](04-truth.qmd): targets, calibration and realised values.
+- [The truth manifest](04-truth.qmd): targets, calibration and realized values.
 - [Seeded defects](07-defects.qmd): corrupt a study on purpose to test a validator.
