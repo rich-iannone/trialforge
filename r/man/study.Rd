@@ -45,7 +45,7 @@ passes trialforge's structural, referential and derivational checks before it is
 trial <- study("parallel_continuous", n = 50, seed = 1)
 trial
 head(trial$adam$ADSL)
-trial$truth$endpoint$realised_difference
+trial$truth$endpoint$realized_difference
 
 dirty <- study("parallel_continuous", n = 50, seed = 1, defects = list(out_of_ct = 3))
 dirty$defects[, c("dataset", "row", "variable", "original", "injected")]

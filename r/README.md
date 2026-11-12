@@ -39,7 +39,7 @@ head(trial$sdtm$DM[, c("USUBJID", "AGE", "SEX", "ARM", "RFSTDTC")], 3)
 #> 2 SIMPAR01-201002  56   M Drug A 10 mg 2024-03-13
 #> 3 SIMPAR01-201003  65   F      Placebo 2024-03-20
 
-trial$truth$endpoint$realised_difference
+trial$truth$endpoint$realized_difference
 #> [1] -7.2283
 
 write_submission(trial, "out/")

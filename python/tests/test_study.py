@@ -114,7 +114,7 @@ def test_cv_outcomes_study_shape() -> None:
     s = tf.study("cv_outcomes", n=500, seed=3, target_events=40)
     assert set(s.sdtm["CE"]["CECAT"]) == {"ADJUDICATED ENDPOINT EVENT"}
     assert set(s.adam["ADTTE"]["PARAMCD"]) == {"MACE", "CVDEATH", "MI", "STROKE", "DEATH"}
-    assert s.truth["outcomes"]["realised_first_mace_events"] >= 40
+    assert s.truth["outcomes"]["realized_first_mace_events"] >= 40
     assert s.verify().passed
 
 
@@ -203,9 +203,9 @@ def test_multiple_cuts() -> None:
     assert ts["TSVAL"].to_list() == ["INTERIM ANALYSIS"]
     ids = set(interim.adam["ADSL"]["USUBJID"])
     assert ids < set(final.adam["ADSL"]["USUBJID"])
-    assert interim.truth["interim"]["n_randomised"] == len(ids)
+    assert interim.truth["interim"]["n_randomized"] == len(ids)
     cv = tf.study("cv_outcomes", n=600, seed=2, target_events=60, interim_events=30)
-    assert cv.truth["outcomes"]["realised_first_mace_events"] == 30
+    assert cv.truth["outcomes"]["realized_first_mace_events"] == 30
     assert cv.verify().passed
 
 

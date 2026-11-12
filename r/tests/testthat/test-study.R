@@ -162,7 +162,7 @@ test_that("an Alzheimer's study has ADAS-Cog items and totals", {
 test_that("a cardiovascular outcomes study is event-driven", {
   cv <- study("cv_outcomes", n = 400, seed = 3, target_events = 30)
   expect_setequal(unique(cv$adam$ADTTE$PARAMCD), c("MACE", "CVDEATH", "MI", "STROKE", "DEATH"))
-  expect_gte(cv$truth$outcomes$realised_first_mace_events, 30)
+  expect_gte(cv$truth$outcomes$realized_first_mace_events, 30)
   expect_true(verify(cv)$passed)
 })
 
@@ -221,6 +221,6 @@ test_that("an interim cut is a snapshot of the same study", {
   ts <- interim$sdtm$TS
   expect_identical(ts$TSVAL[ts$TSPARMCD == "DCUTDESC"], "INTERIM ANALYSIS")
   expect_true(all(interim$adam$ADSL$USUBJID %in% final$adam$ADSL$USUBJID))
-  expect_identical(interim$truth$interim$n_randomised, nrow(interim$adam$ADSL))
+  expect_identical(interim$truth$interim$n_randomized, nrow(interim$adam$ADSL))
   expect_true(verify(interim)$passed)
 })

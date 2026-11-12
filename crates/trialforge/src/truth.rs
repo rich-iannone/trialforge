@@ -1,6 +1,6 @@
 //! The truth manifest: what a study was asked to show and what it actually shows.
 //!
-//! Targets come from the resolved controls; realised values are computed from the generated
+//! Targets come from the resolved controls; realized values are computed from the generated
 //! ADaM datasets (never from simulation state), exactly as an analyst would compute them.
 
 use std::collections::BTreeMap;
@@ -44,12 +44,12 @@ pub(crate) fn manifest(r: &Resolved, archetype: &str, sdtm: &[Dataset], adam: &[
         "arms": arms,
     });
     let adsl = find("ADSL");
-    // An interim snapshot (multiple cuts): subjects randomised after the cutoff are absent, so
+    // An interim snapshot (multiple cuts): subjects randomized after the cutoff are absent, so
     // the estimates below describe the snapshot, not the final analysis.
     if r.design.interim {
         out["interim"] = json!({
             "data_cutoff": r.design.cutoff.to_string(),
-            "n_randomised": adsl.map_or(0, |d| d.n_rows()),
+            "n_randomized": adsl.map_or(0, |d| d.n_rows()),
         });
     }
     let by_arm = |values: Vec<(String, f64)>| -> BTreeMap<String, Vec<f64>> {
@@ -104,7 +104,7 @@ pub(crate) fn manifest(r: &Resolved, archetype: &str, sdtm: &[Dataset], adam: &[
                 chars(d, "PARAMCD")
                     .is_some_and(|c| c.iter().any(|x| x.as_deref() == Some(&endpoint.testcd)))
             });
-            let mut realised = BTreeMap::new();
+            let mut realized = BTreeMap::new();
             let mut groups: BTreeMap<String, Vec<f64>> = BTreeMap::new();
             if let (Some(d), Some(eot)) = (bds, eot) {
                 let (pc, trtp, anl, avn) = (
@@ -128,7 +128,7 @@ pub(crate) fn manifest(r: &Resolved, archetype: &str, sdtm: &[Dataset], adam: &[
                         .collect();
                     groups = by_arm(vals);
                     for (arm, xs) in groups.clone() {
-                        realised.insert(
+                        realized.insert(
                             arm,
                             json!({"mean_change": mean(&xs).map(round4), "n": xs.len()}),
                         );
@@ -145,9 +145,9 @@ pub(crate) fn manifest(r: &Resolved, archetype: &str, sdtm: &[Dataset], adam: &[
                 .last()
                 .zip(endpoint.change_by_arm.first())
                 .map(|(a, b)| a - b);
-            let diff_realised = (|| {
-                let a = realised.get(arms.last()?)?.get("mean_change")?.as_f64()?;
-                let b = realised.get(arms.first()?)?.get("mean_change")?.as_f64()?;
+            let diff_realized = (|| {
+                let a = realized.get(arms.last()?)?.get("mean_change")?.as_f64()?;
+                let b = realized.get(arms.first()?)?.get("mean_change")?.as_f64()?;
                 Some(round4(a - b))
             })();
             if archetype == "dose_ranging_ph2" {
@@ -160,9 +160,9 @@ pub(crate) fn manifest(r: &Resolved, archetype: &str, sdtm: &[Dataset], adam: &[
                 "paramcd": endpoint.testcd,
                 "visit": "end of treatment",
                 "target_mean_change": targets,
-                "realised": realised,
+                "realized": realized,
                 "target_difference": diff_target,
-                "realised_difference": diff_realised,
+                "realized_difference": diff_realized,
             });
 
             if let Some(sl) = adsl {
@@ -187,7 +187,7 @@ pub(crate) fn manifest(r: &Resolved, archetype: &str, sdtm: &[Dataset], adam: &[
                     }
                     out["discontinuation"] = json!({
                         "target_dropout_excluding_ae_and_death": round4(expected),
-                        "realised_any_reason": per,
+                        "realized_any_reason": per,
                     });
                 }
             }
@@ -426,7 +426,7 @@ fn pk_truth(r: &Resolved, pk: &trialforge_processes::pk::PkParams, adam: &[Datas
             .or_insert_with(|| json!({"dose_mg": dose_of.get(t.as_str())}));
         e[*p] = json!({"n": xs.len(), "geometric_mean": round4(gm(xs))});
     }
-    out["realised_by_dose"] = json!(by_dose);
+    out["realized_by_dose"] = json!(by_dose);
     // Power model ln(exposure) = a + b ln(dose) on individual values.
     let exposure = if multiple { "AUCTAU" } else { "AUCIFO" };
     for p in ["CMAX", exposure] {
@@ -598,7 +598,7 @@ fn be_truth(r: &Resolved, pk: &trialforge_processes::pk::PkParams, adam: &[Datas
     out
 }
 
-/// Sigmoid Emax fit (Hill fixed at its target) to the realised arm means, weighted by n: the
+/// Sigmoid Emax fit (Hill fixed at its target) to the realized arm means, weighted by n: the
 /// ED50 is found on a log grid and refined by golden section; E0 and Emax are then linear.
 fn dose_response(r: &Resolved, groups: &BTreeMap<String, Vec<f64>>) -> Value {
     use trialforge_core::math;
@@ -784,7 +784,7 @@ fn adas_truth(r: &Resolved, p: &trialforge_processes::adas::AdasParams, adam: &[
             by.entry(t).or_default().push(c);
         }
     }
-    let realised: BTreeMap<String, Value> = by
+    let realized: BTreeMap<String, Value> = by
         .into_iter()
         .map(|(a, xs)| {
             (
@@ -793,7 +793,7 @@ fn adas_truth(r: &Resolved, p: &trialforge_processes::adas::AdasParams, adam: &[
             )
         })
         .collect();
-    out["realised_change_locf"] = json!(realised);
+    out["realized_change_locf"] = json!(realized);
     let observed: BTreeMap<String, Value> = observed
         .into_iter()
         .map(|(a, xs)| {
@@ -803,8 +803,8 @@ fn adas_truth(r: &Resolved, p: &trialforge_processes::adas::AdasParams, adam: &[
             )
         })
         .collect();
-    out["realised_change_observed"] = json!(observed);
-    out["realised_baseline_mean"] = json!(mean(&bases).map(round4));
+    out["realized_change_observed"] = json!(observed);
+    out["realized_baseline_mean"] = json!(mean(&bases).map(round4));
     out
 }
 
@@ -831,7 +831,7 @@ fn outcomes_truth(
         let events = (0..tte.n_rows())
             .filter(|&i| pc[i].as_deref() == Some("MACE") && cnsr[i] == Some(0.0))
             .count();
-        out["realised_first_mace_events"] = json!(events);
+        out["realized_first_mace_events"] = json!(events);
     }
     for (param, key) in [
         ("MACE", "mace"),
@@ -894,14 +894,14 @@ fn ophtha_truth(
             groups.entry(a.clone()).or_default().push(c);
         }
     }
-    let realised: BTreeMap<&String, Value> = groups
+    let realized: BTreeMap<&String, Value> = groups
         .iter()
         .map(|(a, xs)| {
             let gain15 = xs.iter().filter(|x| **x >= 15.0).count() as f64 / xs.len() as f64;
             (a, json!({"mean_change": mean(xs).map(round4), "gained_15_letters": round4(gain15), "n": xs.len()}))
         })
         .collect();
-    out["realised"] = json!(realised);
+    out["realized"] = json!(realized);
     if let Some(margin) = r.controls.get("ni_margin").and_then(Value::as_f64) {
         out["non_inferiority"] = non_inferiority(&arms, &groups, margin, true);
     }
@@ -961,7 +961,7 @@ fn growth_truth(
     };
     let velocity = collect("HTVEL", &aval);
     let sds = collect("HGTSDS", &chg);
-    let realised: BTreeMap<&String, Value> = velocity
+    let realized: BTreeMap<&String, Value> = velocity
         .iter()
         .map(|(a, xs)| {
             let dz = sds.get(a).and_then(|z| mean(z)).map(round4);
@@ -971,7 +971,7 @@ fn growth_truth(
             )
         })
         .collect();
-    out["realised"] = json!(realised);
+    out["realized"] = json!(realized);
     if let Some(margin) = r.controls.get("ni_margin").and_then(Value::as_f64) {
         out["non_inferiority"] = non_inferiority(&arms, &velocity, margin, true);
     }
@@ -1033,7 +1033,7 @@ fn exacerbation_truth(
         for (arm, (n, y, xs)) in &totals {
             per.insert((*arm).clone(), json!({"subjects": xs.len(), "events": n, "years": round4(*y), "rate": round4(n / y)}));
         }
-        out["realised"] = json!(per);
+        out["realized"] = json!(per);
         // Rate ratio of the last arm vs the first: Poisson score equations with a log link give
         // the crude rates; the sandwich variance of log(rate) is Σ (n_i − λ y_i)² / (Σ n_i)².
         let var_log = |xs: &[(f64, f64)], rate: f64, n: f64| {
@@ -1167,7 +1167,7 @@ fn vaccine_truth(
                 _ => {}
             }
         }
-        out["realised"] = json!(arms
+        out["realized"] = json!(arms
                 .iter()
                 .filter_map(|a| {
                     let l = logs.get(a)?;
@@ -1296,7 +1296,7 @@ fn escalation_truth(
         "true_mtd": true_mtd,
         "cohorts": trace.cohorts.iter().map(|(l, n)| json!({"dose": arms[*l], "subjects": n})).collect::<Vec<_>>(),
         "selected_mtd": trace.mtd.map(|l| arms[l].clone()),
-        "realised": per.iter().map(|(a, (n, e, x))| (a.clone(), json!({"treated": n, "dlt_evaluable": e, "with_dlt": x}))).collect::<BTreeMap<_, _>>(),
+        "realized": per.iter().map(|(a, (n, e, x))| (a.clone(), json!({"treated": n, "dlt_evaluable": e, "with_dlt": x}))).collect::<BTreeMap<_, _>>(),
         "operating_characteristics": {"selection_probability": oc, "mean_sample_size": round4(mean_n), "trials": 1000},
     })
 }

@@ -88,13 +88,13 @@ fn endpoint_effect_is_recovered_at_scale() {
         )
         .unwrap();
         let e = &s.truth["endpoint"];
-        let (target, realised) = (
+        let (target, realized) = (
             e["target_difference"].as_f64().unwrap(),
-            e["realised_difference"].as_f64().unwrap(),
+            e["realized_difference"].as_f64().unwrap(),
         );
         assert!(
-            (target - realised).abs() < tol,
-            "{indication}: target {target}, realised {realised}"
+            (target - realized).abs() < tol,
+            "{indication}: target {target}, realized {realized}"
         );
     }
 }
@@ -427,7 +427,7 @@ fn adas_cog_totals_are_verified() {
 fn cv_outcomes_are_event_driven_and_verified() {
     let base = study("cv_outcomes", &opts(800, 2, json!({"target_events": 60}))).unwrap();
     assert!(trialforge::verify(&base).passed());
-    let events = base.truth["outcomes"]["realised_first_mace_events"]
+    let events = base.truth["outcomes"]["realized_first_mace_events"]
         .as_u64()
         .unwrap();
     assert!(
@@ -474,7 +474,7 @@ fn ophthalmology_bcva_is_verified_and_recovered() {
             .iter()
             .all(|r| r.as_deref() == Some("INTRAVITREAL"))
     );
-    let b = &s.truth["bcva"]["realised"];
+    let b = &s.truth["bcva"]["realized"];
     let (c, d) = (
         b["Comparator 2 mg"]["mean_change"].as_f64().unwrap(),
         b["Drug A 6 mg"]["mean_change"].as_f64().unwrap(),
@@ -516,7 +516,7 @@ fn pediatric_growth_is_verified_and_recovered() {
             "missing {want}"
         );
     }
-    let hv = &s.truth["height_velocity"]["realised"];
+    let hv = &s.truth["height_velocity"]["realized"];
     let (c, d) = (
         hv["Somatropin 0.034 mg/kg/day"]["mean"].as_f64().unwrap(),
         hv["Drug A 0.24 mg/kg/week"]["mean"].as_f64().unwrap(),
@@ -599,7 +599,7 @@ fn vaccine_immunogenicity_and_reactogenicity_are_verified() {
     for want in ["IS", "CE", "FACE", "ADIS", "ADCE", "ADFACE"] {
         assert!(names.contains(&want), "missing {want}: {names:?}");
     }
-    let gmt = s.truth["vaccine"]["realised"]["Vaccine A"]["gmt"]
+    let gmt = s.truth["vaccine"]["realized"]["Vaccine A"]["gmt"]
         .as_f64()
         .unwrap();
     assert!((gmt / 320.0 - 1.0).abs() < 0.15, "GMT {gmt}");
@@ -735,7 +735,7 @@ fn multiple_cuts_are_snapshots_of_the_same_study() {
         assert!(m.len() < f.len(), "{} of {}", m.len(), f.len());
         assert!(m.iter().all(|x| f.contains(x)));
         assert_eq!(
-            mid.truth["interim"]["n_randomised"].as_u64(),
+            mid.truth["interim"]["n_randomized"].as_u64(),
             Some(m.len() as u64)
         );
         let deaths = |s: &trialforge::Study| {
@@ -755,7 +755,7 @@ fn multiple_cuts_are_snapshots_of_the_same_study() {
     )
     .unwrap();
     assert_eq!(
-        mid.truth["outcomes"]["realised_first_mace_events"].as_u64(),
+        mid.truth["outcomes"]["realized_first_mace_events"].as_u64(),
         Some(100)
     );
     assert_eq!(ts_value(&mid, "DCUTDESC"), "INTERIM ANALYSIS");

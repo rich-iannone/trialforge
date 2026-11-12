@@ -59,7 +59,7 @@ pub struct Study {
     pub sdtm: Vec<Dataset>,
     /// ADaM datasets, in standard order.
     pub adam: Vec<Dataset>,
-    /// Targets vs realised values, as JSON (of the clean study, before any defects).
+    /// Targets vs. realized values, as JSON (of the clean study, before any defects).
     pub truth: serde_json::Value,
     /// The defects injected into `sdtm` and `adam`, if any were requested.
     pub defects: Option<defects::Manifest>,

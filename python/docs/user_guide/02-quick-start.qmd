@@ -76,7 +76,7 @@ shows:
 
 ```{python}
 endpoint = trial.truth["endpoint"]
-{k: endpoint[k] for k in ("target_difference", "realised_difference")}
+{k: endpoint[k] for k in ("target_difference", "realized_difference")}
 ```
 
 With 300 subjects, the realized difference is close to the target but not equal to it, as in a real

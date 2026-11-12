@@ -61,7 +61,7 @@ The truth manifest records what the study was built to show and what it realized
 
 ```{python}
 endpoint = trial.truth["endpoint"]
-{k: endpoint[k] for k in ("target_difference", "realised_difference")}
+{k: endpoint[k] for k in ("target_difference", "realized_difference")}
 ```
 
 Write it out as a submission-style package, with XPT files and a `define.xml` for SDTM and ADaM:
