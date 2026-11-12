@@ -108,7 +108,7 @@ DOCS_JOBS ?= auto
 # pages need to execute (the `docs` extra).
 .PHONY: py-docs-install
 py-docs-install: .venv ## Install Great Docs from GitHub main and the docs extra into .venv (matches CI)
-	uv pip install --python "$(PYTHON)" jupyter nbclient nbformat polars pandas pyarrow "pointblank>=1.1.1"
+	uv pip install --python "$(PYTHON)" jupyter nbclient nbformat polars pandas pyarrow "pointblank[cdisc,cdisc-core]>=1.1.1"
 	uv pip install --python "$(PYTHON)" --reinstall "git+https://github.com/posit-dev/great-docs.git@main"
 
 .PHONY: py-docs
