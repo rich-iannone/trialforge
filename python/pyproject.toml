@@ -40,8 +40,9 @@ dependencies = []
 pl = ["polars>=1.0"]
 pd = ["pandas>=2.0", "pyarrow>=14"]
 pa = ["pyarrow>=14"]
-# Verification levels 3–4 and the TLF pack.
-verify = ["pointblank>=1.1.1", "greenwood"]
+# Verification levels 3–4 and the TLF pack. Level 3 needs Pointblank's cdisc (lxml, for
+# define.xml) and cdisc-core (pyreadstat, for XPT) extras.
+verify = ["pointblank[cdisc,cdisc-core]>=1.1.1", "greenwood"]
 tables = ["great-tables"]
 # Executing the documentation site's pages (Great Docs itself installs from git; see the Makefile).
 docs = [
@@ -51,7 +52,7 @@ docs = [
     "polars>=1.0",
     "pandas>=2.0",
     "pyarrow>=14",
-    "pointblank>=1.1.1",
+    "pointblank[cdisc,cdisc-core]>=1.1.1",
 ]
 dev = [
     "maturin>=1.8,<2",
