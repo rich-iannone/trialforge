@@ -310,6 +310,33 @@ class Control:
         value: a number, string, boolean, list (one entry per arm, in arm order, for per-arm
         values) or `None` (for an optional setting that is off, or that the archetype derives
         from another control, as the description says).
+
+    Examples
+    --------
+    `controls()` returns one `Control` per control. Here is the first of the vaccine
+    archetype's:
+
+    ```{python}
+    import trialforge as tf
+
+    doses = tf.controls("vaccine")[0]
+    doses
+    ```
+
+    The description gives the values the control accepts, and the default what a study gets
+    without it. The defaults of all the archetype's controls, by name:
+
+    ```{python}
+    {c.name: c.default for c in tf.controls("vaccine")}
+    ```
+
+    `age_range` and `ratio` take lists: an age range, and one allocation weight per arm. Any of
+    these names can be passed to `study()`, here for a single-dose study:
+
+    ```{python}
+    trial = tf.study("vaccine", n=50, seed=1, **{doses.name: 1})
+    trial.controls[doses.name]
+    ```
     """
 
     name: str
@@ -443,6 +470,50 @@ class Finding:
         finding about a whole dataset.
     message
         A description of what failed.
+
+    Examples
+    --------
+    Findings usually come from `Study.verify()`. Inject three values outside their
+    controlled terminology, and look at the first finding:
+
+    ```{python}
+    import trialforge as tf
+
+    dirty = tf.study("parallel_continuous", n=200, seed=1, defects={"out_of_ct": 3})
+    finding = dirty.verify().findings[0]
+    finding
+    ```
+
+    Its dataset, row and variable locate the value at fault:
+
+    ```{python}
+    dirty.sdtm[finding.dataset][finding.row].select("USUBJID", "LBTESTCD", finding.variable)
+    ```
+
+    To score another validator with `Study.score()`, convert its results to findings. This
+    toy validator flags specimen types that aren't upper case, as every value of the
+    codelist is; its level and rule are its own:
+
+    ```{python}
+    import polars as pl
+
+    from trialforge import Finding, Report
+
+    lb = dirty.sdtm["LB"].with_row_index("row")
+    flagged = lb.filter(pl.col("LBSPEC") != pl.col("LBSPEC").str.to_uppercase())
+    findings = [
+        Finding("CASE", "CASE.LBSPEC", "LB", "LBSPEC", row, f"{value!r} is not upper case")
+        for row, value in flagged.select("row", "LBSPEC").iter_rows()
+    ]
+    findings
+    ```
+
+    It finds two of the three defects. The third, the misspelling `BLOOOD`, is upper case:
+
+    ```{python}
+    score = dirty.score(Report(passed=not findings, findings=findings))
+    score.recall, score.precision
+    ```
     """
 
     level: str
@@ -516,6 +587,37 @@ class DefectScore:
         Findings no defect explains, from a level 0 to 2 rule that catches this type.
     precision
         `findings / (findings + false_positives)`, or `None` when both are 0.
+
+    Examples
+    --------
+    Generate a study with the `light` profile of defects, and score only the findings of
+    trialforge's structural (L0) checks:
+
+    ```{python}
+    import trialforge as tf
+    from trialforge import Report
+
+    dirty = tf.study("parallel_continuous", n=200, seed=1, defects="light")
+    l0 = [f for f in dirty.verify().findings if f.level == "L0"]
+    score = dirty.score(Report(passed=not l0, findings=l0))
+    score.recall, score.precision
+    ```
+
+    The overall score hides which defects were missed. `by_type` has one `DefectScore` per
+    type, here gathered into a table:
+
+    ```{python}
+    import dataclasses
+
+    import polars as pl
+
+    pl.DataFrame([{"id": k, **dataclasses.asdict(v)} for k, v in score.by_type.items()])
+    ```
+
+    The structural checks catch the duplicated sequence number and the values outside
+    controlled terminology. The two date defects, an adverse event ending before it starts
+    and a wrong study day, take the consistency (L1) and derivation (L2) checks to find, so
+    their recall is 0 and, with no findings, their precision is undefined.
     """
 
     injected: int
@@ -595,8 +697,9 @@ class Study:
     Create one with `study()` or `study_from_spec()`, not with the constructor. A study holds
     the trial design and SDTM datasets (`sdtm`), the ADaM datasets (`adam`), the controls it
     was generated with (`controls`), the truth manifest (`truth`) and, when defects were
-    requested, the injected defects (`defects`). Its methods write the datasets to files,
-    return define.xml, re-run the checks and score a validator's findings.
+    requested, the injected defects (`defects`). Its methods write the datasets to files
+    (`write()` and `write_submission()`), return define.xml (`define_xml()`), re-run the
+    checks (`verify()`) and score a validator's findings (`score()`).
 
     Datasets are converted to the `output` type chosen in `study()` the first time they are
     accessed, then kept.
