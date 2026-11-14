@@ -4,7 +4,9 @@ guide-section: "Using the output"
 ---
 
 A study's datasets are available in memory as DataFrames (`Study.sdtm`, `Study.adam`), and can be
-written to files the way a sponsor would deliver them. Writing needs no DataFrame backend.
+written to files the way a sponsor would deliver them. Writing needs no DataFrame backend: the
+files are encoded by the Rust engine, so a script that only writes files runs without Polars,
+pandas or PyArrow installed.
 
 ```{python}
 import tempfile
@@ -27,30 +29,117 @@ written = trial.write_submission(out / "submission")
 sorted(str(p.relative_to(out)) for p in written)
 ```
 
-The XPT files carry the dataset and variable labels, and the define.xml documents every dataset and
-variable: its label, type, length, controlled terminology and, for ADaM, its origin and derivation
-method.
+This is the layout of the data part of a regulatory submission (module 5 of the eCTD keeps SDTM and
+ADaM in separate folders, each with its define.xml), so it is what a validator or a reviewer's tool
+expects to be pointed at. The folder is created if needed, and existing files with the same names
+are overwritten.
 
 ## Other formats
 
-`Study.write()` writes every dataset into one directory, in one or more formats:
+`Study.write()` writes every dataset into one directory, in one or more formats (XPT by default):
 
 ```{python}
 tf.formats()
 ```
-
-- `xpt`: SAS transport version 5, the format regulators accept.
-- `csv`: one CSV file per dataset.
-- `dataset-json`: CDISC Dataset-JSON 1.1.
-- `parquet`: Apache Parquet.
 
 ```{python}
 written = trial.write(out / "files", formats=["csv", "dataset-json"])
 sorted(p.name for p in written)[:6]
 ```
 
-Files are named by the lower-case dataset name, such as `dm.xpt`. `truth.json` is written with
-them, and a study with [defects](07-defects.qmd) also gets `defects.json`.
+Files are named by the lower-case dataset name, such as `dm.xpt`, with SDTM and ADaM side by side.
+`truth.json` is written with them, and a study with [defects](07-defects.qmd) also gets
+`defects.json`. `write()` doesn't write define.xml; use `write_submission()` or `define_xml()`
+(below) for that.
+
+## What each format contains
+
+The formats differ in how much of the metadata they carry and in how they encode types and
+missing values. In memory, every column has one of five types: character, numeric (floating
+point), integer, date or datetime.
+
+| | XPT v5 | CSV | Dataset-JSON 1.1 | Parquet |
+|---|---|---|---|---|
+| Dataset and variable labels | Yes | No | Yes | Yes, as field metadata |
+| Character | Blank-padded to the longest value | Text, quoted when needed | `string` with its `length` | `Utf8` |
+| Numeric and integer | 8-byte IBM floating point | Shortest round-trip form | `double` and `integer` | `Float64` and `Int64` |
+| Date | SAS date (days since 1960-01-01), `DATE9.` format | `YYYY-MM-DD` | `date`: ISO 8601 text, `targetDataType` `integer` | `Date32` |
+| Datetime | SAS datetime (seconds since 1960-01-01), `DATETIME20.` format | `YYYY-MM-DDThh:mm`, with seconds if not zero | `datetime`: ISO 8601 text, `targetDataType` `integer` | Timestamp |
+| Missing | Blank (character) or `.` (numeric) | Empty field | `null` | Null |
+
+SDTM dates (`--DTC`) are always character, ISO 8601 text that may carry a clock time;
+only ADaM has date and datetime types (`ADT`, `TRTSDT`, `ADTM`).
+
+### XPT v5
+
+SAS transport version 5 is the format the FDA and PMDA require for submitted datasets. It is old
+and strict, and trialforge's metadata is authored within its limits:
+
+- dataset and variable names of at most 8 characters, and labels of at most 40;
+- character values of at most 200 bytes, in ASCII;
+- one dataset per file, as submissions expect.
+
+The length of a character variable is the length of its longest value in the study, as the FDA's
+technical conformance guide asks, so the same variable can have different lengths in two studies.
+
+### CSV
+
+One file per dataset with a header row of variable names, following RFC 4180. CSV has no types or
+labels, so it suits quick inspection and tools that read text; prefer one of the other formats when
+types matter.
+
+### Dataset-JSON 1.1
+
+CDISC's JSON exchange format: one file per dataset holding its label, column metadata (name, label,
+type, length and key sequence) and rows. The file and item OIDs match those in define.xml, and
+`metaDataRef` points at it.
+
+### Parquet
+
+Apache Parquet, one file per dataset, with the dataset name and label in the schema metadata and
+each variable's label in its field metadata. Polars, pandas, PyArrow, DuckDB and Spark all read it.
+
+## Reading files back
+
+Each format reads back with the usual tools. Polars restores Parquet's types, including dates:
+
+```{python}
+import polars as pl
+
+trial.write(out / "parquet", formats=["parquet"])
+pl.read_parquet(out / "parquet" / "adsl.parquet").select("USUBJID", "TRTSDT", "TRTEDT").head(3)
+```
+
+XPT is read by `pandas.read_sas()`, haven's `read_xpt()` in R, pyreadstat and SAS itself. pandas
+returns dates as SAS day numbers, without applying the `DATE9.` format; convert them with the SAS
+epoch:
+
+```{python}
+import pandas as pd
+
+adsl = pd.read_sas(out / "submission" / "adam" / "adsl.xpt", format="xport", encoding="ascii")
+adsl["TRTSDT"] = pd.to_datetime(adsl["TRTSDT"], unit="D", origin="1960-01-01")
+adsl[["USUBJID", "TRTSDT", "AGE"]].head(3)
+```
+
+## Define-XML
+
+Each `define.xml` documents one standard's datasets. It is built from trialforge's metadata (labels,
+origins, derivation methods and codelists) and from the data itself (lengths, data types and the
+terms that actually occur), so it describes this study rather than a template:
+
+- **Standards**: the implementation guide (SDTMIG 3.4 or ADaMIG 1.3) and the CDISC Controlled
+Terminology version.
+- **Datasets** (`ItemGroupDef`): each dataset's class, structure, keys and a link to its XPT file.
+- **Variables** (`ItemDef`): name, label, data type, length, and origin: collected, derived,
+assigned or from the protocol in SDTM, and derived, assigned or carried from a predecessor (with its
+source variable) in ADaM.
+- **Codelists** (`CodeList`): the controlled terms each variable uses, limited to the terms present
+in the data, and a sponsor codelist of `PARAMCD`{.gd-no-link} values with their decodes.
+- **Value-level metadata** (`ValueListDef`, `WhereClauseDef`): results by test code in LB and VS
+and `AVAL`{.gd-no-link} by parameter in the BDS datasets, each with its own type and length.
+- **Methods** (`MethodDef`): for ADaM, how each derived variable is computed, in the words of the
+derivation.
 
 ## define.xml as text
 
@@ -60,6 +149,22 @@ writing anything:
 ```{python}
 print(trial.define_xml("adam")[:600])
 ```
+
+A derivation method, for example:
+
+```{python}
+adam_define = trial.define_xml("adam")
+start = adam_define.find('<MethodDef OID="MT.ADSL.AGEGR1"')
+print(adam_define[start : adam_define.find("</MethodDef>", start) + len("</MethodDef>")])
+```
+
+## Deterministic files
+
+Writing the same study twice gives byte-identical files. The creation timestamps that XPT,
+Dataset-JSON and define.xml carry are set to the study's data cutoff rather than the time of writing,
+and nothing else depends on the machine or the clock. So you can check files into version control,
+compare them with a checksum, or regenerate them later and get the same bytes (see
+[Reproducibility](09-reproducibility.qmd)).
 
 ## DataFrames
 
@@ -71,3 +176,7 @@ dates in SDTM are ISO 8601 text (`--DTC`), and ADaM dates and datetimes are prop
 pandas_trial = tf.study("parallel_continuous", n=100, seed=1, output="pandas")
 pandas_trial.adam["ADSL"][["USUBJID", "TRT01P", "TRTSDT", "TRTEDT"]].head()
 ```
+
+The DataFrames are built when you first access `Study.sdtm` or `Study.adam` and then kept, so
+looking at a study costs nothing until you do. With PyArrow, each table carries the dataset and
+variable labels in its schema metadata, as Parquet files do.
