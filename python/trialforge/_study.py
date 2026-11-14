@@ -279,7 +279,9 @@ class Study:
         """Verify the study.
 
         - Level 2 (default) re-runs trialforge's structural, referential and derivational
-          checks. Generation already guarantees these pass; this is for after you modify data.
+          checks on the study's datasets. A study without defects always passes them (generation
+          guarantees it); with seeded defects, the report lists what the checks find in the
+          defective datasets, for `score()`.
         - Level 3 also runs Pointblank's SDTMIG 3.4 conformance rules on the written SDTM
           package, including its define.xml checks (needs `pip install 'trialforge[verify]'`).
         """
