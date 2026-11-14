@@ -33,10 +33,31 @@ def stream_seed(seed: int, path: Sequence[int | str]) -> int:
     -------
     int
         The stream's 64-bit seed.
+
+    Raises
+    ------
+    TypeError
+        If a path component is neither an integer nor a string.
+
+    Examples
+    --------
+    >>> import trialforge as tf
+    >>> tf.stream_seed(1, ["subject", 17, "ae"])
+    11952556374152885286
     """
     return _core.stream_seed(seed, path)
 
 
 def core_version() -> str:
-    """The version of the Rust core the package was built with."""
+    """The version of the Rust core the package was built with.
+
+    A study depends on the core's version as well as on its request: see the reproducibility
+    guide for what a version change can alter. The package's `__version__` is the same
+    number.
+
+    Returns
+    -------
+    str
+        The version, e.g. `"0.1.0"`.
+    """
     return _core.core_version()
