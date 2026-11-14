@@ -8,9 +8,69 @@ datasets, SDTM, ADaM and Define-XML, from a study type and a handful of controls
 written in Rust and shared by the Python package and the [R package](../r/index.html), so the
 same request gives the same data in both languages.
 
-## The pipeline
+```python
+import trialforge as tf
 
-Every study is built the same way:
+trial = tf.study("oncology_solid_tumor", n=300, seed=1, os_hr=0.7)
+```
+
+That one call gives 300 randomized subjects with demographics, dosing, RECIST 1.1 tumor
+assessments, disposition, the response and time-to-event analysis datasets, define.xml for both
+standards, and a record of what the study was built to show.
+
+## Who it is for
+
+Real clinical-trial data is confidential, and the public example studies are few, small and fixed.
+trialforge is for the work that needs realistic data in quantity, or data with known properties:
+
+- **Developing and testing analysis programs**: tables, listings and figures, ADaM derivations,
+statistical models. The [truth manifest](04-truth.qmd) says what the answer should be.
+- **Testing validators and data pipelines**: conformance checkers, edit checks, SDTM-to-ADaM
+pipelines. [Seeded defects](07-defects.qmd) put known errors in known places and score what the
+validator finds.
+- **Teaching and demos**: SDTM and ADaM for many kinds of study, internally consistent, with no
+privacy concerns.
+- **Simulation**: many studies from one design, each with the sampling variation of a real study.
+
+## What it is not
+
+The data is synthetic. It isn't drawn from, fitted to or resampled from real patients, and its
+models are plausible rather than validated for any disease or drug: don't use it to estimate a real
+treatment effect or to power a real trial. The SDTM is what a well-run study would have, so it is
+cleaner than a real one unless you ask for defects, and it has no raw (EDC) layer before SDTM.
+Adverse events are coded to MedDRA and medications to RxNorm and ATC *names*: the package carries
+no MedDRA or WHODrug codes and can't code real data.
+
+## A short orientation to CDISC
+
+If you haven't worked with CDISC data before, these are the parts trialforge produces:
+
+- **SDTM** (Study Data Tabulation Model) is how the collected data is submitted to regulators: one
+dataset (a *domain*) per kind of observation, such as demographics (DM), adverse events (AE), lab
+results (LB) or vital signs (VS), with one row per observation. Its variables follow the SDTM
+Implementation Guide (SDTMIG 3.4 here), and many take values from CDISC Controlled Terminology.
+- **Trial design datasets** (TA, TE, TV, TI, TS) describe the protocol rather than the subjects:
+the arms and their elements, the planned visits, the eligibility criteria and the trial summary.
+- **ADaM** (Analysis Data Model) datasets are derived from SDTM for analysis: one subject-level
+dataset (ADSL) and others organized around analyses, such as the basic data structure (BDS:
+ADLB, ADVS, with baseline and change from baseline) or time-to-event (ADTTE). They follow ADaMIG
+1.3.
+- **Define-XML** is the metadata that accompanies each standard: every dataset and variable, its
+label, type and length, its codelist, and for ADaM how it was derived.
+
+## How it works
+
+The design choice at the heart of trialforge is the order in which a study is built: **latent
+course, then observations, then derivations**. Each subject first gets a simulated clinical course:
+baseline traits, an arm, the times at which things happen (a response, progression, an adverse
+event, a dropout, death) and the trajectories of their measurements. SDTM records are observations
+of that course, taken at the visits the protocol plans. ADaM datasets are then derived from the
+SDTM alone, by the same rules a study's programmers would use. Because each layer is built from the
+one before it, the datasets agree with each other by construction: an adverse event can't end
+before it starts, a death date matches the disposition record, and a change from baseline is the
+value minus the baseline.
+
+Every study goes through the same steps:
 
 1. **Design**: the archetype and its controls give the arms, visit schedule, sites and trial
 design datasets (TA, TE, TV, TI, TS).
@@ -29,6 +89,11 @@ realized.
 
 Optionally, seeded **defects** are then injected into copies of the verified datasets, for testing
 a validator.
+
+Where a control is a clinical target, such as a median survival or a hazard ratio, trialforge
+first solves for the parameters of its latent model that give that target, and the truth manifest
+reports the target next to what the study's ADaM shows. Everything random is drawn from seeded
+streams, so a request always gives the same study, on any platform and in either language.
 
 ## How this guide is organized
 
