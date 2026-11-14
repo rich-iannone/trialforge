@@ -24,6 +24,60 @@ Levels 0 to 2 run inside `tf.study()`. Beyond them, trialforge is tested against
 industry uses: admiral and its extensions re-derive the ADaM from trialforge's SDTM with no
 differences, and PKNCA recomputes the same PK parameters from the concentrations.
 
+### Why the checks are independent
+
+A check that shares code with what it checks can only confirm that the code does what it does.
+trialforge's level 2 is a second implementation: the checking code doesn't use the code that derives
+the ADaM, so it reads the SDTM by variable name and recomputes each derivation from the rules
+(RECIST responses from the tumor measurements, Kaplan-Meier inputs from the response dates, NCA
+parameters from the concentrations) on its own. A mistake would have to be made twice, the same way,
+to go unnoticed.
+
+## The rules
+
+Each check has a rule identifier, its level followed by a short name. Level 0 checks each dataset
+against the metadata bundle:
+
+| Rule | Checks |
+|---|---|
+| `L0.SPEC` | The dataset and each variable are in the SDTMIG or ADaMIG metadata |
+| `L0.REQ`, `L0.EXP` | Required variables are present and never null; expected variables are present |
+| `L0.TYPE` | Each variable has its metadata type (character or numeric) |
+| `L0.LEN` | Character values are ASCII and at most 200 bytes (the XPT v5 limits) |
+| `L0.CT` | Values of controlled variables are in their codelist |
+| `L0.ISO` | Dates and times (`--DTC`) are ISO 8601 |
+| `L0.DY` | No study day is 0 |
+| `L0.DOMAIN` | `DOMAIN` matches the dataset |
+| `L0.KEY`, `L0.SEQ` | The natural keys are unique, and `--SEQ` is unique within each subject |
+
+Level 1 checks the SDTM domains against each other:
+
+| Rule | Checks |
+|---|---|
+| `L1.SUBJ` | Every subject in every domain is in DM |
+| `L1.DTHFL` | `DTHFL` is `Y` exactly when there is a death date |
+| `L1.DY` | Every study day (`--DY`, `--STDY`, `--ENDY`) agrees with its date and `RFSTDTC` |
+| `L1.ORDER` | No end date is before its start date |
+| `L1.PART`, `L1.DEATH` | No record is dated before informed consent, after the end of participation or after death |
+| `L1.EXPO` | `RFXSTDTC` and `RFXENDTC` match EX, and exposure falls between them |
+| `L1.VISIT`, `L1.SV` | Visits are in TV with its names and planned days, and a record's date falls within its visit's dates in SV |
+| `L1.EPOCH` | Each record's `EPOCH` is the subject's element (in SE) on its date |
+| `L1.ARM` | Arms are in TA |
+| `L1.SUPP` | Supplemental qualifiers point at an existing record |
+| `L1.LOBXFL` | One baseline record per test, on or before first exposure |
+| `L1.DS` | Each subject has one informed consent and one randomization record in DS, and at most one end of treatment and one end of study |
+| `L1.SER` | `AESER` agrees with the seriousness criteria |
+| `L1.RECIST`, `L1.LUGANO` | Responses in RS follow from the measurements in TR by the response criteria |
+| `L1.PK` | PK samples have reference doses in EX, pre-dose samples precede them, and results below the LLOQ are reported as such |
+| `L1.AGE`, `L1.DLT` | Children's ages match their birth dates; DLTs fall in the DLT window |
+
+Level 2 recomputes each ADaM dataset (and the SDTM PP, which is derived from PC) and has one rule per
+dataset or family: `L2.ADSL`, `L2.ADAE`, `L2.BDS` (ADLB, ADVS and the other basic data structure
+datasets), `L2.ADTTE`, `L2.ADRS`, `L2.ADTR`, `L2.ADPC`, `L2.ADPP`, `L2.PP`, `L2.ADADAS`,
+`L2.ADBCVA`, `L2.ADEXAC`, `L2.GROWTH`, `L2.VACCINE`, `L2.DLT`, crossover periods (`L2.PERIOD`) and
+crossover on progression (`L2.CROSSOVER`). `L2.TRACE` checks traceability: every BDS record points at
+the SDTM record it came from (`SRCDOM`, `SRCSEQ`), and that record exists.
+
 ## Verifying a study
 
 `Study.verify()` re-runs the checks and returns a `Report`:
@@ -35,12 +89,33 @@ trial = tf.study("parallel_continuous", n=100, seed=1)
 trial.verify()
 ```
 
+`Report.passed` is `True` when there are no findings, `Report.findings` lists them, and
+`Report.waived` lists level 3 findings that were waived (see below).
+
+A study straight from `tf.study()` always passes levels 0 to 2, so `verify()` is mostly useful in two
+cases: with [seeded defects](07-defects.qmd), where it runs the checks on the defective datasets
+and gives a report to score, and with level 3.
+
+## Level 3
+
 `level=3` adds Pointblank's rules:
 
 ```{python}
 report = trial.verify(level=3)
 report.passed, len(report.findings)
 ```
+
+trialforge writes the study's submission package to a temporary directory (the same files as
+`write_submission()`), points Pointblank's `SubmissionPackage` at its `sdtm/` folder, and runs its
+SDTMIG 3.4 conformance rules on the XPT files and define.xml there. So level 3 checks the files as
+delivered, not the data in memory. Its findings have level `"L3"` and Pointblank's own rule
+identifiers.
+
+Level 3 is a cross-check by an independent implementation of the published conformance rules, as a
+reviewer's validator would apply them. When Pointblank itself has a known defect that makes a rule
+fail on correct data, trialforge waives that rule's findings, citing the defect: they go in
+`Report.waived` instead of `Report.findings` and don't affect `passed`. There are no waivers at
+present.
 
 ## Findings
 
@@ -62,3 +137,24 @@ for finding in report.findings:
 
 The AE end date moved before the start date breaks a level-1 ordering rule in AE, and, since ADaM
 was derived before the defect was injected, two level-2 derivations in ADAE no longer match it.
+
+`row` is the zero-based row of the dataset as it is in `Study.sdtm` or `Study.adam`, so you can look
+the record up directly:
+
+```{python}
+ae_finding = next(f for f in report.findings if f.rule == "L1.ORDER")
+dirty.sdtm["AE"][ae_finding.row].select("USUBJID", "AESEQ", "AEDECOD", "AESTDTC", "AEENDTC")
+```
+
+Findings are dataclasses, so they convert to a DataFrame directly:
+
+```{python}
+import dataclasses
+
+import polars as pl
+
+pl.DataFrame([dataclasses.asdict(f) for f in report.findings])
+```
+
+A finding about a whole dataset or variable (a missing variable, say) has no `row`, and one about a
+dataset has no `variable`{.gd-no-link}.
