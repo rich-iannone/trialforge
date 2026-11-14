@@ -246,3 +246,4 @@ r/docs/
 !CHANGELOG.md
 !NOTICE.md
 .DS_Store
+.claude/
