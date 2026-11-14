@@ -8,6 +8,7 @@ from typing import Any
 import pandas as pd
 import polars as pl
 import pyarrow as pa
+import pyarrow.parquet as pq
 import pyreadstat
 import pytest
 
@@ -343,8 +344,10 @@ def test_parquet_and_csv_round_trip(
     study: tf.Study = request.getfixturevalue(which)
     study.write(tmp_path, ["parquet", "csv"])
     for name, mem in {**study.sdtm, **study.adam}.items():
-        parquet = pl.read_parquet(tmp_path / f"{name.lower()}.parquet")
-        assert parquet.with_columns(pl.col(pl.Datetime).cast(pl.Datetime("ms"))).equals(mem), name
+        assert pl.read_parquet(tmp_path / f"{name.lower()}.parquet").equals(mem), name
+        # PyArrow (and so pandas) reads the Parquet types too, datetimes included.
+        arrow = pl.from_arrow(pq.read_table(tmp_path / f"{name.lower()}.parquet"))
+        assert isinstance(arrow, pl.DataFrame) and arrow.equals(mem), name
         back = pl.read_csv(tmp_path / f"{name.lower()}.csv", schema=mem.schema)
         expected = mem.with_columns(pl.col(pl.String).fill_null(""))
         assert back.with_columns(pl.col(pl.String).fill_null("")).equals(expected), name
