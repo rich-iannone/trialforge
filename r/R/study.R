@@ -167,8 +167,9 @@ define_xml <- function(study, standard = c("sdtm", "adam")) {
 #' Verify a study
 #'
 #' Re-runs trialforge's verification levels 0–2 (structural, referential and derivational
-#' checks). Generation already guarantees these pass; this is for after the data has been
-#' modified.
+#' checks) on the study's datasets. A study without defects always passes them (generation
+#' guarantees it); with seeded defects, the report lists what the checks find in the defective
+#' datasets, for [score()].
 #'
 #' Level 3 (CDISC conformance rules) runs Pointblank's SDTMIG engine, which exists only in the
 #' Python package, so it is not available from R: use `Study.verify(level=3)` in Python.

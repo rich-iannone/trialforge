@@ -16,8 +16,9 @@ A list with \code{passed} (logical) and \code{findings} (a data frame of failed 
 }
 \description{
 Re-runs trialforge's verification levels 0–2 (structural, referential and derivational
-checks). Generation already guarantees these pass; this is for after the data has been
-modified.
+checks) on the study's datasets. A study without defects always passes them (generation
+guarantees it); with seeded defects, the report lists what the checks find in the defective
+datasets, for \code{\link[=score]{score()}}.
 }
 \details{
 Level 3 (CDISC conformance rules) runs Pointblank's SDTMIG engine, which exists only in the
