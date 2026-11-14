@@ -324,6 +324,24 @@ outputs:
     }
 
     #[test]
+    fn schema_lists_the_archetypes() {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../spec/study-spec.schema.json");
+        let schema: Value = serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
+        let mut listed: Vec<&str> =
+            schema["properties"]["study"]["properties"]["archetype"]["enum"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|v| v.as_str().unwrap())
+                .collect();
+        let mut known: Vec<&str> = crate::ARCHETYPES.iter().map(|(n, _)| *n).collect();
+        listed.sort_unstable();
+        known.sort_unstable();
+        assert_eq!(listed, known);
+    }
+
+    #[test]
     fn reads_defects() {
         let base = "study: {archetype: parallel_continuous, seed: 1}\ndata_quality:\n  defects: ";
         let spec = Spec::parse(&format!("{base}{{out_of_ct: 2, duplicate_seq: 0.5}}")).unwrap();
