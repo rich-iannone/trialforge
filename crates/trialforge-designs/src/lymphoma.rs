@@ -35,18 +35,21 @@ impl Default for Controls {
 }
 
 pub(crate) fn docs() -> Vec<ControlDoc> {
+    // The solid-tumor descriptions that name the comparator arm, reworded for this one.
     crate::oncology::docs()
         .into_iter()
         .map(|mut d| {
-            if d.name == "orr" {
-                d.description = "Objective response rate on PET-CT (Lugano 2014: CMR or PMR, no confirmation): [Drug A, Investigator's Choice]";
-            }
-            if d.name.ends_with("months") && d.name.starts_with("os") || d.name == "pfs_median_months" {
-                d.description = match d.name {
-                    "os_median_months" => "Median overall survival of the investigator's choice arm, in months",
-                    _ => "Median progression-free survival of the investigator's choice arm, in months",
-                };
-            }
+            d.description = match d.name {
+                "os_median_months" => "Median overall survival of the Investigator's Choice arm, in months",
+                "os_hr" => "Overall-survival hazard ratio, Drug A vs Investigator's Choice (exact proportional hazards)",
+                "pfs_median_months" => "Median progression-free survival of the Investigator's Choice arm, in months (of the latent time to \
+                     progression or death; observed KM medians fall on the 8-weekly assessment dates)",
+                "pfs_hr" => "Progression hazard ratio, Drug A vs Investigator's Choice",
+                "orr" => "Objective response rate on PET-CT (Lugano 2014: CMR or PMR, no confirmation): [Drug A, Investigator's Choice]",
+                "crossover_prob" => "Probability that an Investigator's Choice subject who progresses crosses over to Drug A (crossover on progression)",
+                "crossover_os_hr" => "Hazard ratio of death after crossing over, relative to staying on investigator's choice; null uses os_hr",
+                _ => d.description,
+            };
             d
         })
         .collect()
