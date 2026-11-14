@@ -55,6 +55,9 @@ RS) with ADRS and ADTTE, or clinical events (CE) with ADTTE.
 tf.controls("parallel_continuous")
 ```
 
+[All controls by archetype](#all-controls-by-archetype), at the end of this page, lists every
+archetype's.
+
 Pass controls to `tf.study()` as keyword arguments. Anything you leave out keeps its default:
 
 ```{python}
@@ -172,3 +175,22 @@ once it has found the maximum tolerated dose, so it may treat fewer.
 - `studyid`{.gd-no-link}: `STUDYID`; each archetype has a default, such as `SIMPAR01`.
 - `output`: the DataFrame type of `Study.sdtm` and `Study.adam`.
 - `defects`{.gd-no-link}: data-quality defects to inject (see [Seeded defects](09-defects.qmd)).
+
+## All controls by archetype
+
+Each archetype's controls, as `tf.controls()` reports them, with their defaults. A default of
+`null` is an optional setting that is off, or one the archetype derives from another control, as
+its description says; a list holds one value per arm, in arm order.
+
+```{python}
+#| echo: false
+#| output: asis
+import json
+
+for name, description in tf.archetypes().items():
+    print(f"### `{name}`\n\n{description}.\n")
+    print("| Control | Default | Description |\n|---|---|---|")
+    for c in tf.controls(name):
+        print(f"| `{c.name}`{{.gd-no-link}} | `{json.dumps(c.default)}` | {c.description} |")
+    print()
+```
