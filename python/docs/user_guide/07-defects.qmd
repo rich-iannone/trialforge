@@ -16,17 +16,27 @@ trialforge generates and verifies the clean study, then corrupts copies of its d
 every change: where it is, what it was, and which findings a validator should report.
 `Study.score()` matches a validator's findings against that record.
 
+This is the synthetic version of seeding errors into a database to test edit checks: because the
+errors are placed deliberately, you know exactly what a perfect validator would report, and so can
+measure how close yours comes, as recall (the share of defects it found) and precision (the share of
+its findings that are real).
+
 ## Asking for defects
 
 Ask for a profile:
 
-- `"light"`: about five defects of the common kinds.
-- `"realistic"`: rates per eligible record.
-- `"adversarial"`: three of every type, each in its subtlest form, such as a date a day or two off
-or a controlled term that differs only in case.
+- `"light"`: about five defects of the common kinds (one AE that ends before it starts, one
+duplicate sequence number, two out-of-codelist terms, one wrong study day), for a quick test.
+- `"realistic"`: each type at a rate per eligible record, so the number of defects grows with the
+study, as data errors do. A 300-subject parallel-group study gets a few dozen.
+- `"adversarial"`: three of every type, each in its subtlest form, such as a date a day off, a
+controlled term that differs only in case, or a change from baseline 1% off.
 
-Or ask for counts (integers) and rates per eligible record (floats in `[0, 1]`) per defect type,
-such as `defects={"out_of_ct": 5, "ae_end_before_start": 0.02}`.
+Or ask for amounts per defect type: an integer is a count, and a float in `[0, 1]` is a rate, the
+probability that each eligible record gets the defect. Here `{"out_of_ct": 5,
+"ae_end_before_start": 0.02}`{.gd-no-link} asks for exactly five out-of-codelist terms and an AE
+date error in about 2% of the AE records that can take one. A count larger than the number of
+eligible records gives all of them.
 
 ```{python}
 import polars as pl
@@ -36,23 +46,58 @@ dirty = tf.study("parallel_continuous", n=300, seed=1, defects="realistic")
 dirty.defects.group_by("id", maintain_order=True).len()
 ```
 
+A misspelled defect type or profile, or a rate outside `[0, 1]`, is an error that lists the valid
+choices.
+
 ## The defect types
 
-| Defect | What it does |
-|---|---|
-| `ae_end_before_start` | AEENDTC moved to before AESTDTC |
-| `duplicate_seq` | a record's `--SEQ` set to that of the subject's previous record |
-| `out_of_ct` | a controlled term replaced by a case variant or typo outside its codelist |
-| `orphan_usubjid` | an AE, CM or MH record's USUBJID changed to a subject not in DM |
-| `record_after_death` | an AE end or disposition date moved to after DTHDTC |
-| `bad_study_day` | a `--DY` counted as if there were a day 0 |
-| `chg_mismatch` | a BDS CHG that isn't AVAL − BASE |
-| `missing_baseline` | ABLFL cleared on a baseline record |
-| `trtemfl_wrong` | ADAE TRTEMFL flipped |
-| `cnsr_wrong` | ADTTE CNSR flipped |
+| Defect | What it does | Eligible records |
+|---|---|---|
+| `ae_end_before_start` | AEENDTC moved 1 to 14 days before AESTDTC (AEENDY follows) | AE records with both dates that start after informed consent |
+| `duplicate_seq` | A record's `--SEQ` set to that of the subject's previous record | CM, MH, DS, SE and TU |
+| `out_of_ct` | A controlled term replaced by a case variant ("Mild") or a typo ("MIDL") outside its codelist | Race, ethnicity, AE severity, action, causality and outcome, CM and EX route, form and units, DS category, VS position, LB specimen, and a few more |
+| `orphan_usubjid` | One digit of a record's USUBJID changed, giving a subject not in DM | AE (except dose-limiting toxicities), CM and MH |
+| `record_after_death` | An AE end date or a disposition date moved 1 to 14 days past DTHDTC | Records of subjects who died, except their consent, randomization and death records |
+| `bad_study_day` | A `--DY` counted as if there were a day 0: one less on or after the first dose, one more before | Any SDTM study day |
+| `chg_mismatch` | A BDS CHG reversed (BASE − AVAL), equal to AVAL, or 1% off | Post-baseline records of ADLB, ADVS and ADRE |
+| `missing_baseline` | ABLFL cleared on a baseline record | Baseline records of ADLB, ADVS and ADRE |
+| `trtemfl_wrong` | ADAE TRTEMFL flipped | ADAE |
+| `cnsr_wrong` | ADTTE CNSR flipped between event and censored | ADTTE |
+
+Eligibility is deliberately narrow. Each type only touches records where its effect is exactly
+predictable: `duplicate_seq` avoids AE, whose AESEQ also links SUPPAE and ADAE, and `out_of_ct`
+avoids SEX, EPOCH and the test codes, which feed derivations. That keeps each defect one mistake
+with a known set of findings, rather than a cascade.
+
+A record gets at most one defect, and the types are applied in the order of the table, each from its
+own random stream: adding a type to a request doesn't move the defects of the others.
+
+### Defects by archetype
+
+Eligibility also explains why some archetypes get fewer defects than others. The oncology archetypes
+and `cv_outcomes` have no AE, CM, MH, LB or VS, so most of the SDTM types have little to work on;
+instead, their deaths and their ADTTE give `record_after_death` and `cnsr_wrong` records to work
+on:
+
+```{python}
+{
+    archetype: len(tf.study(archetype, n=300, seed=1, defects="realistic").defects)
+    for archetype in ["parallel_continuous", "oncology_solid_tumor", "cv_outcomes", "vaccine"]
+}
+```
+
+A type with no eligible records is skipped, and the manifest only lists what was injected.
+
+## Where defects go
 
 A defect stays in the dataset it was injected into: ADaM is not re-derived from the corrupted SDTM,
-so a validator that cross-checks the two sees the disagreement.
+so a validator that cross-checks the two sees the disagreement, as it would when SDTM is corrected
+after the analysis datasets were created. Variables in the same record that depend on the edited one
+are kept consistent, so moving `AEENDTC` also moves `AEENDY`.
+
+`Study.sdtm`, `Study.adam` and the files `write()` writes all hold the defective datasets. The
+truth manifest is computed from the clean study, and the same request without `defects=` gives the
+clean study back, since the defects are drawn from their own random streams.
 
 ## The defect record
 
@@ -64,6 +109,17 @@ record's key, the variable, its original and injected values, and the findings i
 dirty.defects.select("id", "dataset", "row", "key", "variable", "original", "injected")
 ```
 
+`expected` lists the findings each defect should produce, as `RULE DATASET row`. An AE date
+error, for example, should be found in AE (the dates are out of order) and in ADAE (whose dates no
+longer match AE):
+
+```{python}
+dirty.defects.filter(pl.col("id") == "ae_end_before_start").select("row", "expected").head(3)
+```
+
+`paired_row` is the other record a defect involves, where there is one: for `duplicate_seq`, the
+record whose sequence number was copied. A validator may report either one.
+
 ## Scoring a validator
 
 `Study.score()` takes a `Report` and matches its findings against the defects. trialforge's own
@@ -74,16 +130,28 @@ score = dirty.score(dirty.verify())
 score.recall, score.precision
 ```
 
-The score breaks down by defect type, and lists the defects no finding matched (`missed`) and the
-findings no defect explains (`unmatched`):
+The rules for a match:
+
+- A finding from trialforge's own levels (`L0` to `L2`) matches a defect when it names one of the
+dataset, row and rule combinations in the defect's `expected`.
+- A finding from any other validator (Pointblank's `L3`, or your own) matches when it names the
+dataset and row of one of those expected findings, or the defect's paired row. Other validators have
+their own rule names, so the rule isn't compared.
+- A defect is *detected* when at least one finding matches it, and a finding is *matched* when it
+matches at least one defect. Recall is detected over injected, and precision matched over the
+number of findings.
+
+The score breaks down by defect type, and lists the defects no finding matched (`missed`, as row
+indices of `Study.defects`) and the findings no defect explains (`unmatched`):
 
 ```{python}
 score.by_type["out_of_ct"]
 ```
 
-To score another validator, turn its findings into a `Report`. A finding from a level other than
-trialforge's own (`L0` to `L2`) matches a defect when it names the defect's dataset and row. Here a
-minimal validator looks for AE records that end before they start:
+## Scoring another validator
+
+To score another validator, turn its findings into a `Report`. Here a minimal validator looks for
+AE records that end before they start:
 
 ```{python}
 ae = dirty.sdtm["AE"].with_row_index("row")
@@ -106,4 +174,50 @@ types, hence its low overall recall:
 mine.by_type["ae_end_before_start"]
 ```
 
-`Study.verify(level=3)` scores Pointblank's conformance rules alongside trialforge's own.
+`Finding`'s level can be any string other than `L0` to `L2`, and its rule and message are free text.
+Only the dataset and row matter for matching.
+
+### Mapping a validator's output to rows
+
+Most validators report a record by its key (subject and sequence number) or by its record number in
+the file, not by a DataFrame row. Both map back to rows. The files `write()` writes keep the
+datasets' row order, so record *n* of `ae.xpt` is row *n* − 1. And a key maps to a row by a join
+on the dataset with a row index. Suppose a validator's report says this:
+
+```{python}
+external = pl.DataFrame(
+    {
+        "dataset": ["AE", "AE"],
+        "USUBJID": ["SIMPAR01-202013", "SIMPAR01-223008"],
+        "AESEQ": [1, 2],
+        "message": ["end before start", "end before start"],
+    }
+)
+```
+
+Join it to AE to find the rows, and build the findings from those:
+
+```{python}
+rows = external.join(
+    dirty.sdtm["AE"].with_row_index("row").select("USUBJID", "AESEQ", "row"),
+    on=["USUBJID", "AESEQ"],
+)
+report = tf.Report(
+    passed=rows.is_empty(),
+    findings=[
+        tf.Finding("ext", "AE_ORDER", r["dataset"], None, r["row"], r["message"])
+        for r in rows.iter_rows(named=True)
+    ],
+)
+dirty.score(report).matched
+```
+
+A key isn't always unique in a defective dataset (that is what `duplicate_seq` does), which is one
+reason to report record numbers where the validator can.
+
+## Pointblank
+
+`Study.verify(level=3)` adds Pointblank's conformance findings to trialforge's own, and
+`Study.score()` scores them together. Pointblank's rules are a different set from trialforge's,
+written from the published CDISC conformance rules, so scoring a level 3 report shows which defects
+a standard conformance check finds and which need cross-dataset or derivation checks.
