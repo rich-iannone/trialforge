@@ -41,9 +41,21 @@ def stream_seed(seed: int, path: Sequence[int | str]) -> int:
 
     Examples
     --------
-    >>> import trialforge as tf
-    >>> tf.stream_seed(1, ["subject", 17, "ae"])
-    11952556374152885286
+    The seed of the adverse-event stream of subject 17, in a study with root seed 1:
+
+    ```{python}
+    import trialforge as tf
+
+    tf.stream_seed(1, ["subject", 17, "ae"])
+    ```
+
+    The R package gives the same number for the same path (as a string, since R can't hold a
+    64-bit integer). Each component of the path changes the seed, so subject 18's stream is
+    independent of subject 17's:
+
+    ```{python}
+    tf.stream_seed(1, ["subject", 18, "ae"])
+    ```
     """
     return _core.stream_seed(seed, path)
 
@@ -59,5 +71,16 @@ def core_version() -> str:
     -------
     str
         The version, e.g. `"0.1.0"`.
+
+    Examples
+    --------
+    ```{python}
+    import trialforge as tf
+
+    tf.core_version()
+    ```
+
+    Record it with a study's request, alongside the archetype, `n`, seed and controls, to
+    know which version to install to generate the study again.
     """
     return _core.core_version()
