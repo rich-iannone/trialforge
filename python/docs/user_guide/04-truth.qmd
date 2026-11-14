@@ -7,26 +7,127 @@ Real studies don't come with an answer key. Synthetic ones can: `Study.truth` re
 was built to show and what its generated data actually shows, so you can check an analysis program
 against known values.
 
+The manifest is a plain dictionary of JSON-compatible values, built after the study has passed its
+checks. It holds two kinds of number:
+
+- **Targets**: what the controls asked for, such as a mean change from baseline in each arm, a
+median survival or a hazard ratio. These are properties of the population the study samples from.
+- **Realized values**: what this study's datasets show, computed from its ADaM (or SDTM) the way a
+standard analysis would compute them.
+
+The two differ by sampling error, as a real study's estimates differ from the true effect.
+
 ## Targets and realized values
 
 For a parallel-group study, the manifest has the target mean change from baseline in each arm, and
 the mean change the study's ADaM realized at the end of treatment:
 
 ```{python}
+import polars as pl
 import trialforge as tf
 
 trial = tf.study("parallel_continuous", n=300, seed=1, indication="hypertension", weeks=12)
 trial.truth["endpoint"]
 ```
 
+`paramcd` names the endpoint's parameter, and `visit` the analysis visit the realized values come
+from. `n` in each arm is the number of subjects with a value at that visit, so it is smaller than the
+number randomized when subjects discontinue.
+
+## Reproducing a realized value
+
 The realized values are computed from the generated ADaM datasets, so an analysis that reproduces
-them reads the data correctly. They differ from the targets by sampling error, as a real study's
-estimates differ from the true effect. The manifest also records the request itself (archetype,
-seed, controls) and other realized quantities, such as treatment-emergent AE incidence:
+them reads the data correctly. Here the endpoint is systolic blood pressure in ADVS, and the end of
+treatment is the week 12 analysis visit. Take the analysis records (`ANL01FL == "Y"`) at that visit,
+then average the change from baseline by planned treatment:
+
+```{python}
+endpoint = trial.truth["endpoint"]
+
+means = (
+    trial.adam["ADVS"]
+    .filter(
+        pl.col("PARAMCD") == endpoint["paramcd"],
+        pl.col("AVISIT") == "WEEK 12",
+        pl.col("ANL01FL") == "Y",
+        pl.col("CHG").is_not_null(),
+    )
+    .group_by("TRTP", maintain_order=True)
+    .agg(n=pl.len(), mean_change=pl.col("CHG").mean().round(4))
+)
+means
+```
+
+The counts and means match `realized`, and their difference (Drug A minus placebo) is
+`realized_difference`:
+
+```{python}
+mean = dict(zip(means["TRTP"], means["mean_change"]))
+round(mean["Drug A 10 mg"] - mean["Placebo"], 4), endpoint["realized_difference"]
+```
+
+If your program gets a different answer from the same data, the manifest tells you where to look:
+a different visit, missing the `ANL01FL` filter (which would count a subject twice when two of their
+records fall in the visit's window), or the actual rather than the planned treatment.
+
+## Sampling variation
+
+The realized difference here is -7.2 mmHg against a target of -8. That is sampling error, not a
+bias: the same request with other seeds gives other studies from the same population, scattered
+around the target.
+
+```{python}
+[
+    tf.study("parallel_continuous", n=300, seed=s, indication="hypertension", weeks=12)
+    .truth["endpoint"]["realized_difference"]
+    for s in range(1, 9)
+]
+```
+
+This is what makes trialforge useful for simulation: generate many studies from one design, analyze
+each one, and the spread of the estimates is the study's sampling distribution.
+
+## What every manifest records
+
+Every manifest records the request itself, so a manifest on its own says how to regenerate the
+study:
 
 ```{python}
 list(trial.truth)
 ```
+
+`archetype`, `studyid`, `n` and `seed` are the arguments, `controls` the full set of controls the
+study used (defaults included), and `arms` the arms in order. The rest depends on the archetype.
+
+## Sections by archetype
+
+| Archetype | Sections | What they report |
+|---|---|---|
+| `parallel_continuous` | `endpoint`, `discontinuation`, `teae_incidence`, and `non_inferiority` with `ni_margin` | Mean change at the end of treatment by arm; discontinuation by arm; subjects with a treatment-emergent AE |
+| `dose_ranging_ph2` | as `parallel_continuous`, plus `dose_response` | Mean change per dose and the refitted Emax model (E0, Emax, ED50) against the target ED50 and Hill coefficient |
+| `cns_alzheimers` | `adas_cog` | Baseline mean and change in the ADAS-Cog total by arm, both observed and with LOCF |
+| `cv_outcomes` | `outcomes` | Events, Kaplan-Meier medians and a stratified Cox hazard ratio for MACE, each component and all-cause death; first MACE events against the target |
+| `oncology_solid_tumor` | `targets`, `overall_survival`, `progression_free_survival`, `confirmed_orr`, `calibration` | Kaplan-Meier medians and stratified Cox hazard ratios; confirmed RECIST response rates |
+| `heme_lymphoma` | as `oncology_solid_tumor`, with `orr` | The same, with Lugano 2014 response rates |
+| `phase1_sad_mad` | `pk` | The population PK model; geometric means of the NCA parameters by dose; the power-model slope for dose proportionality |
+| `crossover_be` | `bioequivalence` | For AUC and Cmax: the geometric mean ratio, its 90% confidence interval, the intra-subject CV and the BE conclusion |
+| `dose_escalation` | `escalation` | The cohorts in order, the true and selected MTD, DLTs by dose, and the design's operating characteristics over 1,000 simulated trials |
+| `pediatric_growth` | `height_velocity` | Annualized height velocity and change in height SDS by arm, and the non-inferiority analysis |
+| `respiratory_exacerbation` | `exacerbations` | Exacerbation counts, exposure and rates by arm, the rate ratio, the dispersion, and FEV1 change |
+| `vaccine` | `vaccine` | Geometric mean titers and seroconversion by arm, the GMT ratio, and reactogenicity by vaccination |
+| `ophthalmology` | `bcva` | Mean change in BCVA and the proportion gaining 15 letters by arm, and the non-inferiority analysis |
+
+Each section carries its own targets next to the realized values. A dose-escalation study, for
+example, records the true DLT rate of every dose next to the DLTs it observed:
+
+```{python}
+esc = tf.study("dose_escalation", seed=1, method="3+3").truth["escalation"]
+{k: esc[k] for k in ("method", "target", "true_mtd", "selected_mtd")}
+```
+
+The true MTD is the dose whose DLT rate is closest to the target rate. This 3+3 study selected the
+dose above it, as small escalation studies often do; `operating_characteristics` reports how often
+the same design, repeated 1,000 times, selects each dose.
 
 ## Calibrated targets
 
@@ -52,6 +153,25 @@ onc.truth["overall_survival"]
 onc.truth["confirmed_orr"]
 ```
 
+### Latent and observed medians
+
+A target describes the latent course, and an observed value depends on how the study looks at it.
+Death is observed on the day it happens, so the realized overall survival median estimates the
+target directly. Progression is different: it is only seen at a tumor assessment, every 8 weeks
+here, so a progression is dated at the first assessment after it happens. The Kaplan-Meier curve of
+progression-free survival steps down on the assessment dates, and its median falls on one of them:
+
+```{python}
+onc.truth["progression_free_survival"]["by_arm"]
+```
+
+The control arm's median is 5.5 months (the week 24 assessment, day 168), not the 4.5-month median
+of the latent time to progression. Real studies have the same bias, which is why their medians
+cluster on assessment dates. The hazard ratio is far less affected, since both arms are assessed on
+the same schedule.
+
+### Calibration
+
 `truth["calibration"]` reports the response rates the calibrated model gives on the calibration
 cohort, and whether every target was reachable. A rate above what the assessment schedule allows
 (when too many subjects progress or die before a response can be confirmed, say) is clamped to the
@@ -60,6 +180,34 @@ highest reachable one:
 ```{python}
 onc.truth["calibration"]
 ```
+
+Calibration depends only on the controls, not on `n` or the seed, and its result is cached, so the
+first study with a new set of oncology controls takes a moment longer than the next.
+
+## Crossover on progression
+
+With `crossover_prob`, control subjects who progress may switch to Drug A, and the manifest's
+`crossover` section reports how many did:
+
+```{python}
+switch = tf.study("oncology_solid_tumor", n=400, seed=1, crossover_prob=0.5)
+switch.truth["crossover"]
+```
+
+Compare the overall survival hazard ratio with the same study without crossover. Crossover happens
+after progression, so progression-free survival is the same in both, but switching to Drug A lengthens
+the control arm's survival and pulls the hazard ratio toward 1:
+
+```{python}
+no_switch = tf.study("oncology_solid_tumor", n=400, seed=1)
+{
+    "without": no_switch.truth["overall_survival"]["stratified_cox_hr"]["hr"],
+    "with": switch.truth["overall_survival"]["stratified_cox_hr"]["hr"],
+}
+```
+
+The target `os_hr` is still the effect without crossover; the realized one is what an
+intention-to-treat analysis sees.
 
 ## Interim cuts
 
@@ -70,7 +218,11 @@ randomized by then:
 tf.study("oncology_solid_tumor", n=400, seed=1, interim_months=12).truth["interim"]
 ```
 
+Every realized value in an interim manifest comes from the interim data: fewer subjects, shorter
+follow-up and fewer events. The targets are those of the full study.
+
 ## In files
 
 `Study.write()` and `Study.write_submission()` write the manifest as `truth.json` next to the
-datasets.
+datasets, so the answer key travels with the data. Read it back with `json.load()`; its keys and
+values are the same as `Study.truth`.
