@@ -25,12 +25,11 @@
           "pattern": "^[A-Z0-9_-]{1,20}$"
         },
         "archetype": {
-          "description": "Study-type archetype supplying defaults. Omit for a fully explicit spec.",
+          "description": "Study-type archetype supplying defaults (see `archetypes()`).",
           "type": "string",
           "enum": [
             "parallel_continuous",
             "oncology_solid_tumor",
-            "oncology_single_arm_ph2",
             "dose_escalation",
             "heme_lymphoma",
             "phase1_sad_mad",
