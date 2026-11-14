@@ -93,35 +93,65 @@ def study(
 
     Examples
     --------
-    A 12-week hypertension study with 200 subjects:
+    Generate a 12-week hypertension study with 200 subjects. The `indication` and `weeks`
+    controls choose the preset and the treatment duration, and fixing the seed makes the
+    study reproducible:
 
-    >>> import trialforge as tf
-    >>> trial = tf.study("parallel_continuous", n=200, seed=1, indication="hypertension", weeks=12)
-    >>> trial.truth["arms"]
-    ['Placebo', 'Drug A 10 mg']
-    >>> list(trial.adam)
-    ['ADSL', 'ADAE', 'ADLB', 'ADVS']
-    >>> len(trial.adam["ADSL"])
-    200
+    ```{python}
+    import trialforge as tf
 
-    `Study.controls` records every control the study used, defaults included:
+    trial = tf.study("parallel_continuous", n=200, seed=1, indication="hypertension", weeks=12)
+    trial
+    ```
 
-    >>> trial.controls["weeks"], trial.controls["dropout_rate"]
-    (12, 0.15)
+    The study's representation gives its `STUDYID`, seed and data cutoff, then lists its
+    datasets: the trial design datasets (TA to TS), the SDTM domains and the ADaM datasets.
+    Each dataset is a DataFrame of the `output` type, Polars by default. Here are the first
+    subjects in ADSL:
 
-    Controls are checked before anything is generated, so a misspelled one is an error that
-    lists the valid names:
+    ```{python}
+    trial.adam["ADSL"].select("USUBJID", "TRT01P", "AGE", "SEX", "TRTSDT", "TRTEDT").head()
+    ```
 
-    >>> tf.study("parallel_continuous", wekks=12)
-    Traceback (most recent call last):
-        ...
-    ValueError: unknown control "wekks"; available: ae_rate_multiplier, change, ...
+    `Study.controls` records every control the study used: the two passed here, and the
+    defaults of the rest.
 
-    Ask for seeded defects to test a validator:
+    ```{python}
+    trial.controls
+    ```
 
-    >>> dirty = tf.study("parallel_continuous", n=200, seed=1, defects={"out_of_ct": 3})
-    >>> len(dirty.defects)
-    3
+    The truth manifest reports what the study was built to show next to what its data gives.
+    For this study, the endpoint is the change from baseline in systolic blood pressure at the
+    end of treatment:
+
+    ```{python}
+    trial.truth["endpoint"]
+    ```
+
+    The target difference from placebo comes from the preset's changes in each arm. The
+    realized difference, computed from the study's ADVS, differs from it by sampling
+    variation, as a real study's estimate would.
+
+    Controls are checked before anything is generated, so a misspelled control is an error
+    that lists the valid names:
+
+    ```{python}
+    try:
+        tf.study("parallel_continuous", wekks=12)
+    except ValueError as e:
+        print(e)
+    ```
+
+    To test a validator, ask for seeded defects. The datasets then carry the defects, and
+    `Study.defects` lists each one:
+
+    ```{python}
+    dirty = tf.study("parallel_continuous", n=200, seed=1, defects={"out_of_ct": 3})
+    dirty.defects
+    ```
+
+    Each row gives the record a defect is in, the value it changed and the finding
+    trialforge's checks should report for it (in `expected`).
     """
     if output not in _OUTPUTS:
         raise ValueError(f"`output` must be one of {', '.join(map(repr, _OUTPUTS))}")
@@ -164,25 +194,41 @@ def study_from_spec(
 
     Examples
     --------
-    >>> import trialforge as tf
-    >>> spec = {
-    ...     "study": {"archetype": "parallel_continuous", "seed": 1},
-    ...     "population": {"n": 30},
-    ...     "controls": {"indication": "obesity"},
-    ... }
-    >>> trial = tf.study_from_spec(spec)
-    >>> trial.controls["indication"], len(trial.adam["ADSL"])
-    ('obesity', 30)
+    A spec can be a dict with the same structure as the JSON or YAML file. This one asks for
+    an obesity study with 30 subjects:
 
-    The same spec in YAML:
+    ```{python}
+    import trialforge as tf
 
-    >>> text = '''
-    ... study: {archetype: parallel_continuous, seed: 1}
-    ... population: {n: 30}
-    ... controls: {indication: obesity}
-    ... '''
-    >>> tf.study_from_spec(text).truth == trial.truth
-    True
+    spec = {
+        "study": {"archetype": "parallel_continuous", "seed": 1},
+        "population": {"n": 30},
+        "controls": {"indication": "obesity"},
+    }
+    trial = tf.study_from_spec(spec)
+    trial
+    ```
+
+    It gives the same study as the equivalent call to `study()`:
+
+    ```{python}
+    same = tf.study("parallel_continuous", n=30, seed=1, indication="obesity")
+    same.truth == trial.truth
+    ```
+
+    The spec is more often a file. Its text can be passed directly too, here in YAML:
+
+    ```{python}
+    text = '''
+    study: {archetype: parallel_continuous, seed: 1}
+    population: {n: 30}
+    controls: {indication: obesity}
+    '''
+    tf.study_from_spec(text).truth == trial.truth
+    ```
+
+    A file's path works the same way, so a spec kept under version control reproduces its
+    study wherever it is run.
     """
     if output not in _OUTPUTS:
         raise ValueError(f"`output` must be one of {', '.join(map(repr, _OUTPUTS))}")
@@ -228,12 +274,22 @@ def archetypes() -> dict[str, str]:
 
     Examples
     --------
-    >>> import trialforge as tf
-    >>> len(tf.archetypes())
-    13
-    >>> tf.archetypes()["vaccine"]
-    'Placebo-controlled vaccine study: neutralizing antibody titers (IS), 7-day reactogenicity diaries (CE, FACE), ADIS/ADCE/ADFACE'
-    """  # noqa: E501
+    List the archetypes with their descriptions:
+
+    ```{python}
+    import trialforge as tf
+
+    tf.archetypes()
+    ```
+
+    Each description names the study's design and the domains particular to it. Any of the
+    names can be passed to `study()`, and `controls()` gives what it accepts:
+
+    ```{python}
+    trial = tf.study("vaccine", n=50, seed=1)
+    trial.truth["arms"]
+    ```
+    """
     return dict(_core.archetypes())
 
 
@@ -292,18 +348,29 @@ def controls(archetype: str) -> list[Control]:
 
     Examples
     --------
-    >>> import trialforge as tf
-    >>> [c.name for c in tf.controls("parallel_continuous")]
-    ['indication', 'weeks', 'change', 'ratio', 'dose', 'dropout_rate', 'ae_rate_multiplier', 'missed_visit', 'comparator', 'comparator_dose', 'ni_margin']
-    >>> tf.controls("parallel_continuous")[1]
-    Control(name='weeks', description='Treatment duration in weeks; visits at Weeks 2, 4 and every 4 weeks after', default=24)
+    List the controls of the `parallel_continuous` archetype:
 
-    Set a control by passing it to `study()`:
+    ```{python}
+    import trialforge as tf
 
-    >>> trial = tf.study("parallel_continuous", n=50, seed=1, weeks=12)
-    >>> trial.controls["weeks"]
-    12
-    """  # noqa: E501
+    tf.controls("parallel_continuous")
+    ```
+
+    Each `Control` gives a name, what the control sets and its default. Their names alone are
+    a quick reminder of what can be changed:
+
+    ```{python}
+    [c.name for c in tf.controls("parallel_continuous")]
+    ```
+
+    Set a control by passing it to `study()` as a keyword argument. This study treats for 12
+    weeks instead of the default 24, which also shortens the visit schedule:
+
+    ```{python}
+    trial = tf.study("parallel_continuous", n=50, seed=1, weeks=12)
+    trial.sdtm["TV"].select("VISITNUM", "VISIT", "VISITDY")
+    ```
+    """
     return [
         Control(c["name"], c["description"], c["default"])
         for c in json.loads(_core.controls(archetype))
@@ -331,9 +398,24 @@ def formats() -> list[str]:
 
     Examples
     --------
-    >>> import trialforge as tf
-    >>> tf.formats()
-    ['xpt', 'csv', 'dataset-json', 'parquet']
+    List the supported formats:
+
+    ```{python}
+    import trialforge as tf
+
+    tf.formats()
+    ```
+
+    Pass one or more of them to `Study.write()`. This writes each dataset as both XPT and
+    Dataset-JSON, to a temporary directory:
+
+    ```{python}
+    import tempfile
+
+    trial = tf.study("parallel_continuous", n=50, seed=1)
+    paths = trial.write(tempfile.mkdtemp(), formats=["xpt", "dataset-json"])
+    [p.name for p in paths if p.stem == "dm"]
+    ```
     """
     return _core.formats()
 
@@ -388,9 +470,27 @@ class Report:
 
     Examples
     --------
-    >>> import trialforge as tf
-    >>> tf.study("parallel_continuous", n=50, seed=1).verify()
-    Report(passed=True, findings=[], waived=[])
+    A study generated without defects passes every check, so its report has no findings:
+
+    ```{python}
+    import trialforge as tf
+
+    tf.study("parallel_continuous", n=50, seed=1).verify()
+    ```
+
+    With seeded defects, the report lists what the checks find in the defective datasets:
+
+    ```{python}
+    dirty = tf.study("parallel_continuous", n=200, seed=1, defects={"out_of_ct": 3})
+    report = dirty.verify()
+    report.passed, len(report.findings)
+    ```
+
+    Each finding names the rule that failed and the record it failed on:
+
+    ```{python}
+    report.findings[0]
+    ```
     """
 
     passed: bool
@@ -457,13 +557,25 @@ class Score:
 
     Examples
     --------
-    >>> import trialforge as tf
-    >>> dirty = tf.study("parallel_continuous", n=200, seed=1, defects={"out_of_ct": 3})
-    >>> score = dirty.score(dirty.verify())
-    >>> score.recall, score.precision
-    (1.0, 1.0)
-    >>> score.by_type["out_of_ct"]
-    DefectScore(injected=3, detected=3, recall=1.0, findings=3, false_positives=0, precision=1.0)
+    Generate a study with the `light` profile of defects, and score trialforge's own checks
+    against them:
+
+    ```{python}
+    import trialforge as tf
+
+    dirty = tf.study("parallel_continuous", n=200, seed=1, defects="light")
+    score = dirty.score(dirty.verify())
+    score.recall, score.precision
+    ```
+
+    The checks find every defect and report nothing else, so recall and precision are both
+    1. A validator that missed some defects would have a lower recall, with the defects it
+    missed in `missed`; one that flagged clean records would have a lower precision, with
+    those findings in `unmatched`. `by_type` breaks the score down by defect type:
+
+    ```{python}
+    score.by_type
+    ```
     """
 
     injected: int
@@ -491,13 +603,28 @@ class Study:
 
     Examples
     --------
-    >>> import trialforge as tf
-    >>> trial = tf.study("parallel_continuous", n=200, seed=1, indication="hypertension", weeks=12)
-    >>> trial
-    <trialforge.Study SIMPAR01 (parallel_continuous), seed=1, cutoff=2025-05-05: TA, TE, TV, TI, TS, DM, SE, SV, EX, CM, AE, DS, MH, LB, VS, SUPPAE, ADSL, ADAE, ADLB, ADVS>
-    >>> trial.studyid, trial.archetype, trial.seed
-    ('SIMPAR01', 'parallel_continuous', 1)
-    """  # noqa: E501
+    Generate a study, then look at what it holds:
+
+    ```{python}
+    import trialforge as tf
+
+    trial = tf.study("parallel_continuous", n=200, seed=1, indication="hypertension", weeks=12)
+    trial
+    ```
+
+    The representation lists the datasets in `sdtm` (from TA to SUPPAE) and in `adam` (from
+    ADSL). Each is a DataFrame, here the vital signs domain:
+
+    ```{python}
+    trial.sdtm["VS"].head()
+    ```
+
+    The request that made the study is kept with it, so it can be generated again:
+
+    ```{python}
+    trial.studyid, trial.archetype, trial.seed
+    ```
+    """
 
     def __init__(self, core: _core.Study, output: Output) -> None:
         self._core = core
@@ -526,14 +653,26 @@ class Study:
     def seed(self) -> int:
         """The root seed.
 
-        The seed passed to `study()`, or the one drawn for it when none was. The same
-        archetype, `n`, seed and controls give the same study again:
+        The seed passed to `study()`, or the one drawn for it when none was.
 
-        >>> import trialforge as tf
-        >>> trial = tf.study("vaccine", n=50)
-        >>> again = tf.study("vaccine", n=50, seed=trial.seed)
-        >>> again.truth == trial.truth
-        True
+        Examples
+        --------
+        Generate a study without a seed. A fresh one is drawn, and recorded:
+
+        ```{python}
+        import trialforge as tf
+
+        trial = tf.study("vaccine", n=50)
+        trial.seed
+        ```
+
+        Passing that seed back, with the same archetype, `n` and controls, gives the same
+        study again:
+
+        ```{python}
+        again = tf.study("vaccine", n=50, seed=trial.seed)
+        again.truth == trial.truth
+        ```
         """
         return self._core.seed
 
@@ -547,24 +686,52 @@ class Study:
         date recorded in the XPT headers and define.xml, so files don't depend on the date
         they were written.
 
-        >>> import trialforge as tf
-        >>> tf.study("parallel_continuous", n=200, seed=1, weeks=12).cutoff
-        datetime.date(2025, 5, 5)
+        Examples
+        --------
+        A 12-week study's cutoff is the date of its last subject's last visit:
+
+        ```{python}
+        import trialforge as tf
+
+        trial = tf.study("parallel_continuous", n=200, seed=1, weeks=12)
+        trial.cutoff
+        ```
+
+        No date in the study's data is later. In ADSL, the last date of contact with a
+        subject is at the cutoff at the latest:
+
+        ```{python}
+        trial.adam["ADSL"]["LSTALVDT"].max()
+        ```
         """
         return _EPOCH + datetime.timedelta(days=self._core.cutoff_days)
 
     @property
     def controls(self) -> dict[str, Any]:
-        """The full set of controls the study used: the ones you passed, and the defaults of the rest.
+        """Every control the study used: the ones you passed, and the defaults of the rest.
 
         Together with `archetype`, `n`, `seed` and `studyid`, they reproduce the study:
         `study(trial.archetype, n=..., seed=trial.seed, **trial.controls)`.
 
-        >>> import trialforge as tf
-        >>> trial = tf.study("parallel_continuous", n=200, seed=1, indication="hypertension", weeks=12)
-        >>> trial.controls
-        {'ae_rate_multiplier': 1.5, 'change': None, 'comparator': 'placebo', 'comparator_dose': 10.0, 'dose': 10.0, 'dropout_rate': 0.15, 'indication': 'hypertension', 'missed_visit': 0.04, 'ni_margin': None, 'ratio': [1, 1], 'weeks': 12}
-        """  # noqa: E501
+        Examples
+        --------
+        Generate a study with two controls set:
+
+        ```{python}
+        import trialforge as tf
+
+        trial = tf.study("parallel_continuous", n=200, seed=1, indication="hypertension", weeks=12)
+        trial.controls
+        ```
+
+        Besides `indication` and `weeks`, the dict has every other control at its default.
+        Passing it back to `study()` reproduces the study:
+
+        ```{python}
+        again = tf.study(trial.archetype, n=200, seed=trial.seed, **trial.controls)
+        again.truth == trial.truth
+        ```
+        """
         return self._cached("controls", lambda: json.loads(self._core.controls_json))
 
     @property
@@ -579,13 +746,29 @@ class Study:
         stratified Cox hazard ratios, or response rates. `write()` and `write_submission()`
         save it as `truth.json`.
 
-        >>> import trialforge as tf
-        >>> trial = tf.study("parallel_continuous", n=200, seed=1, indication="hypertension", weeks=12)
-        >>> list(trial.truth)
-        ['archetype', 'arms', 'controls', 'discontinuation', 'endpoint', 'n', 'seed', 'studyid', 'teae_incidence']
-        >>> trial.truth["endpoint"]["target_difference"]
-        -8.0
-        """  # noqa: E501
+        Examples
+        --------
+        Generate a hypertension study and list its manifest's sections:
+
+        ```{python}
+        import trialforge as tf
+
+        trial = tf.study("parallel_continuous", n=200, seed=1, indication="hypertension", weeks=12)
+        list(trial.truth)
+        ```
+
+        Next to the request, this archetype reports its endpoint, the incidence of
+        treatment-emergent adverse events and discontinuation. The endpoint section holds the
+        target mean change in systolic blood pressure in each arm and the difference between
+        them, with the realized values from the study's ADVS:
+
+        ```{python}
+        trial.truth["endpoint"]
+        ```
+
+        An analysis of this study's ADaM should reproduce the realized values; the target is
+        what a very large study would show.
+        """
         return self._cached("truth", lambda: json.loads(self._core.truth_json))
 
     @property
@@ -608,11 +791,31 @@ class Study:
         The datasets in `sdtm` and `adam` are the defective copies; `truth` describes the
         clean study.
 
-        >>> import trialforge as tf
-        >>> dirty = tf.study("parallel_continuous", n=200, seed=1, defects={"out_of_ct": 3})
-        >>> list(dirty.defects.columns)
-        ['id', 'dataset', 'row', 'paired_row', 'usubjid', 'key', 'variable', 'original', 'injected', 'expected']
-        """  # noqa: E501
+        Examples
+        --------
+        Inject three values outside their controlled terminology:
+
+        ```{python}
+        import trialforge as tf
+
+        dirty = tf.study("parallel_continuous", n=200, seed=1, defects={"out_of_ct": 3})
+        dirty.defects
+        ```
+
+        Each defect changed a specimen type in LB (`LBSPEC`) to a value its codelist doesn't
+        have. The defective records are in `sdtm`, at the rows listed:
+
+        ```{python}
+        rows = dirty.defects["row"].to_list()
+        dirty.sdtm["LB"][rows].select("USUBJID", "LBTESTCD", "LBSPEC")
+        ```
+
+        A study generated without defects has none to list:
+
+        ```{python}
+        tf.study("parallel_continuous", n=200, seed=1).defects is None
+        ```
+        """
 
         def make() -> Any:
             table = self._core.defects_table()
@@ -627,13 +830,25 @@ class Study:
         The trial design datasets (TA, TE, TV, TI, TS) come first, then the subject domains
         (DM, SE, SV, EX, DS and those of the archetype).
 
-        >>> import trialforge as tf
-        >>> trial = tf.study("parallel_continuous", n=50, seed=1)
-        >>> list(trial.sdtm)
-        ['TA', 'TE', 'TV', 'TI', 'TS', 'DM', 'SE', 'SV', 'EX', 'CM', 'AE', 'DS', 'MH', 'LB', 'VS', 'SUPPAE']
-        >>> len(trial.sdtm["DM"])
-        50
-        """  # noqa: E501
+        Examples
+        --------
+        List a study's SDTM datasets:
+
+        ```{python}
+        import trialforge as tf
+
+        trial = tf.study("parallel_continuous", n=50, seed=1)
+        list(trial.sdtm)
+        ```
+
+        Besides the domains every study has, this archetype has the safety domains (CM, AE,
+        MH, LB, VS) and the supplemental qualifiers of AE (SUPPAE). DM has one row per
+        subject:
+
+        ```{python}
+        trial.sdtm["DM"].head()
+        ```
+        """
         return self._cached(
             "sdtm", lambda: {name: self._frame(name) for name in self._core.sdtm_names}
         )
@@ -644,10 +859,24 @@ class Study:
 
         ADSL comes first. Every ADaM dataset is derived from the SDTM datasets alone.
 
-        >>> import trialforge as tf
-        >>> trial = tf.study("oncology_solid_tumor", n=50, seed=1)
-        >>> list(trial.adam)
-        ['ADSL', 'ADRS', 'ADTTE', 'ADTR']
+        Examples
+        --------
+        List the ADaM datasets of an oncology study:
+
+        ```{python}
+        import trialforge as tf
+
+        trial = tf.study("oncology_solid_tumor", n=50, seed=1)
+        list(trial.adam)
+        ```
+
+        After ADSL come the response (ADRS), time-to-event (ADTTE) and tumor results (ADTR)
+        datasets. ADTTE has one row per subject and parameter: progression-free and overall
+        survival for every subject, and the duration of response for responders.
+
+        ```{python}
+        trial.adam["ADTTE"].select("USUBJID", "PARAMCD", "AVAL", "CNSR", "EVNTDESC").head()
+        ```
         """
         return self._cached(
             "adam", lambda: {name: self._frame(name) for name in self._core.adam_names}
@@ -688,14 +917,28 @@ class Study:
 
         Examples
         --------
-        >>> import tempfile
-        >>> import trialforge as tf
-        >>> trial = tf.study("parallel_continuous", n=50, seed=1)
-        >>> paths = trial.write(tempfile.mkdtemp(), formats=["xpt", "csv"])
-        >>> [p.name for p in paths[:4]]
-        ['ta.xpt', 'ta.csv', 'te.xpt', 'te.csv']
-        >>> paths[-1].name
-        'truth.json'
+        Write a study's datasets as XPT and CSV files, to a temporary directory:
+
+        ```{python}
+        import tempfile
+
+        import trialforge as tf
+
+        trial = tf.study("parallel_continuous", n=50, seed=1)
+        paths = trial.write(tempfile.mkdtemp(), formats=["xpt", "csv"])
+        [p.name for p in paths]
+        ```
+
+        There are two files per dataset, one per format, in the order of `sdtm` then `adam`,
+        and `truth.json` last. The files can be read back with any reader of their format,
+        such as Polars for the CSV files:
+
+        ```{python}
+        import polars as pl
+
+        dm = next(p for p in paths if p.name == "dm.csv")
+        pl.read_csv(dm).head()
+        ```
         """
         if isinstance(formats, str):
             formats = [formats]
@@ -726,14 +969,23 @@ class Study:
 
         Examples
         --------
-        >>> import tempfile
-        >>> from pathlib import Path
-        >>> import trialforge as tf
-        >>> trial = tf.study("parallel_continuous", n=50, seed=1)
-        >>> out = Path(tempfile.mkdtemp())
-        >>> paths = trial.write_submission(out)
-        >>> [p.relative_to(out).as_posix() for p in paths if p.suffix != ".xpt"]
-        ['sdtm/define.xml', 'adam/define.xml', 'truth.json']
+        Write a submission package to a temporary directory:
+
+        ```{python}
+        import tempfile
+        from pathlib import Path
+
+        import trialforge as tf
+
+        trial = tf.study("parallel_continuous", n=50, seed=1)
+        out = Path(tempfile.mkdtemp())
+        paths = trial.write_submission(out)
+        [p.relative_to(out).as_posix() for p in paths]
+        ```
+
+        Each folder has its datasets as XPT files, followed by the `define.xml` that describes
+        them, and `truth.json` is at the top. A conformance checker that reads a submission's
+        SDTM or ADaM folder can be pointed at `sdtm/` or `adam/`.
         """
         return [Path(p) for p in self._core.write_submission(Path(path))]
 
@@ -762,10 +1014,25 @@ class Study:
 
         Examples
         --------
-        >>> import trialforge as tf
-        >>> xml = tf.study("parallel_continuous", n=50, seed=1).define_xml("adam")
-        >>> xml.splitlines()[0]
-        '<?xml version="1.0" encoding="UTF-8"?>'
+        Get the ADaM define.xml of a study, and look at its start:
+
+        ```{python}
+        import trialforge as tf
+
+        xml = tf.study("parallel_continuous", n=50, seed=1).define_xml("adam")
+        print(xml[:600])
+        ```
+
+        The document is plain text, so it can be parsed with any XML library. Here, the
+        datasets it describes, from its `ItemGroupDef` elements:
+
+        ```{python}
+        import xml.etree.ElementTree as ET
+
+        odm = "{http://www.cdisc.org/ns/odm/v1.3}"
+        root = ET.fromstring(xml)
+        [group.get("Name") for group in root.iter(f"{odm}ItemGroupDef")]
+        ```
         """
         return self._core.define_xml(standard)
 
@@ -797,15 +1064,31 @@ class Study:
 
         Examples
         --------
-        >>> import trialforge as tf
-        >>> tf.study("parallel_continuous", n=50, seed=1).verify().passed
-        True
-        >>> dirty = tf.study("parallel_continuous", n=200, seed=1, defects={"out_of_ct": 3})
-        >>> report = dirty.verify()
-        >>> report.passed, len(report.findings)
-        (False, 3)
-        >>> report.findings[0].rule
-        'L0.CT'
+        A study generated without defects passes every check:
+
+        ```{python}
+        import trialforge as tf
+
+        tf.study("parallel_continuous", n=50, seed=1).verify()
+        ```
+
+        Inject three defects, values outside their controlled terminology, and verify again:
+
+        ```{python}
+        dirty = tf.study("parallel_continuous", n=200, seed=1, defects={"out_of_ct": 3})
+        report = dirty.verify()
+        report.passed, len(report.findings)
+        ```
+
+        The study now fails, with one finding per defect. Each names the level and rule that
+        caught it, and the dataset, variable and row it is in:
+
+        ```{python}
+        for finding in report.findings:
+            print(finding)
+        ```
+
+        Pass the report to `score()` to compare the findings with the defects injected.
         """
         if level not in (2, 3):
             raise ValueError("`level` must be 2 or 3")
@@ -845,11 +1128,34 @@ class Study:
 
         Examples
         --------
-        >>> import trialforge as tf
-        >>> dirty = tf.study("parallel_continuous", n=200, seed=1, defects="light")
-        >>> score = dirty.score(dirty.verify())
-        >>> score.recall, score.precision
-        (1.0, 1.0)
+        Generate a study with the `light` profile of defects, and score trialforge's own
+        checks against them:
+
+        ```{python}
+        import trialforge as tf
+
+        dirty = tf.study("parallel_continuous", n=200, seed=1, defects="light")
+        score = dirty.score(dirty.verify())
+        score.recall, score.precision
+        ```
+
+        The checks find every defect, and every finding is a defect. A validator's findings
+        are scored the same way. This one only checks AE, so it finds just the defect injected
+        there:
+
+        ```{python}
+        from trialforge import Report
+
+        found = [f for f in dirty.verify().findings if f.dataset == "AE"]
+        partial = dirty.score(Report(passed=False, findings=found))
+        partial.recall, partial.precision
+        ```
+
+        `missed` gives the rows in `defects` of the defects it didn't find:
+
+        ```{python}
+        dirty.defects[partial.missed].select("id", "dataset", "row", "variable")
+        ```
         """
         findings = report.findings
         raw = json.loads(self._core.score([(f.level, f.rule, f.dataset, f.row) for f in findings]))
