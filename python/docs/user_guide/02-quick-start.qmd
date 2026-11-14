@@ -11,8 +11,8 @@ import great_docs as gd
 gd.enable_tbl_preview(n_head=6, n_tail=2)
 ```
 
-This is a short tour: generate a study, look at its SDTM and ADaM, check it against its targets,
-and write it out. The rest of the guide covers each step in depth.
+This is a short tour: generate a study, look at its trial design, SDTM and ADaM, check it against
+its targets, and write it out. The rest of the guide covers each step in depth.
 
 ## Generate a study
 
@@ -27,9 +27,32 @@ trial = tf.study("parallel_continuous", n=300, seed=1, indication="hypertension"
 trial
 ```
 
-The result is a `Study`. Its summary lists every dataset: the trial design datasets (TA, TE, TV, TI,
-TS), the SDTM domains, and the ADaM datasets derived from them. The study has already passed
-trialforge's checks; a study that fails one is an error, never a result.
+The result is a `Study`. Its summary gives the study identifier, the archetype, the seed and the
+data cutoff (the date the study's data runs to), and lists every dataset: the trial design datasets
+(TA, TE, TV, TI, TS), the SDTM domains, and the ADaM datasets derived from them. The study has
+already passed trialforge's checks; a study that fails one is an error, never a result.
+
+`n` is the number of randomized subjects. The seed makes the study reproducible: the same call
+gives the same data every time, so the outputs on this page are what you will see too.
+
+## The trial design
+
+The trial design datasets describe the protocol rather than the subjects. TA (trial arms) lists
+each arm's elements in order: screening, the arm's treatment, then follow-up:
+
+```{python}
+trial.sdtm["TA"].select("ARMCD", "ARM", "TAETORD", "ETCD", "ELEMENT", "EPOCH")
+```
+
+TV (trial visits) holds the planned visits, with the planned study day of each (`VISITDY`) and
+its window. A subject who stops early has an `EARLY TERMINATION` visit, which has no planned day:
+
+```{python}
+trial.sdtm["TV"].filter(pl.col("ARMCD") == "PBO").select("VISITNUM", "VISIT", "VISITDY", "TVSTRL")
+```
+
+TS (trial summary) records the title, phase, indication, planned countries and the other facts a
+registry would ask for, and TI the inclusion and exclusion criteria.
 
 ## Look at the SDTM
 
@@ -37,14 +60,23 @@ trialforge's checks; a study that fails one is an error, never a result.
 `output="pyarrow"`). Demographics:
 
 ```{python}
-trial.sdtm["DM"].select("USUBJID", "AGE", "SEX", "RACE", "ARM", "RFSTDTC")
+trial.sdtm["DM"].select("USUBJID", "SUBJID", "SITEID", "AGE", "SEX", "RACE", "ARM", "RFSTDTC")
 ```
+
+Each subject has a `SUBJID` made of the site number and the subject's order of enrollment at that
+site (`201001` is the first subject at site 201), and a `USUBJID` that prefixes it with the study
+identifier, so it is unique across studies. `RFSTDTC` is the date of first dose, which anchors the
+study days (`--DY`) of every other domain: the day of first dose is day 1 and the day before it day
+-1 (there is no day 0).
 
 Adverse events are coded to MedDRA System Organ Class names and Preferred Terms:
 
 ```{python}
 trial.sdtm["AE"].select("USUBJID", "AEDECOD", "AEBODSYS", "AESEV", "AESTDTC", "AEENDTC")
 ```
+
+SDTM dates are ISO 8601 text, and a missing end date means the event was ongoing at the end of the
+subject's participation (`AEENRTPT` says so).
 
 ## Look at the ADaM
 
@@ -54,10 +86,24 @@ subject's systolic blood pressure in ADVS, with its baseline and change from bas
 ```{python}
 trial.adam["ADVS"].filter(
     pl.col("PARAMCD") == "SYSBP", pl.col("USUBJID") == "SIMPAR01-201001"
-).select("USUBJID", "TRTP", "AVISIT", "AVAL", "BASE", "CHG")
+).select("TRTP", "AVISIT", "ADY", "AVAL", "BASE", "CHG", "ABLFL", "ANL01FL")
 ```
 
-The mean change at week 12, by treatment:
+`ABLFL` marks the baseline record, the last value on or before the day of first dose, and `BASE`
+carries it to every record; `CHG` is `AVAL - BASE` after baseline. `ANL01FL` marks the records an
+analysis by visit should use: the baseline and, for each analysis visit, the one record closest to
+the visit's planned day. Visits don't always happen on their planned day, so a subject can have two records in
+the same analysis visit. This one stopped early, the day after their week 2 visit, and their
+early termination measurements fall in the week 2 window too; the flag picks the one nearer day 15:
+
+```{python}
+trial.adam["ADVS"].filter(
+    pl.col("PARAMCD") == "SYSBP", pl.col("USUBJID") == "SIMPAR01-218005"
+).select("AVISIT", "ADY", "AVAL", "CHG", "ABLFL", "ANL01FL")
+```
+
+So filter on `ANL01FL == "Y"` to get one value per subject and visit. The mean change at week 12,
+the end of treatment, by treatment:
 
 ```{python}
 (
@@ -67,6 +113,8 @@ The mean change at week 12, by treatment:
     .agg(n=pl.len(), mean_chg=pl.col("CHG").mean().round(1))
 )
 ```
+
+Fewer than 150 subjects per arm have a week 12 value: the others discontinued before it.
 
 ## Compare targets with what was realized
 
@@ -80,7 +128,7 @@ endpoint = trial.truth["endpoint"]
 ```
 
 With 300 subjects, the realized difference is close to the target but not equal to it, as in a real
-study.
+study. The realized values are the means from the table above.
 
 ## Write it out
 
@@ -101,4 +149,5 @@ tf.formats()
 
 - [Archetypes and controls](03-archetypes.qmd): the thirteen study types and what you can set.
 - [The truth manifest](04-truth.qmd): targets, calibration and realized values.
+- [Writing files](05-writing-files.qmd): the formats and what each contains.
 - [Seeded defects](07-defects.qmd): corrupt a study on purpose to test a validator.
