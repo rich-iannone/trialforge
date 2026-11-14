@@ -28,8 +28,10 @@ nav_icons:
     "Get started": compass
     "Installation": download
     "Quick start": rocket
+    "How trialforge simulates a study": layers
     "Archetypes and controls": layout-grid
     "The truth manifest": target
+    "Checking an analysis": chart-line
     "Writing files": file-output
     "Verification": shield-check
     "Seeded defects": bug

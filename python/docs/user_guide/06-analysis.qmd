@@ -1,0 +1,341 @@
+---
+title: Checking an analysis
+guide-section: "Using the output"
+---
+
+The truth manifest records what a standard analysis of a study's ADaM datasets gives. If your
+analysis program reads the same datasets and gets the same numbers, it reads the data the way the
+analysis intends: the right records, the right censoring, the right treatment variable. If it gets
+different numbers, the manifest tells you what the right ones are.
+
+This page works through the analyses of an oncology study (Kaplan-Meier medians, a stratified Cox
+model and response rates) with numpy and polars, and the safety summaries of a parallel-group study.
+It then turns the comparison into a test that runs over many studies, and uses the manifest's
+targets to check a statistical property of the analysis rather than its arithmetic.
+
+## What the manifest computes
+
+Each realized value is defined by the records it uses and the method applied to them. Match both,
+and your program reproduces the value to the last reported digit (the manifest rounds to four
+decimal places).
+
+| Value | Records | Method |
+|---|---|---|
+| Kaplan-Meier median (OS, PFS) | ADTTE, `PARAMCD` `OS` or `PFS`, by `TRT01P` | Time is `AVAL` in days divided by 30.4375 (months); an event is `CNSR == 0`. The median is the first time at which the survival estimate is 0.5 or less |
+| Stratified Cox hazard ratio | The same records | The first arm vs. the second (Drug A vs. control), stratified by `STRAT1R`, Breslow's method for tied times, a Wald 95% confidence interval |
+| Confirmed response rate | ADRS, `PARAMCD == "CBOR"`, by `TRT01P` | `AVALC` `CR` or `PR`, over all randomized subjects |
+| Mean change at the end of treatment | ADVS or ADLB, the endpoint's `PARAMCD`, the end-of-treatment visit, `ANL01FL == "Y"`, by `TRTP` | The mean of `CHG` (see [The truth manifest](05-truth.qmd#reproducing-a-realized-value)) |
+| TEAE incidence | ADAE `TRTEMFL == "Y"` by `TRTA`, over ADSL subjects by `TRT01A` | Subjects with at least one treatment-emergent AE |
+| Discontinuation | ADSL by `TRT01A` | Subjects with a reason for discontinuing the study (`DCSREAS`) |
+
+The other archetypes' sections are listed in [The truth manifest](05-truth.qmd#sections-by-archetype).
+
+## Kaplan-Meier medians
+
+Start with an oncology study and its time-to-event dataset:
+
+```{python}
+import numpy as np
+import polars as pl
+import trialforge as tf
+
+onc = tf.study("oncology_solid_tumor", n=400, seed=1)
+adtte = onc.adam["ADTTE"]
+adtte.select("USUBJID", "TRT01P", "STRAT1R", "PARAMCD", "AVAL", "CNSR", "EVNTDESC").head()
+```
+
+`CNSR` is 0 for an event and 1 for a censored time, as in every ADaM time-to-event dataset. The
+Kaplan-Meier estimate drops at each event time by the share of subjects still at risk who have the
+event then. At a time with both events and censorings, the censored subjects count as at risk:
+
+```{python}
+def km_median(time: np.ndarray, event: np.ndarray) -> float | None:
+    """The Kaplan-Meier median: the first time the survival estimate is at most 0.5."""
+    at_risk, survival = len(time), 1.0
+    for t in np.unique(time):
+        here = time == t
+        events = event[here].sum()
+        if events:
+            survival *= 1 - events / at_risk
+            if survival <= 0.5:
+                return float(t)
+        at_risk -= here.sum()
+    return None
+
+
+def tte(adtte: pl.DataFrame, paramcd: str) -> pl.DataFrame:
+    """One parameter's records, with time in months and an event indicator."""
+    return adtte.filter(pl.col("PARAMCD") == paramcd).with_columns(
+        months=pl.col("AVAL") / 30.4375, event=pl.col("CNSR") == 0
+    )
+
+
+os_ = tte(adtte, "OS")
+{
+    arm: round(km_median(d["months"].to_numpy(), d["event"].to_numpy()), 4)
+    for (arm,), d in os_.group_by("TRT01P", maintain_order=True)
+}
+```
+
+These are the manifest's medians:
+
+```{python}
+{arm: v["km_median_months"] for arm, v in onc.truth["overall_survival"]["by_arm"].items()}
+```
+
+The median is in months because the manifest divides days by 30.4375 (365.25 / 12). An analysis
+in days or weeks gets the same estimate in other units.
+
+## A stratified Cox model
+
+The hazard ratio is the estimate of a Cox proportional hazards model with one covariate, the
+treatment arm, stratified by the randomization stratum: each stratum has its own baseline hazard,
+and the treatment effect is common to them. For a binary covariate, the Newton-Raphson iterations
+for the partial likelihood are short enough to write out. At each event time, the score adds the
+difference between the treatment indicator of each subject with the event and its weighted mean
+over the risk set, and the information adds the weighted variance:
+
+```{python}
+def cox_breslow(
+    time: np.ndarray, event: np.ndarray, x: np.ndarray, strata: np.ndarray
+) -> tuple[float, float]:
+    """Log hazard ratio and its standard error for a binary covariate (Breslow ties)."""
+    beta = 0.0
+    for _ in range(50):
+        score = information = 0.0
+        for s in np.unique(strata):
+            t, e, xs = time[strata == s], event[strata == s], x[strata == s]
+            for u in np.unique(t[e]):
+                at_risk = t >= u
+                w = np.exp(beta * xs[at_risk])
+                mean = (w * xs[at_risk]).sum() / w.sum()
+                died = e & (t == u)
+                score += (xs[died] - mean).sum()
+                information += died.sum() * (mean - mean**2)
+        step = score / information
+        beta += np.clip(step, -5, 5)
+        if abs(step) < 1e-10:
+            return beta, 1 / np.sqrt(information)
+    raise RuntimeError("the Cox model did not converge")
+
+
+Z_975 = 1.959963984540054  # the 97.5th percentile of the standard normal
+
+
+def hazard_ratio(adtte: pl.DataFrame, paramcd: str, treated: str) -> tuple[float, float, float]:
+    """The stratified Cox hazard ratio of `treated` vs. the other arm, with its 95% CI."""
+    d = tte(adtte, paramcd)
+    beta, se = cox_breslow(
+        d["months"].to_numpy(),
+        d["event"].to_numpy(),
+        (d["TRT01P"] == treated).to_numpy().astype(float),
+        d["STRAT1R"].to_numpy(),
+    )
+    return tuple(float(np.exp(beta + k * Z_975 * se)) for k in (0, -1, 1))
+
+
+[round(v, 4) for v in hazard_ratio(adtte, "OS", "Drug A")]
+```
+
+The same estimate and interval as the manifest:
+
+```{python}
+onc.truth["overall_survival"]["stratified_cox_hr"]
+```
+
+The first arm in `truth["arms"]` is the treated arm of the comparison, so `hazard_ratio(adtte,
+"OS", onc.truth["arms"][0])` works for any two-arm archetype, whatever its arms are called.
+
+### Tied times
+
+Breslow's method and Efron's treat tied event times differently, and they give different estimates
+when there are many ties. Deaths have exact dates, so overall survival has few ties and both methods
+give 0.6733 here. Progression is only observed at a tumor assessment, so many subjects progress on
+the same study day, and the two methods differ in the third decimal place for progression-free
+survival: 0.5863 with Breslow's method, as the manifest reports, and 0.5833 with Efron's.
+
+```{python}
+pfs_hr = hazard_ratio(adtte, "PFS", "Drug A")
+[round(v, 4) for v in pfs_hr], onc.truth["progression_free_survival"]["stratified_cox_hr"]
+```
+
+R's `survival::coxph()` uses Efron's method by default, and Python's lifelines uses it always. To
+reproduce the manifest in R, ask for Breslow's:
+
+```r
+library(survival)
+library(trialforge)
+
+trial <- study("oncology_solid_tumor", n = 400, seed = 1)
+os <- subset(trial$adam$ADTTE, PARAMCD == "OS")
+os$arm <- relevel(factor(os$TRT01P), ref = "Control")
+fit <- coxph(
+  Surv(AVAL / 30.4375, CNSR == 0) ~ arm + strata(STRAT1R),
+  data = os, ties = "breslow"
+)
+round(exp(c(coef(fit), confint(fit))), 4)
+#> armDrug A
+#>    0.6733    0.5088    0.8910
+```
+
+## Response rates
+
+The confirmed best overall response is a parameter of ADRS (`CBOR`), with one record per randomized
+subject. Subjects who were never assessed have `AVALC` `MISSING` (or `NE`, not evaluable) and count
+as non-responders, so the denominator is everyone randomized:
+
+```{python}
+(
+    onc.adam["ADRS"]
+    .filter(pl.col("PARAMCD") == "CBOR")
+    .group_by("TRT01P")
+    .agg(
+        n=pl.len(),
+        responders=pl.col("AVALC").is_in(["CR", "PR"]).sum(),
+    )
+    .with_columns(proportion=(pl.col("responders") / pl.col("n")).round(4))
+    .sort("TRT01P")
+)
+```
+
+```{python}
+onc.truth["confirmed_orr"]
+```
+
+Use `CBOR`, not `BOR`: the best overall response counts a partial response that a later assessment
+never confirmed, which RECIST 1.1 doesn't count as a response in a randomized study. (Lugano 2014
+needs no confirmation, so `heme_lymphoma` reports its response rate from `BOR`.)
+
+## Safety summaries
+
+A parallel-group study's manifest also has the incidence of treatment-emergent adverse events and of
+discontinuation. Both are subject counts over the subjects in each arm of ADSL:
+
+```{python}
+trial = tf.study("parallel_continuous", n=300, seed=1, indication="hypertension", weeks=12)
+adsl, adae = trial.adam["ADSL"], trial.adam["ADAE"]
+
+with_teae = (
+    adae.filter(pl.col("TRTEMFL") == "Y")
+    .group_by("TRTA")
+    .agg(subjects_with_teae=pl.col("USUBJID").n_unique())
+    .rename({"TRTA": "TRT01A"})
+)
+(
+    adsl.group_by("TRT01A")
+    .agg(n=pl.len(), discontinued=pl.col("DCSREAS").is_not_null().sum())
+    .join(with_teae, on="TRT01A", how="left")
+    .with_columns(
+        teae=(pl.col("subjects_with_teae") / pl.col("n")).round(4),
+        discontinuation=(pl.col("discontinued") / pl.col("n")).round(4),
+    )
+    .sort("TRT01A")
+)
+```
+
+```{python}
+{
+    "teae_incidence": trial.truth["teae_incidence"],
+    "discontinuation": trial.truth["discontinuation"]["realized_any_reason"],
+}
+```
+
+Count subjects, not events (`n_unique()`, not `len()`), and only treatment-emergent ones: AEs that
+started before the first dose are in ADAE too, with `TRTEMFL` null.
+
+## Testing an analysis program
+
+One study checks one path through your program. A test over several studies, each with different
+controls, checks the paths a single study doesn't take: a null treatment effect, crossover after
+progression, an interim cut with few events, an archetype whose arms have other names. Each study
+takes well under a second to generate, so a test suite can generate its own data:
+
+```{python}
+CASES = [
+    ("oncology_solid_tumor", {"seed": 2}),
+    ("oncology_solid_tumor", {"seed": 3, "os_hr": 1.0}),
+    ("oncology_solid_tumor", {"seed": 4, "crossover_prob": 0.5}),
+    ("oncology_solid_tumor", {"seed": 5, "interim_months": 12}),
+    ("heme_lymphoma", {"seed": 6}),
+]
+
+
+def test_os_hazard_ratio(archetype: str, controls: dict[str, object]) -> None:
+    trial = tf.study(archetype, n=300, **controls)
+    expected = trial.truth["overall_survival"]["stratified_cox_hr"]
+    hr, lower, upper = hazard_ratio(trial.adam["ADTTE"], "OS", trial.truth["arms"][0])
+    assert abs(hr - expected["hr"]) < 1e-4
+    assert abs(lower - expected["ci95"][0]) < 1e-4
+    assert abs(upper - expected["ci95"][1]) < 1e-4
+
+
+for archetype, controls in CASES:
+    test_os_hazard_ratio(archetype, controls)
+"all cases pass"
+```
+
+The comparison allows for the manifest's rounding to four decimal places, and nothing more. With
+pytest, parametrize the test over the cases:
+
+```python
+import pytest
+
+
+@pytest.mark.parametrize(("archetype", "controls"), CASES)
+def test_os_hazard_ratio(archetype: str, controls: dict[str, object]) -> None:
+    ...
+```
+
+Compare against the realized values, never the targets: the realized values are what *this*
+study's data give, and the targets differ from them by sampling error. Fix the seeds, so that a
+failure is reproducible.
+
+When the numbers don't match, the usual causes are:
+
+- **The records**: a missing parameter filter (ADTTE has several parameters per subject), or the
+analysis flag `ANL01FL` left out of a BDS analysis.
+- **The censoring**: `CNSR` is 1 for censored, the opposite of an event indicator.
+- **The treatment variable**: actual (`TRT01A`, `TRTA`) where the analysis uses planned (`TRT01P`,
+`TRTP`), or the other way round.
+- **The model**: an unstratified Cox model, Efron's method for ties, or the arms the other way round
+(a hazard ratio of 1.485 is 1 / 0.6733).
+- **The population**: responders over the evaluable subjects rather than all randomized.
+
+## Checking statistical properties
+
+Agreement with the realized values shows that a program computes what it means to. The targets
+answer a different question: whether the analysis estimates what it should. Every study from one
+set of controls is a sample from the same population, so across many studies, the 95% confidence
+interval of an unbiased analysis should contain the target in about 95% of them.
+
+Overall survival has an exact proportional hazards model, so its target hazard ratio is the
+estimand of the stratified Cox model. Over 100 studies:
+
+```{python}
+target = 0.75
+estimates = []
+for seed in range(1, 101):
+    t = tf.study("oncology_solid_tumor", n=200, seed=seed, os_hr=target)
+    hr, lower, upper = hazard_ratio(t.adam["ADTTE"], "OS", "Drug A")
+    estimates.append((hr, lower, upper))
+
+hr, lower, upper = np.array(estimates).T
+{
+    "coverage": float(np.mean((lower <= target) & (target <= upper))),
+    "geometric mean HR": round(float(np.exp(np.log(hr).mean())), 4),
+    "SD of log HR": round(float(np.log(hr).std(ddof=1)), 4),
+    "mean standard error": round(float(np.mean(np.log(upper / lower) / (2 * Z_975))), 4),
+}
+```
+
+The estimates center on the target, and their spread is close to the standard errors the model
+reports, so the intervals have about their nominal coverage (98 of 100 here; with 100 studies, the
+coverage is only known to within a few percentage points). trialforge's test suite has a longer version of
+this check, run on demand, which requires the coverage over 1,000 studies to be between 93% and 97%.
+
+The same approach checks a method's properties under conditions you choose: the coverage of a
+hazard ratio diluted by crossover (`crossover_prob`), the power of a test at a given effect size
+(the share of studies whose interval excludes 1), or the bias of an estimator at an interim cut.
+Progression-free survival is a poorer candidate for this kind of check: its hazard ratio target
+applies to the latent time to progression, while the observed endpoint combines progression,
+dated at assessments, with death.

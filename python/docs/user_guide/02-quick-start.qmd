@@ -147,7 +147,9 @@ tf.formats()
 
 ## Next steps
 
-- [Archetypes and controls](03-archetypes.qmd): the thirteen study types and what you can set.
-- [The truth manifest](04-truth.qmd): targets, calibration and realized values.
-- [Writing files](05-writing-files.qmd): the formats and what each contains.
-- [Seeded defects](07-defects.qmd): corrupt a study on purpose to test a validator.
+- [How trialforge simulates a study](03-simulation.qmd): the models behind the data.
+- [Archetypes and controls](04-archetypes.qmd): the thirteen study types and what you can set.
+- [The truth manifest](05-truth.qmd): targets, calibration and realized values.
+- [Checking an analysis](06-analysis.qmd): reproduce the manifest's values from the ADaM.
+- [Writing files](07-writing-files.qmd): the formats and what each contains.
+- [Seeded defects](09-defects.qmd): corrupt a study on purpose to test a validator.

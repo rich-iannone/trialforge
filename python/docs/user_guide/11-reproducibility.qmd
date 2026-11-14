@@ -30,7 +30,7 @@ again = tf.study("vaccine", n=100, seed=trial.seed)
 again.define_xml("sdtm") == trial.define_xml("sdtm") and again.truth == trial.truth
 ```
 
-The seed is also in the [truth manifest](04-truth.qmd) and in the summary line of the study, so a
+The seed is also in the [truth manifest](05-truth.qmd) and in the summary line of the study, so a
 `truth.json` written next to the files is enough to regenerate them.
 
 Seeds are whole numbers from 0 to `tf.MAX_SEED` (2^53, the largest range of integers that R's
@@ -171,4 +171,4 @@ tf.__version__, tf.core_version()
 ```
 
 `tf.core_version()` is the version of the Rust engine that generated the data. A
-[study spec](08-study-specs.qmd) together with the version is a complete record of a study.
+[study spec](10-study-specs.qmd) together with the version is a complete record of a study.

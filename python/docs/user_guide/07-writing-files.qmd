@@ -21,7 +21,7 @@ out = Path(tempfile.mkdtemp())
 ## A submission package
 
 `Study.write_submission()` writes `sdtm/` and `adam/` folders, each with one SAS transport (XPT v5)
-file per dataset and a Define-XML 2.1 `define.xml`, plus the [truth manifest](04-truth.qmd) as
+file per dataset and a Define-XML 2.1 `define.xml`, plus the [truth manifest](05-truth.qmd) as
 `truth.json`:
 
 ```{python}
@@ -48,7 +48,7 @@ sorted(p.name for p in written)[:6]
 ```
 
 Files are named by the lower-case dataset name, such as `dm.xpt`, with SDTM and ADaM side by side.
-`truth.json` is written with them, and a study with [defects](07-defects.qmd) also gets
+`truth.json` is written with them, and a study with [defects](09-defects.qmd) also gets
 `defects.json`. `write()` doesn't write define.xml; use `write_submission()` or `define_xml()`
 (below) for that.
 
@@ -164,7 +164,7 @@ Writing the same study twice gives byte-identical files. The creation timestamps
 Dataset-JSON and define.xml carry are set to the study's data cutoff rather than the time of writing,
 and nothing else depends on the machine or the clock. So you can check files into version control,
 compare them with a checksum, or regenerate them later and get the same bytes (see
-[Reproducibility](09-reproducibility.qmd)).
+[Reproducibility](11-reproducibility.qmd)).
 
 ## DataFrames
 

@@ -49,7 +49,7 @@ tf.study("vaccine", n=20, seed=1)
 If that prints a study with its list of datasets, the engine works: the study was generated and
 passed every check. `tf.__version__` is the package version and `tf.core_version()` the version of
 the Rust engine inside it, which together identify the data a request gives (see
-[Reproducibility](09-reproducibility.qmd)):
+[Reproducibility](11-reproducibility.qmd)):
 
 ```{python}
 tf.__version__, tf.core_version()

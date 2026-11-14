@@ -69,6 +69,8 @@ round(mean["Drug A 10 mg"] - mean["Placebo"], 4), endpoint["realized_difference"
 If your program gets a different answer from the same data, the manifest tells you where to look:
 a different visit, missing the `ANL01FL` filter (which would count a subject twice when two of their
 records fall in the visit's window), or the actual rather than the planned treatment.
+[Checking an analysis](06-analysis.qmd) reproduces the survival and response values the same way,
+and turns the comparison into a test.
 
 ## Sampling variation
 

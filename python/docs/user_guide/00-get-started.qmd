@@ -24,9 +24,10 @@ Real clinical-trial data is confidential, and the public example studies are few
 trialforge is for the work that needs realistic data in quantity, or data with known properties:
 
 - **Developing and testing analysis programs**: tables, listings and figures, ADaM derivations,
-statistical models. The [truth manifest](04-truth.qmd) says what the answer should be.
+statistical models. The [truth manifest](05-truth.qmd) says what the answer should be (see
+[Checking an analysis](06-analysis.qmd)).
 - **Testing validators and data pipelines**: conformance checkers, edit checks, SDTM-to-ADaM
-pipelines. [Seeded defects](07-defects.qmd) put known errors in known places and score what the
+pipelines. [Seeded defects](09-defects.qmd) put known errors in known places and score what the
 validator finds.
 - **Teaching and demos**: SDTM and ADaM for many kinds of study, internally consistent, with no
 privacy concerns.
@@ -39,7 +40,8 @@ models are plausible rather than validated for any disease or drug: don't use it
 treatment effect or to power a real trial. The SDTM is what a well-run study would have, so it is
 cleaner than a real one unless you ask for defects, and it has no raw (EDC) layer before SDTM.
 Adverse events are coded to MedDRA and medications to RxNorm and ATC *names*: the package carries
-no MedDRA or WHODrug codes and can't code real data.
+no MedDRA or WHODrug codes and can't code real data. See
+[What the model leaves out](03-simulation.qmd#what-the-model-leaves-out) for the details.
 
 ## A short orientation to CDISC
 
@@ -95,16 +97,21 @@ first solves for the parameters of its latent model that give that target, and t
 reports the target next to what the study's ADaM shows. Everything random is drawn from seeded
 streams, so a request always gives the same study, on any platform and in either language.
 
+[How trialforge simulates a study](03-simulation.qmd) describes each step and its models in
+detail, and what they leave out.
+
 ## How this guide is organized
 
 - **Getting started**: [Installation](01-installation.qmd) and a [Quick start](02-quick-start.qmd)
 tour.
-- **Generating studies**: the [archetypes and their controls](03-archetypes.qmd), and the
-[truth manifest](04-truth.qmd) that reports targets against realized values.
-- **Using the output**: [writing files](05-writing-files.qmd) (XPT, CSV, Dataset-JSON, Parquet and
-define.xml) and [verification](06-verification.qmd).
-- **Testing validators**: [seeded defects](07-defects.qmd) and how to score a validator's findings.
-- **Reproducible requests**: [study specs](08-study-specs.qmd), JSON or YAML files that describe a
-study, and [reproducibility](09-reproducibility.qmd): seeds and what stays stable.
+- **Generating studies**: [how trialforge simulates a study](03-simulation.qmd), the
+[archetypes and their controls](04-archetypes.qmd), and the [truth manifest](05-truth.qmd) that
+reports targets against realized values.
+- **Using the output**: [checking an analysis](06-analysis.qmd) against the truth manifest,
+[writing files](07-writing-files.qmd) (XPT, CSV, Dataset-JSON, Parquet and define.xml) and
+[verification](08-verification.qmd).
+- **Testing validators**: [seeded defects](09-defects.qmd) and how to score a validator's findings.
+- **Reproducible requests**: [study specs](10-study-specs.qmd), JSON or YAML files that describe a
+study, and [reproducibility](11-reproducibility.qmd): seeds and what stays stable.
 
 The [reference](../reference/) documents every function and class.

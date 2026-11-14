@@ -135,7 +135,7 @@ Some controls change a study's structure, not just its numbers:
 
 Some controls are clinical targets rather than model parameters: a median survival, a hazard ratio
 or a response rate. trialforge calibrates its latent model so that the study is expected to hit the
-target, and the [truth manifest](04-truth.qmd) reports the target next to what the generated data
+target, and the [truth manifest](05-truth.qmd) reports the target next to what the generated data
 realized. The oncology controls are of this kind:
 
 ```{python}
@@ -168,7 +168,7 @@ interim with the same seed and controls gives two cuts of one study, as a sponso
 - `n`: the number of randomized subjects (300 by default). In `phase1_sad_mad` it is split evenly
 across the dose cohorts. In `dose_escalation` it is the maximum sample size: a 3+3 design stops
 once it has found the maximum tolerated dose, so it may treat fewer.
-- `seed`{.gd-no-link}: the root seed (see [Reproducibility](09-reproducibility.qmd)).
+- `seed`{.gd-no-link}: the root seed (see [Reproducibility](11-reproducibility.qmd)).
 - `studyid`{.gd-no-link}: `STUDYID`; each archetype has a default, such as `SIMPAR01`.
 - `output`: the DataFrame type of `Study.sdtm` and `Study.adam`.
-- `defects`{.gd-no-link}: data-quality defects to inject (see [Seeded defects](07-defects.qmd)).
+- `defects`{.gd-no-link}: data-quality defects to inject (see [Seeded defects](09-defects.qmd)).

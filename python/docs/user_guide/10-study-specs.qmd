@@ -43,10 +43,10 @@ Define-XML 2.1 and the 2024-09-27 CDISC controlled terminology (`ct`). Stating t
 fail loudly, rather than silently give different data, if it is run by a build with other versions.
 - `population`: `n`, the number of randomized subjects (300 if omitted).
 - `controls`{.gd-no-link}: the archetype's controls, merged over its defaults (see
-[Archetypes and controls](03-archetypes.qmd)). They are checked exactly as `tf.study()` checks
+[Archetypes and controls](04-archetypes.qmd)). They are checked exactly as `tf.study()` checks
 keyword arguments.
 - `data_quality`: `defects`{.gd-no-link}, a profile name or a mapping of defect types to counts
-and rates (see [Seeded defects](07-defects.qmd)).
+and rates (see [Seeded defects](09-defects.qmd)).
 - `outputs`: for the command-line tool, the `layout` (`submission` or `flat`, the default) and, for
 `flat`, the `formats`{.gd-no-link} (`[xpt]` by default).
 

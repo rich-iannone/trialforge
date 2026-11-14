@@ -1,0 +1,325 @@
+---
+title: How trialforge simulates a study
+guide-section: "Generating studies"
+---
+
+This page explains what happens inside `tf.study()`: the models behind the data, how they fit
+together, and where they stop. You don't need it to generate a study, but it helps you read one:
+which patterns are designed in, which are sampling variation, and which a real study would have
+that a synthetic one doesn't.
+
+## Layers
+
+A study is built in layers, and each layer is built only from the ones before it:
+
+| Layer | What it holds | Built from |
+|---|---|---|
+| Design | Arms and allocation, visits and their windows, sites, the calendar, the trial design datasets | The archetype and its controls |
+| Enrollment | Subjects: site, demographics, stratum, arm, consent, screening and randomization dates | The design |
+| Courses | One timeline per subject: what happened to them and when | Each subject and the archetype's disease and treatment model |
+| SDTM | What the protocol would have observed of each course | The timelines and the design |
+| ADaM | The analysis datasets | The SDTM datasets alone |
+| Verification | Structural, referential and derivational checks | The SDTM and ADaM datasets |
+| Truth manifest | Targets and realized values | The controls and the ADaM datasets |
+
+The boundaries are strict. The SDTM code never sees the model's parameters, only the timelines,
+and the ADaM code never sees the timelines, only the SDTM datasets. That is what makes the datasets
+agree with each other: each one is a function of the one before it, as in a real study, rather than
+a separate draw from the model.
+
+## Design and enrollment
+
+An archetype turns its controls into a design: the arms and their allocation ratio, the visit
+schedule with each visit's window, the sites and their countries, the enrollment period and the
+stratification factors. The trial design datasets (TA, TE, TV, TI, TS) are written from it
+directly.
+
+Each subject then draws a baseline from their own random stream, in a fixed order: a site, age,
+sex, race, ethnicity, a stratum, and dates for consent, screening and randomization within the
+enrollment period. Subjects are enrolled in order of randomization date, and `SUBJID` is the site
+number followed by the subject's sequence at that site. Arms are assigned by permuted blocks within
+each stratum, in enrollment order, as an interactive response system would assign them, so the
+arms stay balanced within every stratum:
+
+```{python}
+import polars as pl
+import trialforge as tf
+
+onc = tf.study("oncology_solid_tumor", n=400, seed=1)
+onc.adam["ADSL"].group_by("STRAT1R", "TRT01P").len().sort("STRAT1R", "TRT01P")
+```
+
+## Subject courses
+
+Each subject's course is simulated in full before anything is recorded. The course is a
+*timeline*: the subject's exposure to treatment, the visits they attended, their adverse events,
+medications and medical history, their measurements, and (depending on the archetype) tumor
+assessments, PK samples or clinical events, all with dates.
+
+In a fixed-duration study, such as `parallel_continuous`, each subject's course is simulated in
+this order:
+
+1. **Adverse events.** Each Preferred Term in the reference set is a Poisson process with its own
+background rate, scaled by a subject-level frailty (some subjects have more AEs of every kind) and,
+while the subject is on treatment, by the arm's relative risk for that term.
+2. **Disposition.** Three candidate times compete: discontinuation because of an AE (more likely
+for a severe one), dropout for another reason, and death. The earliest one before the end of
+treatment ends the subject's participation early; otherwise they complete treatment and follow-up.
+3. **Visits.** Each planned visit falls on a day within its window, and some on-treatment visits
+are missed. A subject who leaves early has an early-termination visit, unless they were lost to
+follow-up or died.
+4. **Dosing.** Daily dosing from Day 1 to the last dose, with interruptions for some AEs, recorded
+as one exposure interval per dispensing visit.
+5. **History, medications and measurements.** Medical history (more likely with age), chronic
+medications for ongoing conditions, acute medications for some AEs, and labs and vital signs at the
+attended visits.
+
+The adverse events of step 1 are drawn over the whole period the subject *could* be observed for,
+before disposition is known; disposition then decides when observation stops, and anything after
+that is never recorded. Simulating the potential course first and cutting it short second keeps
+every draw unconditional: a subject who drops out on day 30 drew the same AEs for days 1 to 30 as
+they would have if they had stayed. Changing one control therefore changes only what depends on it
+(see [Reproducibility](11-reproducibility.qmd)).
+
+### Following one subject
+
+The datasets show how the steps of a course interact. Take a subject whose adverse event led to
+the withdrawal of study treatment:
+
+```{python}
+trial = tf.study("parallel_continuous", n=300, seed=1, indication="hypertension", weeks=12)
+sdtm = trial.sdtm
+
+subject = sdtm["AE"].filter(pl.col("AEACN") == "DRUG WITHDRAWN")["USUBJID"][0]
+mine = pl.col("USUBJID") == subject
+
+sdtm["AE"].filter(mine).select(
+    "AEDECOD", "AESEV", "AEACN", "AESTDTC", "AEENDTC", "AESTDY", "AEENRTPT"
+)
+```
+
+The muscle spasms start on Day 72 and lead to withdrawal of treatment. The last dose is the next
+day, Day 73, which ends the last of four exposure intervals (they are split at the week 2, 4 and 8
+dispensing visits):
+
+```{python}
+sdtm["EX"].filter(mine).select("EXSEQ", "EXTRT", "EXSTDTC", "EXENDTC", "EXSTDY", "EXENDY")
+```
+
+The visits stop too. The week 12 visit never happens; an early-termination visit takes its place
+the day after the last dose. Each attended visit falls within its window, so the week 2 visit is on
+Day 12 rather than Day 15:
+
+```{python}
+sdtm["SV"].filter(mine).select("VISITNUM", "VISIT", "VISITDY", "SVSTDTC", "SVSTDY")
+```
+
+Disposition records the AE as the reason for ending both treatment and the study, on the date of
+the early-termination visit:
+
+```{python}
+sdtm["DS"].filter(mine).select("DSDECOD", "DSCAT", "DSSCAT", "DSSTDTC", "DSSTDY")
+```
+
+The AE has no end date because it hadn't resolved by the subject's last contact, which is what
+`AEENRTPT` (`ONGOING` at the end of the study) records. None of these records was written to agree
+with the others; they agree because they all record one timeline.
+
+### Measurements
+
+Labs and vital signs follow a simple model of each analyte. A subject has a stable level of their
+own, drawn around the population mean (which differs by sex) with a between-subject standard
+deviation; related analytes (the liver enzymes, the red-cell measures, systolic and diastolic
+blood pressure) share part of it. Each measurement adds
+within-subject noise to that level. Where the analyte is the study's endpoint, the arm's treatment
+effect builds up from Day 1 to its full size at the end of treatment, then wears off during
+follow-up. An inclusion criterion on a screening value is met by re-drawing the subject's level
+until their screening measurement qualifies.
+
+The hypertension preset enrolls subjects with a screening systolic blood pressure of 140 mmHg or
+more:
+
+```{python}
+(
+    sdtm["VS"]
+    .filter(pl.col("VSTESTCD") == "SYSBP")
+    .group_by("VISITNUM", "VISIT")
+    .agg(
+        n=pl.len(),
+        mean=pl.col("VSSTRESN").mean().round(1),
+        below_140=(pl.col("VSSTRESN") < 140).sum(),
+    )
+    .sort("VISITNUM")
+)
+```
+
+Every screening value is at least 140, but the baseline values on Day 1 are not: a subject whose
+screening value was high partly by chance measures lower the next time. This regression to the mean
+is a property of real trials with an entry criterion on the endpoint, and it falls out of the model
+rather than being added to it. The mean then falls as the treatment effect builds up over the 12
+weeks, and rises again at follow-up as the effect wears off.
+
+### Other courses
+
+The fixed-duration course is the base of most archetypes. Others add a *layer* to it: a model of
+their own that adds records to each subject's timeline, or changes it.
+
+| Course | Archetypes | What it adds |
+|---|---|---|
+| Fixed duration | `parallel_continuous`, `dose_ranging_ph2` | The course above |
+| Fixed + PK | `phase1_sad_mad`, `crossover_be` | Timed doses and concentrations from a one- or two-compartment population PK model (PC), with NCA (PP); the crossover layer splits the course into periods and washouts |
+| Fixed + dose finding | `dose_escalation` | Each cohort's dose, chosen by the escalation rule from DLTs that come from latent per-subject tolerances |
+| Fixed + growth | `pediatric_growth` | A birth date, and height and weight on the CDC 2000 charts, with height growing at each arm's velocity on treatment |
+| Fixed + cognition | `cns_alzheimers` | ADAS-Cog item responses (FT) from an item response model of a worsening latent cognitive impairment |
+| Fixed + eyes | `ophthalmology` | Visual acuity and retinal thickness in each eye (OE), and the study eye (SC) |
+| Fixed + exacerbations | `respiratory_exacerbation` | Negative binomial exacerbations (CE) and FEV1 (RE) |
+| Fixed + vaccine | `vaccine` | Antibody titers (IS) and 7-day reactogenicity diaries (FACE, CE) |
+| Oncology | `oncology_solid_tumor`, `heme_lymphoma` | Correlated latent times to progression and death, a latent response, and tumor assessments every 8 weeks (TU, TR, RS) by RECIST 1.1 or Lugano 2014; the study ends at a data cutoff |
+| Outcomes | `cv_outcomes` | Recurrent and terminal clinical events (CE) with a subject-level frailty; the study ends when a target number of first MACE events have occurred |
+
+The oncology and outcomes courses are event-driven, with a model of their own rather than a layer
+on the fixed course, and they have no AE, CM, MH, LB or VS domains (see
+[Archetypes and controls](04-archetypes.qmd)).
+
+## Latent and observed
+
+A course holds two kinds of thing: what happened, and what was seen. A subject's progression has a
+date in the course, but the study only learns of it at the next tumor assessment; an analyte has a
+true level, but the study only sees noisy measurements of it at attended visits. SDTM records the
+observations, never the latent values, so the data have the same gap between the two that a real
+study has.
+
+In the oncology archetype, every progression event in ADTTE is dated at the first assessment with
+an overall response of progressive disease in RS:
+
+```{python}
+first_pd = (
+    onc.sdtm["RS"]
+    .filter(pl.col("RSTESTCD") == "OVRLRESP", pl.col("RSSTRESC") == "PD")
+    .group_by("USUBJID")
+    .agg(first_pd=pl.col("RSDTC").min().str.to_date())
+)
+progressed = (
+    onc.adam["ADTTE"]
+    .filter(pl.col("PARAMCD") == "PFS", pl.col("EVNTDESC") == "Disease Progression")
+    .join(first_pd, on="USUBJID")
+)
+(progressed["ADT"] == progressed["first_pd"]).all()
+```
+
+So the progression dates cluster at the scheduled assessments (weeks 8, 16, 24 and so on, give or
+take the assessment window), wherever the latent progression fell between them:
+
+```{python}
+weeks = ((progressed["ADT"] - progressed["STARTDT"]).dt.total_days() / 7).round(0)
+weeks.alias("week").cast(pl.Int64).value_counts(sort=True).head(6)
+```
+
+This is why the realized PFS median sits on an assessment date rather than on the latent median the
+controls set (see [Latent and observed medians](05-truth.qmd#latent-and-observed-medians)).
+
+## SDTM from timelines
+
+One emitter per domain writes the SDTM datasets from the timelines, and all archetypes share them:
+the AE domain of a vaccine study and of an Alzheimer's study come from the same code. The emitters
+derive what SDTM derives (study days, `EPOCH`, sequence numbers, baseline flags, reference start and
+end dates in DM), code adverse events to MedDRA System Organ Class and Preferred Term names and
+medications to RxNorm ingredients and ATC classes from open dictionaries, and take every controlled
+value from a snapshot of CDISC Controlled Terminology. Because the emitters read only timelines, a
+new kind of process extends the timeline and the emitters, and every archetype that uses it gets
+the same SDTM.
+
+## ADaM from SDTM
+
+The ADaM datasets are derived from the SDTM datasets, looking variables up by name, as a study's
+programmers would derive them. trialforge follows the templates of
+[admiral](https://pharmaverse.github.io/admiral/) and its extensions: `TRTSDT` is the first
+exposure date in EX, `CHG` is `AVAL - BASE`, and a confirmed response follows admiralonco's rules.
+For every subject:
+
+```{python}
+exposure = sdtm["EX"].group_by("USUBJID").agg(
+    first=pl.col("EXSTDTC").min().str.to_date(),
+    last=pl.col("EXENDTC").max().str.to_date(),
+)
+adsl = trial.adam["ADSL"].join(exposure, on="USUBJID")
+advs = trial.adam["ADVS"].filter(pl.col("CHG").is_not_null())
+
+{
+    "TRTSDT is the first dose": (adsl["TRTSDT"] == adsl["first"]).all(),
+    "TRTEDT is the last dose": (adsl["TRTEDT"] == adsl["last"]).all(),
+    "CHG is AVAL - BASE": ((advs["AVAL"] - advs["BASE"] - advs["CHG"]).abs() < 1e-9).all(),
+}
+```
+
+What a real study takes from outside SDTM is passed in the same way: the randomization strata (from
+the response system) and the data cutoff. Nothing in the ADaM comes from the simulation directly, so
+a correct derivation program run on the SDTM gives the same ADaM. trialforge's development checks
+run admiral, admiralonco and the other pharmaverse packages on its SDTM, and PKNCA for the PK
+parameters, and require every value to match.
+
+## Verification
+
+Every study then passes trialforge's checks of its structure, the references between datasets, and
+its derivations (see [Verification](08-verification.qmd)). The checks are written independently of
+the SDTM and ADaM code, so the derivational ones are genuine recomputations: RECIST responses
+recomputed from the TR measurements, NCA parameters from the PC concentrations, confirmed responses
+and event dates from RS. A study that fails a check is an error in trialforge, never a result.
+
+## Calibration
+
+Most controls are parameters of the model itself: a mean change from baseline is the size of the
+treatment effect at the end of treatment, an annual rate is the rate of a Poisson process, and a
+hazard ratio multiplies a hazard. A few are targets for something the model only produces
+indirectly, and those are calibrated: trialforge solves for the latent parameters that give the
+target.
+
+- **Survival medians** (oncology): overall survival and the latent time to progression have Weibull
+distributions, with hazards multiplied by the arm and the stratum. The scale that gives the target
+median in the control arm, averaged over the strata, is solved exactly.
+- **Confirmed response rates** (oncology): whether a latent responder's response is confirmed
+depends on the assessment schedule and on progression and death, so the probability of being a
+latent responder is solved by simulation, on a fixed cohort of 40,000 subjects.
+
+Calibration depends only on the controls, never on the seed or the number of subjects, and its
+result is cached. Every study from one set of controls is a sample from the same population, so
+their realized values scatter around the targets (see [The truth manifest](05-truth.qmd)).
+
+## Randomness
+
+Every random value comes from a seeded stream addressed by a path, such as the study seed, then the
+subject, then the process. Each subject, process, adverse event term and analyte has its own stream,
+so they don't share random numbers: adding an analyte doesn't change the others, and a subject's
+course doesn't depend on any other subject's. In the oncology course, every subject draws the same
+latent uniforms in the same order whatever their arm, so arms differ only through the parameters
+applied to those draws. The maths is portable, so a seed gives the same study on every platform and
+in both languages (see [Reproducibility](11-reproducibility.qmd)).
+
+## What the model leaves out
+
+The models are built to give data with the structure and the relationships of a real study, not to
+reproduce any real disease or drug. In particular:
+
+- **The reference data are plausible defaults, not epidemiology.** The lab panel and vital signs,
+background AE rates, medical history prevalences and medication indications are reasonable for an
+adult trial population, not estimates from any real one. The effects you set are the effects you
+get.
+- **Covariates matter only where the model says so.** Lab and vital-sign means differ by sex,
+medical history by age and sex, and the event-driven studies by their stratification factor.
+Otherwise baseline characteristics don't affect a subject's course: there are no age effects on
+adverse events, for example, and no subgroup differences in the treatment effect.
+- **Domains don't drive one another.** An adverse event can interrupt or end treatment and lead to a
+medication, but labs don't produce adverse events (a raised ALT doesn't become a hepatic AE), and
+adverse events don't move labs or vital signs.
+- **Missing data are missing at random, and simply so.** Visits are missed with a fixed probability,
+and dropout follows a hazard that doesn't depend on the subject's endpoint, so trialforge can't
+produce informative dropout to test a method for missing-not-at-random data.
+- **The data are clean.** Generated SDTM has what a well-run study would have, with no queries,
+data entry errors or protocol deviations beyond those recorded as a reason for leaving; ask for
+[seeded defects](09-defects.qmd) to test what happens otherwise. There is no raw (EDC) layer.
+- **The dictionaries are small and open.** Adverse events are coded to about 190 MedDRA Preferred
+Term *names* across the System Organ Classes, without MedDRA codes, and medications to about 60
+RxNorm ingredients with their ATC classes, not WHODrug.
+- **Each archetype fixes its calendar** and the shape of its design. The controls change what a
+protocol would vary (durations, effects, rates, allocation), not the design itself: you can't add an
+arm to `vaccine` or a visit to `parallel_continuous`.

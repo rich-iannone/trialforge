@@ -93,7 +93,7 @@ trial.verify()
 `Report.waived` lists level 3 findings that were waived (see below).
 
 A study straight from `tf.study()` always passes levels 0 to 2, so `verify()` is mostly useful in two
-cases: with [seeded defects](07-defects.qmd), where it runs the checks on the defective datasets
+cases: with [seeded defects](09-defects.qmd), where it runs the checks on the defective datasets
 and gives a report to score, and with level 3.
 
 ## Level 3
@@ -120,7 +120,7 @@ present.
 ## Findings
 
 Each failed check is a `Finding`, naming its level, rule, dataset, variable and (zero-based) row.
-A generated study never has any, so to see some, ask for a few [seeded defects](07-defects.qmd):
+A generated study never has any, so to see some, ask for a few [seeded defects](09-defects.qmd):
 
 ```{python}
 dirty = tf.study(
