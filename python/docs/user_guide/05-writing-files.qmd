@@ -64,7 +64,7 @@ point), integer, date or datetime.
 | Character | Blank-padded to the longest value | Text, quoted when needed | `string` with its `length` | `Utf8` |
 | Numeric and integer | 8-byte IBM floating point | Shortest round-trip form | `double` and `integer` | `Float64` and `Int64` |
 | Date | SAS date (days since 1960-01-01), `DATE9.` format | `YYYY-MM-DD` | `date`: ISO 8601 text, `targetDataType` `integer` | `Date32` |
-| Datetime | SAS datetime (seconds since 1960-01-01), `DATETIME20.` format | `YYYY-MM-DDThh:mm`, with seconds if not zero | `datetime`: ISO 8601 text, `targetDataType` `integer` | Timestamp |
+| Datetime | SAS datetime (seconds since 1960-01-01), `DATETIME20.` format | `YYYY-MM-DDThh:mm`, with seconds if not zero | `datetime`: ISO 8601 text, `targetDataType` `integer` | `Timestamp` (milliseconds) |
 | Missing | Blank (character) or `.` (numeric) | Empty field | `null` | Null |
 
 SDTM dates (`--DTC`) are always character, ISO 8601 text that may carry a clock time;
