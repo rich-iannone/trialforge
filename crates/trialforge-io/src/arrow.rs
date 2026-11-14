@@ -1,14 +1,19 @@
 //! Dataset → Arrow `RecordBatch` (feature `arrow`).
 //!
 //! Types: `Char` → `Utf8`, `Num` → `Float64`, `Int` → `Int64`, `Date` → `Date32`, `DateTime`
-//! → `Timestamp(Second)` without a time zone. Labels travel
-//! as `label` metadata on each field and on the schema (with the dataset `name`).
+//! → `Timestamp(Millisecond)` without a time zone. Labels travel as `label` metadata on each
+//! field and on the schema (with the dataset `name`).
+//!
+//! Datetimes are whole seconds, but Parquet has no second unit: a `Timestamp(Second)` column is
+//! written as a bare INT64, which PyArrow and pandas read back as integers. Milliseconds keep the
+//! in-memory tables and the Parquet files the same type.
 
 use std::collections::HashMap;
 use std::sync::Arc;
 
 use arrow_array::{
-    ArrayRef, Date32Array, Float64Array, Int64Array, RecordBatch, StringArray, TimestampSecondArray,
+    ArrayRef, Date32Array, Float64Array, Int64Array, RecordBatch, StringArray,
+    TimestampMillisecondArray,
 };
 use arrow_schema::{ArrowError, DataType, Field, Schema, TimeUnit};
 use trialforge_core::{Dataset, Values};
@@ -32,9 +37,11 @@ pub fn to_record_batch(ds: &Dataset) -> Result<RecordBatch, ArrowError> {
                 )),
             ),
             Values::DateTime(v) => (
-                DataType::Timestamp(TimeUnit::Second, None),
-                Arc::new(TimestampSecondArray::from(
-                    v.iter().map(|d| d.map(|d| d.seconds())).collect::<Vec<_>>(),
+                DataType::Timestamp(TimeUnit::Millisecond, None),
+                Arc::new(TimestampMillisecondArray::from(
+                    v.iter()
+                        .map(|d| d.map(|d| d.seconds() * 1000))
+                        .collect::<Vec<_>>(),
                 )),
             ),
         };
