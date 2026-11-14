@@ -5,7 +5,12 @@ guide-section: "Reproducible requests"
 
 A trialforge study is a pure function of its request: the archetype, `n`, the seed, `studyid`{.gd-no-link},
 the controls and the defects. The same request gives byte-identical files on every platform, and
-from Python and R alike.
+from Python and R alike. Nothing else goes in: not the time, the machine, the DataFrame backend or
+the order in which studies were generated.
+
+That makes a study something you can refer to rather than store. A test suite can regenerate its
+fixtures instead of checking in megabytes of XPT, a bug report can say "seed 41, 200 subjects", and
+a colleague using R can look at the same data you see in Python.
 
 ## Seeds
 
@@ -13,6 +18,7 @@ Pass `seed=` to fix a study. With no seed, trialforge draws a fresh one and reco
 can be reproduced later:
 
 ```{python}
+import polars as pl
 import trialforge as tf
 
 trial = tf.study("vaccine", n=100)
@@ -24,12 +30,17 @@ again = tf.study("vaccine", n=100, seed=trial.seed)
 again.define_xml("sdtm") == trial.define_xml("sdtm") and again.truth == trial.truth
 ```
 
+The seed is also in the [truth manifest](04-truth.qmd) and in the summary line of the study, so a
+`truth.json` written next to the files is enough to regenerate them.
+
 Seeds are whole numbers from 0 to `tf.MAX_SEED` (2^53, the largest range of integers that R's
 doubles hold exactly, so a seed means the same in both languages):
 
 ```{python}
 tf.MAX_SEED
 ```
+
+Neighboring seeds give unrelated studies: there is no sense in which seed 2 is close to seed 1.
 
 ## Random streams
 
@@ -52,12 +63,90 @@ strings are labels:
 tf.stream_seed(1, ["subject", 17, "ae"])
 ```
 
+You don't need stream seeds to use trialforge; they are there to explain, and to test, which draws
+a change can reach.
+
+## What a control changes
+
+A control changes the datasets that depend on what it controls, and nothing else. Here are four
+controls of a hypertension study, each changed on its own, with the SDTM datasets that change:
+
+```{python}
+def changed(**controls: object) -> list[str]:
+    base = tf.study("parallel_continuous", n=300, seed=1, indication="hypertension")
+    other = tf.study("parallel_continuous", n=300, seed=1, indication="hypertension", **controls)
+    return [name for name in base.sdtm if not base.sdtm[name].equals(other.sdtm[name])]
+
+
+{
+    "change": changed(change=[-4, -15]),
+    "missed_visit": changed(missed_visit=0.2),
+    "ae_rate_multiplier": changed(ae_rate_multiplier=3.0),
+    "dropout_rate": changed(dropout_rate=0.3),
+}
+```
+
+- A larger treatment effect only moves the post-baseline blood pressures in VS. The subjects, their
+visits, adverse events and labs are the same.
+- More missed visits remove visits (SV) and with them the measurements (LB, VS) and the study drug
+dispensed at them (EX).
+- More adverse events change AE and SUPPAE, and CM, where medications are taken for them. They
+reach further, because an adverse event can lead to discontinuation: those subjects' participation
+ends earlier, which changes their reference end dates (DM), disposition (DS), elements (SE), visits,
+exposure, and every record after the new end date.
+- A higher dropout rate ends more subjects' participation early, with the same reach.
+
+Medical history is drawn before treatment from each subject's own stream, so it is unchanged in all
+four. The trial design datasets (TA, TE, TV, TI, TS) depend only on the design.
+
+`studyid`{.gd-no-link} changes no random draw: a study with another identifier has the same data,
+with the new `STUDYID` and the subject identifiers built from it.
+
+## What changing `n` changes
+
+Each subject's own draws (their site, age, sex, race, ethnicity, enrollment date, medical history
+and the course of their disease) come from the subject's stream, so they don't depend on how many
+other subjects there are. Two things are study-level sequences instead, as in a real study:
+
+- **Subject numbers**: `SUBJID` is the site number and the subject's place in the site's
+  enrollment order, so a subject enrolled earlier at the same site moves everyone after them up one.
+- **Arm assignment**: randomization is in permuted blocks, in enrollment order, so a new subject
+  takes a slot in a block and shifts the assignments after it.
+
+Compare a 300-subject study with the same request for 301. Subjects are matched on their baseline
+characteristics:
+
+```{python}
+small = tf.study("parallel_continuous", n=300, seed=1)
+large = tf.study("parallel_continuous", n=301, seed=1)
+
+baseline = ["SITEID", "RFICDTC", "AGE", "SEX", "RACE", "ETHNIC"]
+pairs = small.sdtm["DM"].join(large.sdtm["DM"], on=baseline, suffix="_301")
+pairs.select(
+    matched=pl.len(),
+    same_usubjid=(pl.col("USUBJID") == pl.col("USUBJID_301")).sum(),
+    same_arm=(pl.col("ARM") == pl.col("ARM_301")).sum(),
+)
+```
+
+All 300 subjects are still there, with the same baseline. The extra subject enrolled early at site
+205, so the few subjects enrolled after them at that site were renumbered, and the block slots of
+everyone randomized after them (in the same stratum, where there are strata) shifted, changing many
+of their arms. A subject's medical history, baseline measurements
+and the random parts of their course are the same whatever their arm, so a subject who keeps their
+arm keeps their data; one whose arm changed gets that arm's treatment effect and adverse event
+rates.
+
+So a study with more subjects is a different study, not the same one extended. To compare designs on
+the same subjects, keep `n` and the seed fixed and change the controls.
+
 ## Across platforms and languages
 
 trialforge doesn't use the platform's math library for random values (implementations differ in
 the last bit from one system to the next) but a pure-Rust one, and its random draws are defined by
-the engine, not by Python or R. Golden test cases pin the XPT bytes of reference studies, and the
-test suites of both packages check them.
+the engine, not by Python or R. Golden test cases pin the XPT bytes of reference studies: the Python
+package is tested against them on Linux, macOS and Windows, and the R package replays the same
+cases.
 
 The R package gives the same data for the same request:
 
@@ -68,6 +157,9 @@ trial <- study("vaccine", n = 100, seed = 1)
 
 R row numbers count from 1 and Python's from 0; `defects.json` is zero-based in both.
 
+The DataFrame backend doesn't matter either: `output="pandas"` and `output="pyarrow"` hold the same
+values as Polars, and the files written are the same whichever you chose.
+
 ## Across releases
 
 The data for a given request can change between trialforge releases, when a model or a derivation
@@ -77,3 +169,6 @@ version with the seed and controls:
 ```{python}
 tf.__version__, tf.core_version()
 ```
+
+`tf.core_version()` is the version of the Rust engine that generated the data. A
+[study spec](08-study-specs.qmd) together with the version is a complete record of a study.
