@@ -8,6 +8,12 @@ subjects' courses unfold, and the SDTM and ADaM datasets a study of that type wo
 *controls* are the settings you can change, each with a default, so `tf.study("vaccine")` alone
 gives a complete, plausible study.
 
+The split between the two is deliberate. The archetype fixes what makes a study of its kind
+correct: which domains it has, how its visits are planned, how responses are assessed and how the
+analysis datasets are derived. The controls expose what varies from one study of that kind to the
+next, stated in the terms a protocol or a statistical analysis plan would use: the treatment
+duration, the expected effect, the dropout rate, the allocation ratio.
+
 ## The archetypes
 
 `tf.archetypes()` lists them with one-line descriptions:
@@ -34,6 +40,13 @@ tf.archetypes()
 | `vaccine` | Placebo-controlled one- or two-dose vaccine study: neutralizing antibody titers (IS), 7-day reactogenicity diaries (FACE, CE, VS) |
 | `ophthalmology` | Active-controlled non-inferiority study of intravitreal Drug A in neovascular AMD: study and fellow eye visual acuity and retinal thickness |
 
+Every archetype has the trial design datasets and the domains any study has: demographics (DM),
+subject elements and visits (SE, SV), exposure (EX) and disposition (DS), with ADSL. All but three
+also have the safety domains, adverse events (AE, with SUPPAE), concomitant medications (CM),
+medical history (MH), labs (LB) and vital signs (VS), with ADAE, ADLB and ADVS, and add their own
+domains to them. The oncology archetypes and `cv_outcomes` focus on efficacy: tumor data (TU, TR,
+RS) with ADRS and ADTTE, or clinical events (CE) with ADTTE.
+
 ## Controls
 
 `tf.controls()` lists an archetype's controls, each with a description and its default:
@@ -51,8 +64,8 @@ trial.controls
 
 `Study.controls` is the full set the study used, defaults included, so it records the whole request.
 
-Controls are checked before anything is generated. A misspelt name is an error that lists the valid
-ones, and so is a value of the wrong type or out of range:
+Controls are checked before anything is generated. A misspelled name is an error that lists the
+valid ones, and so is a value of the wrong type or out of range:
 
 ```{python}
 try:
@@ -60,6 +73,63 @@ try:
 except ValueError as e:
     print(e)
 ```
+
+Values are checked against each other too, where they interact: an oncology study's progression
+median must be shorter than its survival median, and its data cutoff later than the end of
+enrollment.
+
+```{python}
+try:
+    tf.study("oncology_solid_tumor", n=200, seed=1, pfs_median_months=20, os_median_months=15)
+except ValueError as e:
+    print(e)
+```
+
+## Indication presets
+
+`parallel_continuous` (and `dose_ranging_ph2`, which shares its design) takes an `indication` that
+chooses a preset. A preset is more than an endpoint: it sets the population and the study around
+it, so that a type 2 diabetes study looks like one and an obesity study like another.
+
+| Preset | Endpoint | Change at end of treatment (placebo, active) | Population |
+|---|---|---|---|
+| `type_2_diabetes` | HbA1c (LB, `HBA1C`) | -0.2, -1.0 % | Adults with HbA1c 7.0–10.5% at screening, most on background metformin |
+| `hypertension` | Systolic blood pressure (VS, `SYSBP`) | -4, -12 mmHg | Adults with sitting SBP 140–180 mmHg at screening |
+| `obesity` | Body weight (VS, `WEIGHT`) | -1.5, -8 kg | Adults with a BMI of at least 30 kg/m^2^ |
+
+Beyond the endpoint, each preset sets the age and BMI distributions, the baseline means of its
+analytes and the eligibility criteria in TI, the medical history every subject has and the
+background medication in CM, the trial title and objective in TS, and which adverse events are more
+common on the active drug (gastrointestinal events for type 2 diabetes and obesity, dizziness and
+peripheral edema for hypertension). The effect develops over the first weeks of treatment, at a
+pace that suits the endpoint.
+
+Other controls refine a preset rather than replace it. `change=[-4, -11]` keeps the hypertension
+study and changes only the effect; `comparator="active"` makes the control arm an active comparator
+(with equal effects unless `change` says otherwise), and `ni_margin` adds a non-inferiority analysis
+to the truth manifest:
+
+```{python}
+ni = tf.study(
+    "parallel_continuous", n=200, seed=1, indication="hypertension", comparator="active", ni_margin=3
+)
+ni.truth["non_inferiority"]
+```
+
+## Controls that change the design
+
+Some controls change a study's structure, not just its numbers:
+
+| Archetype | Control | Choices |
+|---|---|---|
+| `crossover_be` | `design`{.gd-no-link} | `2x2` (TR/RT), `2x2x4` (TRTR/RTRT, replicate) or `food_effect` (fed/fasted) |
+| `phase1_sad_mad` | `part` | `sad` (one dose) or `mad` (once-daily dosing for `mad_days`) |
+| `phase1_sad_mad` | `compartments` | a 1- or 2-compartment PK model |
+| `dose_escalation` | `method` | `3+3`, `boin` or `mtpi2` |
+| `vaccine` | `doses` | a one- or two-dose primary series |
+| `parallel_continuous` | `comparator` | `placebo` or `active` |
+| Several archetypes | `ratio` | the allocation ratio, in arm order |
+| Fixed-duration archetypes | `weeks` | the treatment duration, which sets the visit schedule |
 
 ## Controls that are clinical targets
 
@@ -72,20 +142,32 @@ realized. The oncology controls are of this kind:
 [c.name for c in tf.controls("oncology_solid_tumor")]
 ```
 
+The medians, hazard ratios and response rates are targets; the Weibull shapes and the correlation
+between progression and death are parameters of the model that shape the curves around them.
+
+Elsewhere, a control is the population value of what the study's analysis estimates: a mean change
+from baseline, a geometric mean titer, an exacerbation rate ratio, a geometric mean ratio of AUC.
+These need no calibration, and the truth manifest reports them as targets in the same way.
+
 ## Modifiers of event-driven studies
 
 `oncology_solid_tumor` and `heme_lymphoma` take a crossover-on-progression modifier
 (`crossover_prob`, `crossover_os_hr`): control subjects who progress may switch to Drug A, in a
 `CONTINUATION TREATMENT` element, and their survival follows the Drug A hazard from then on.
+Crossover happens after progression, so it leaves the progression-free survival calibration
+unchanged but dilutes the observed overall survival difference, as it does in real studies.
 
 Event-driven studies can also be cut early. `interim_months` on the oncology archetypes and
 `interim_events` on `cv_outcomes` give an interim snapshot of the same study, with the same subjects
 and courses, cut at the earlier date. Subjects randomized after the cut are absent, TS records the
-interim cutoff, and `trial.truth["interim"]` reports it.
+interim cutoff, and `trial.truth["interim"]` reports it. Generating the final analysis and an
+interim with the same seed and controls gives two cuts of one study, as a sponsor would see them.
 
 ## Other arguments
 
-- `n`: the number of randomized subjects.
+- `n`: the number of randomized subjects (300 by default). In `phase1_sad_mad` it is split evenly
+across the dose cohorts. In `dose_escalation` it is the maximum sample size: a 3+3 design stops
+once it has found the maximum tolerated dose, so it may treat fewer.
 - `seed`{.gd-no-link}: the root seed (see [Reproducibility](09-reproducibility.qmd)).
 - `studyid`{.gd-no-link}: `STUDYID`; each archetype has a default, such as `SIMPAR01`.
 - `output`: the DataFrame type of `Study.sdtm` and `Study.adam`.
