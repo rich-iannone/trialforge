@@ -8,38 +8,47 @@ of subjects, the controls, any defects, and the outputs. It is the same request 
 call, in a form you can keep under version control, share, and run from Python, R or the command
 line. The format is defined by a [JSON Schema](https://github.com/rich-iannone/trialforge/blob/main/spec/study-spec.schema.json).
 
+A spec is useful when the request matters more than the code around it: a reference study a team
+tests against, the input of a CI job, or a study you want to hand to someone who uses R or the
+command line instead of Python.
+
 ## A spec
 
 This one asks for a 12-week hypertension study with 240 subjects, written as a submission package:
 
 ```yaml
-spec_version: 0
+spec_version: 0                       # the spec format version; 0 is the only one so far
 study:
-  archetype: parallel_continuous
-  studyid: HTN001
-  seed: 20261013
+  archetype: parallel_continuous      # the study type (see tf.archetypes())
+  studyid: HTN001                     # STUDYID; each archetype has a default
+  seed: 20261013                      # required: a spec always describes one exact study
   standards: { sdtmig: "3.4", adamig: "1.3", define: "2.1" }
 population:
-  n: 240
-controls:
+  n: 240                              # randomized subjects (300 if omitted)
+controls:                             # merged over the archetype's defaults
   indication: hypertension
   weeks: 12
-  change: [-4, -11]
+  change: [-4, -11]                   # mean change at week 12: placebo, Drug A (mmHg)
   dropout_rate: 0.12
 outputs:
-  layout: submission
+  layout: submission                  # sdtm/ and adam/ with XPT and define.xml
 ```
 
-- `study`{.gd-no-link}: the archetype, the seed and optionally `studyid`{.gd-no-link}.
+The sections:
+
+- `study`{.gd-no-link}: the archetype, the seed and optionally `studyid`{.gd-no-link}. The seed is
+required, unlike in `tf.study()`, because a spec without one wouldn't describe a single study.
 `standards`, when given, must name the versions this build supports: SDTMIG 3.4, ADaMIG 1.3,
-Define-XML 2.1 and the 2024-09-27 CDISC controlled terminology.
-- `population`: `n`, the number of randomized subjects.
+Define-XML 2.1 and the 2024-09-27 CDISC controlled terminology (`ct`). Stating them makes the spec
+fail loudly, rather than silently give different data, if it is run by a build with other versions.
+- `population`: `n`, the number of randomized subjects (300 if omitted).
 - `controls`{.gd-no-link}: the archetype's controls, merged over its defaults (see
-[Archetypes and controls](03-archetypes.qmd)).
+[Archetypes and controls](03-archetypes.qmd)). They are checked exactly as `tf.study()` checks
+keyword arguments.
 - `data_quality`: `defects`{.gd-no-link}, a profile name or a mapping of defect types to counts
 and rates (see [Seeded defects](07-defects.qmd)).
-- `outputs`: for the command-line tool, the `layout` (`submission` or `flat`) and, for `flat`, the
-`formats`{.gd-no-link}.
+- `outputs`: for the command-line tool, the `layout` (`submission` or `flat`, the default) and, for
+`flat`, the `formats`{.gd-no-link} (`[xpt]` by default).
 
 The schema also sketches sections for later releases (`design`, `endpoints`, `safety`, `dropout`).
 A spec that uses them is an error rather than being silently ignored.
@@ -72,8 +81,94 @@ direct = tf.study("parallel_continuous", n=300, seed=1, indication="hypertension
 from_spec.define_xml("adam") == direct.define_xml("adam") and from_spec.truth == direct.truth
 ```
 
-The `outputs` section is for the command-line tool; from Python, write files with `Study.write()`
-or `Study.write_submission()`.
+A dict works the same way, which is handy when the spec is built in code:
+
+```{python}
+tf.study_from_spec(
+    {
+        "study": {"archetype": "vaccine", "seed": 7},
+        "population": {"n": 50},
+        "controls": {"doses": 1},
+        "data_quality": {"defects": "light"},
+    }
+)
+```
+
+`study_from_spec()` takes the same `output` argument as `tf.study()`. The `outputs` section is for
+the command-line tool; from Python, write files with `Study.write()` or `Study.write_submission()`.
+
+## Errors
+
+A spec is checked in full before anything is generated, and every part of it is checked strictly: a
+misspelled key is an error, never ignored. A spec without a seed:
+
+```{python}
+try:
+    tf.study_from_spec("study:\n  archetype: parallel_continuous\n")
+except ValueError as e:
+    print(e)
+```
+
+A misspelled section:
+
+```{python}
+try:
+    tf.study_from_spec(
+        "study:\n  archetype: parallel_continuous\n  seed: 1\npopulaton:\n  n: 100\n"
+    )
+except ValueError as e:
+    print(e)
+```
+
+A section reserved for a later release:
+
+```{python}
+try:
+    tf.study_from_spec(
+        "study:\n  archetype: parallel_continuous\n  seed: 1\ndropout:\n  rate: 0.1\n"
+    )
+except ValueError as e:
+    print(e)
+```
+
+A standard this build doesn't support:
+
+```{python}
+try:
+    tf.study_from_spec(
+        "study:\n  archetype: parallel_continuous\n  seed: 1\n  standards: {sdtmig: '3.3'}\n"
+    )
+except ValueError as e:
+    print(e)
+```
+
+Misspelled controls and defect types give the same errors as in `tf.study()`.
+
+## Saving a request as a spec
+
+A study records everything a spec needs, so you can turn a study made in code into a spec file.
+`Study.controls` holds every control, defaults included:
+
+```{python}
+import json
+
+trial = tf.study("parallel_continuous", n=200, seed=5, indication="obesity", weeks=52)
+saved = {
+    "spec_version": 0,
+    "study": {"archetype": trial.archetype, "studyid": trial.studyid, "seed": trial.seed},
+    "population": {"n": trial.truth["n"]},
+    "controls": trial.controls,
+}
+print(json.dumps(saved, indent=2))
+```
+
+A `null` control takes its value from another one: here `change`{.gd-no-link} comes from the
+indication's preset, and there is no non-inferiority margin. Add a `data_quality` section by hand if
+the study had defects. Regenerating from the spec gives the same study:
+
+```{python}
+tf.study_from_spec(saved).truth == trial.truth
+```
 
 ## From the command line
 
@@ -87,4 +182,17 @@ trialforge archetypes
 trialforge controls parallel_continuous
 ```
 
-It is built from the repository with `cargo install --path crates/trialforge-cli`.
+`generate` writes to `trialforge-out/` unless `-o` names another directory. `--formats xpt,csv`
+overrides the spec's formats (and its layout), and `--submission` writes the submission layout
+whatever the spec says. `summary` prints each dataset's row count, the verification result, any
+defects and the truth manifest, so it is a quick way to see what a spec gives.
+
+The command-line tool is a Rust program, separate from the Python package. Install it with Cargo
+(from [rustup](https://rustup.rs)):
+
+```bash
+cargo install --git https://github.com/rich-iannone/trialforge trialforge-cli
+```
+
+or, from a clone of the repository, `cargo install --path crates/trialforge-cli`. It writes every
+format, Parquet included, and gives the same data as the Python and R packages of the same version.
