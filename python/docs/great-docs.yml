@@ -55,8 +55,18 @@ reference:
     contents:
       - study
       - study_from_spec
+      # The attributes stay on the class page; the methods are listed in the sections below.
       - name: Study
-        members: true
+        members: [adam, archetype, controls, cutoff, defects, sdtm, seed, studyid, truth]
+
+  - title: Writing files
+    desc:
+      Study.write() writes every dataset in one or more formats, and Study.write_submission()
+      writes SDTM and ADaM folders of XPT files with their define.xml.
+    contents:
+      - Study.write
+      - Study.write_submission
+      - Study.define_xml
 
   - title: Archetypes and controls
     desc: The study types trialforge can generate, the controls each accepts, and the file formats.
@@ -72,6 +82,8 @@ reference:
       Study.verify() returns a Report of findings; Study.score() matches a report's findings
       against a study's injected defects.
     contents:
+      - Study.verify
+      - Study.score
       - name: Report
         members: true
       - name: Finding
