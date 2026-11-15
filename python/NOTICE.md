@@ -4,11 +4,11 @@ trialforge's own code is licensed under the MIT License (see `LICENSE`). The pac
 material from the third parties listed here, which remains under its owners' terms. None of these
 organizations is affiliated with trialforge or endorses it.
 
-<!--
-  DRAFT for the pre-release licensing review (PLAN.md §11 and §16.2). Comments like this one mark
-  what to confirm before the first release; remove them once each point is settled. Keep the
-  copy in python/NOTICE.md identical (it ships in the wheels and the sdist).
--->
+If you hold rights in any of this material and have a concern about how trialforge uses it, please
+open an issue at https://github.com/rich-iannone/trialforge/issues or write to riannone@me.com, and
+the material will be changed or removed promptly.
+
+<!-- Keep the copy in python/NOTICE.md identical (it ships in the wheels and the sdist). -->
 
 ## Clinical data standards
 
@@ -21,26 +21,22 @@ Dataset-JSON 1.1. Its metadata bundle (`crates/trialforge-cdisc/assets/sdtmig-3.
 types, core designations, structures and keys as the implementation guides define them.
 
 CDISC, SDTM, ADaM, Define-XML and Dataset-JSON are standards of the Clinical Data Interchange
-Standards Consortium (CDISC), https://www.cdisc.org. The implementation guides are © CDISC.
-
-<!--
-  Confirm: that redistributing variable names, labels and core designations (not the guides'
-  text) is consistent with CDISC's terms of use for its standards, and whether CDISC asks for a
-  specific attribution or trademark statement.
--->
+Standards Consortium (CDISC), https://www.cdisc.org. The standards and implementation guides are
+© CDISC. trialforge contains none of their text, only the metadata that datasets conforming to
+them carry.
 
 ### CDISC Controlled Terminology
 
 `crates/trialforge-cdisc/assets/ct/2024-09-27.tsv` is a subset (859 terms in 56 codelists) of
 CDISC Controlled Terminology, release 2024-09-27, which CDISC develops and the U.S. National Cancer
 Institute's Enterprise Vocabulary Services (NCI EVS) publishes as part of the NCI Thesaurus,
-https://evs.nci.nih.gov/ftp1/CDISC/. The file's `source` column records where each term was
-taken from.
+https://evs.nci.nih.gov/ftp1/CDISC/. The NCI Thesaurus, including CDISC Controlled Terminology, is
+licensed under the Creative Commons Attribution 4.0 International License (CC BY 4.0),
+https://creativecommons.org/licenses/by/4.0/.
 
-<!--
-  Confirm: the NCI Thesaurus license (believed to be CC BY 4.0, which requires this attribution)
-  and any CDISC terms specific to CT.
--->
+trialforge includes a selection of the terms. The file's `source` column records where each term
+was taken from; the few marked `sponsor extension` are not CDISC terms but extend extensible
+codelists.
 
 ## Coding dictionaries
 
@@ -52,42 +48,41 @@ Organ Class. They contain no MedDRA codes and none of the Lowest Level Term, Hig
 High Level Group Term levels. This is not MedDRA, and it is not suitable for coding real data: use
 a licensed copy of MedDRA for that.
 
+The names are included only so that the synthetic adverse event and medical history records read
+realistically. At 211 names, the file is well within the fewer than 1,000 terms that the MedDRA
+MSSO allows in published examples. The names remain ICH's and are not covered by trialforge's MIT
+License.
+
 MedDRA® the Medical Dictionary for Regulatory Activities terminology is the international medical
 terminology developed under the auspices of the International Council for Harmonisation of
 Technical Requirements for Pharmaceuticals for Human Use (ICH). MedDRA® is a registered trademark
 of ICH. https://www.meddra.org
 
-<!--
-  Confirm with the MedDRA MSSO (mssohelp@meddra.org) that an open-source package may redistribute
-  these SOC and PT names without codes, and the attribution they require. If not, replace the
-  terms with invented MedDRA-shaped ones. This is the review's highest-risk item.
--->
-
 ### RxNorm ingredient names
 
 `crates/trialforge-cdisc/assets/dictionaries/rxnorm_ingredients.tsv` contains 56 RxNorm
-ingredient names.
+ingredient names, in upper case. All are RxNorm's own normalized names (SAB=RXNORM), which NLM
+creates and which are in the public domain. They were checked against RxNorm on 2026-11-15 and
+are not kept up to date with its releases; use RxNorm itself for current data,
+https://www.nlm.nih.gov/research/umls/rxnorm/.
 
-This product uses publicly available data from the U.S. National Library of Medicine (NLM),
-National Institutes of Health, Department of Health and Human Services; NLM is not responsible
-for the product and does not endorse or recommend this or any other product.
-https://www.nlm.nih.gov/research/umls/rxnorm/
+This product uses publicly available data courtesy of the U.S. National Library of Medicine
+(NLM), National Institutes of Health, Department of Health and Human Services; NLM is not
+responsible for the product and does not endorse or recommend this or any other product.
 
-<!--
-  Confirm: that all 56 names come from RxNorm's own (SAB=RXNORM) content, which NLM releases
-  without restriction, rather than from a restricted source vocabulary.
--->
+Nelson SJ, Zeng K, Kilbourne J, Powell T, Moore R. Normalized names for clinical drugs: RxNorm at
+6 years. J Am Med Inform Assoc. 2011;18(4):441–448.
 
 ### ATC classification
 
 The same file gives each ingredient one of 32 therapeutic subgroup (level 2) names from the
-Anatomical Therapeutic Chemical (ATC) classification system of the WHO Collaborating Centre for
-Drug Statistics Methodology, Oslo, https://atcddd.fhi.no. It contains no ATC codes or DDDs.
+Anatomical Therapeutic Chemical (ATC) classification system, used as the drug class (`CMCLAS`) of
+the synthetic concomitant medication records. It contains no ATC codes, DDDs or other part of
+the ATC/DDD Index. The names remain under the WHO Collaborating Centre's terms and are not covered
+by trialforge's MIT License.
 
-<!--
-  Confirm: the WHOCC's terms for reproducing ATC group names (its copyright notice restricts
-  copying the ATC/DDD Index for commercial distribution).
--->
+Source: WHO Collaborating Centre for Drug Statistics Methodology, Oslo, Norway,
+https://atcddd.fhi.no. © Copyright WHO Collaborating Centre for Drug Statistics Methodology.
 
 WHODrug is not included. Use a licensed copy of WHODrug Global for coding real data.
 
@@ -107,28 +102,22 @@ development. Vital Health Stat 11. 2002;(246):1–190.
 ### ADAS-Cog
 
 `crates/trialforge-processes/assets/adas_items.tsv` names the items of the 11-item Alzheimer's
-Disease Assessment Scale – Cognitive Subscale (ADAS-Cog), with their CDISC Controlled Terminology
-codes, and their maximum scores. It contains no instrument text, instructions or scoring manual.
+Disease Assessment Scale – Cognitive Subscale (ADAS-Cog), and gives their maximum scores. The item
+names and codes are CDISC Controlled Terminology (see above). The ADAS-Cog itself is copyrighted,
+and CDISC developed its terminology with the rights holder's permission. trialforge contains none
+of the instrument's text, instructions or scoring manual; administering the scale needs the
+rights holder's permission.
 
 Rosen WG, Mohs RC, Davis KL. A new rating scale for Alzheimer's disease. Am J Psychiatry.
 1984;141(11):1356–1364.
-
-<!--
-  Confirm: whether item names and maximum scores need permission from the ADAS-Cog's rights
-  holders.
--->
 
 ### Clinical reference data
 
 The other files in `crates/trialforge-processes/assets/` (the lab panel, vital signs, background
 adverse event rates, medical history prevalence and medication indications) were written for
-trialforge as plausible defaults for an adult trial population. Their test names and codes are
-CDISC Controlled Terminology and their condition names are MedDRA Preferred Term names (see
-above).
-
-<!--
-  Confirm: that no reference range, rate or prevalence was copied from a copyrighted table.
--->
+trialforge as plausible defaults for an adult trial population, not taken from any published
+table. Their test names and codes are CDISC Controlled Terminology and their condition names are
+MedDRA Preferred Term names (see above).
 
 ## Software
 
@@ -164,59 +153,13 @@ PBC, which holds the copyright to Pointblank. Pointblank's license:
 
 ### Rust crates in the compiled extension
 
-The Python extension module includes the following crates, compiled in. Where a crate offers a
-choice that includes the MIT License, trialforge uses it under MIT; ryu is used under Apache-2.0.
+The Python extension module compiles in third-party Rust crates. Where a crate offers a choice of
+licenses that includes MIT, trialforge uses it under MIT, and otherwise under the license it
+gives. `THIRD_PARTY_LICENSES.txt`, which ships with this file in the wheels and the sdist
+(`python/` in the source repository), lists each crate with its version and license, and
+reproduces the license texts, copyright lines and NOTICE files the crates ship.
 
-<!--
-  This table reflects Cargo.lock at 0.1.0. MIT and Apache-2.0 both require shipping each crate's
-  license text (with its copyright lines) alongside the binary, and the table alone doesn't do
-  that. Before the release, generate the full texts (for example with cargo-about) into a file
-  the wheels include, and regenerate it whenever Cargo.lock changes.
--->
-
-| Crate | Version | License |
-|---|---|---|
-| ahash | 0.8.12 | MIT OR Apache-2.0 |
-| arrow-array | 59.3.0 | Apache-2.0 AND MIT |
-| arrow-buffer, arrow-data, arrow-ipc, arrow-schema, arrow-select | 59.3.0 | Apache-2.0 |
-| base64 | 0.23.1 | MIT OR Apache-2.0 |
-| bitflags | 2.13.2 | MIT OR Apache-2.0 |
-| bytes | 1.12.1 | MIT |
-| cfg-if | 1.0.5 | MIT OR Apache-2.0 |
-| chrono | 0.4.45 | MIT OR Apache-2.0 |
-| core-foundation-sys (macOS) | 0.8.7 | MIT OR Apache-2.0 |
-| equivalent | 1.0.2 | Apache-2.0 OR MIT |
-| flatbuffers | 25.12.19 | Apache-2.0 |
-| getrandom | 0.3.4 | MIT OR Apache-2.0 |
-| half | 2.7.1 | MIT OR Apache-2.0 |
-| hashbrown | 0.17.1 | MIT OR Apache-2.0 |
-| iana-time-zone | 0.1.65 | MIT OR Apache-2.0 |
-| indexmap | 2.14.2 | Apache-2.0 OR MIT |
-| itoa | 1.0.18 | MIT OR Apache-2.0 |
-| libc | 0.2.190 | MIT OR Apache-2.0 |
-| libm | 0.2.16 | MIT |
-| memchr | 2.8.3 | Unlicense OR MIT |
-| num-bigint | 0.5.1 | MIT OR Apache-2.0 |
-| num-complex | 0.4.6 | MIT OR Apache-2.0 |
-| num-integer | 0.1.47 | MIT OR Apache-2.0 |
-| num-traits | 0.2.19 | MIT OR Apache-2.0 |
-| once_cell | 1.21.4 | MIT OR Apache-2.0 |
-| parquet | 59.3.0 | Apache-2.0 |
-| ppv-lite86 | 0.2.21 | MIT OR Apache-2.0 |
-| pyo3, pyo3-ffi | 0.29.3 | MIT OR Apache-2.0 |
-| rand_chacha | 0.10.0 | MIT OR Apache-2.0 |
-| rand_core | 0.10.1 | MIT OR Apache-2.0 |
-| ryu | 1.0.23 | Apache-2.0 OR BSL-1.0 |
-| serde, serde_core | 1.0.229 | MIT OR Apache-2.0 |
-| serde_json | 1.0.154 | MIT OR Apache-2.0 |
-| serde_norway | 0.9.42 | MIT OR Apache-2.0 |
-| twox-hash | 2.1.5 | MIT |
-| unsafe-libyaml-norway | 0.2.15 | MIT |
-| windows-link (Windows) | 0.2.1 | MIT OR Apache-2.0 |
-| zerocopy | 0.8.62 | BSD-2-Clause OR Apache-2.0 OR MIT |
-| zmij | 1.0.23 | MIT |
-
-The Apache Arrow crates (arrow-\*, parquet) carry this notice:
+The Apache Arrow crates (arrow-\*, parquet), used under the Apache License 2.0, carry this notice:
 
     Apache Arrow
     Copyright 2016-2026 The Apache Software Foundation
