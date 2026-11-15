@@ -90,11 +90,17 @@ py-type-check: ## Type-check the Python package (pyright strict)
 	cd $(PY_DIR) && $(PYTHON) -m pyright
 
 .PHONY: py-check
-py-check: ## Python gate: ruff, pyright, pytest
+py-check: ## Python gate: ruff, pyright, pytest, the crate licenses file up to date
 	cd $(PY_DIR) && $(PYTHON) -m ruff format --check
 	cd $(PY_DIR) && $(PYTHON) -m ruff check
 	cd $(PY_DIR) && $(PYTHON) -m pyright
 	cd $(PY_DIR) && $(PYTHON) -m pytest
+	$(PYTHON) scripts/third_party_licenses.py --check
+
+# The wheels ship the license texts of the Rust crates compiled into the extension module.
+.PHONY: py-licenses
+py-licenses: ## Regenerate python/THIRD_PARTY_LICENSES.txt from Cargo.lock (after any dependency change)
+	$(PYTHON) scripts/third_party_licenses.py
 
 # The site's pages execute their code (against the package py-install built), so Quarto needs the
 # project venv's Jupyter kernel.
