@@ -33,6 +33,8 @@ jobs:
           cargo clippy -p trialforge-python -- -D warnings
       - name: tests
         run: cargo test --workspace --exclude trialforge-python --all-features
+      - name: Rust crate licenses for the wheels up to date with Cargo.lock
+        run: python3 scripts/third_party_licenses.py --check
 
   msrv:
     name: Rust MSRV (1.88)
