@@ -1,5 +1,10 @@
 # trialforge
 
+[![PyPI](https://img.shields.io/pypi/v/trialforge)](https://pypi.org/project/trialforge/)
+[![Python versions](https://img.shields.io/pypi/pyversions/trialforge)](https://pypi.org/project/trialforge/)
+[![CI](https://github.com/rich-iannone/trialforge/actions/workflows/ci.yml/badge.svg)](https://github.com/rich-iannone/trialforge/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+
 Synthetic CDISC clinical-trial data from declarative study specs: trial design datasets, SDTM,
 ADaM and define.xml for a complete mock study, with interpretable controls for many study
 types and output that is verified to be workable.
@@ -8,7 +13,8 @@ trialforge has a Rust core with Python and R bindings. The same spec and seed pr
 data in both languages.
 
 Documentation: [Python](https://rich-iannone.github.io/trialforge/) (user guide and reference)
-and [R](https://rich-iannone.github.io/trialforge/r/) (reference).
+and [R](https://rich-iannone.github.io/trialforge/r/) (reference). Release notes are in the
+[GitHub Releases](https://github.com/rich-iannone/trialforge/releases).
 
 > **Status: pre-alpha.** Thirteen archetypes generate a complete, verified study: trial design
 > (TA, TE, TV, TI, TS), SDTM (DM, SE, SV, EX, CM, AE + SUPPAE, DS, MH, LB, VS; TU, TR, RS for
@@ -20,20 +26,25 @@ and [R](https://rich-iannone.github.io/trialforge/r/) (reference).
 
 ## Installation
 
-trialforge is not on PyPI or CRAN yet. Both packages install from GitHub and compile the Rust
-core from source, so you need a Rust toolchain (≥ 1.88; [rustup](https://rustup.rs) is the
-easiest way to get one). The first build takes a few minutes.
+Python (≥ 3.10), from [PyPI](https://pypi.org/project/trialforge/):
 
-Python (≥ 3.10):
+```bash
+pip install "trialforge[pl]"
+```
+
+The `pl` extra installs Polars, the default output backend; use `pd` for pandas or `pa` for
+PyArrow instead, and add `verify` for Pointblank (`verify(level=3)`). Wheels cover Linux
+(x86_64, aarch64), macOS (Intel, Apple silicon) and Windows (x86_64); elsewhere pip builds from
+the source distribution, which needs a Rust toolchain (≥ 1.88; [rustup](https://rustup.rs) is
+the easiest way to get one). With uv, use `uv pip install` or `uv add` with the same
+requirement. The development version installs from GitHub, with the same toolchain:
 
 ```bash
 pip install "trialforge[pl] @ git+https://github.com/rich-iannone/trialforge#subdirectory=python"
 ```
 
-The `pl` extra installs Polars, the default output backend; use `pd` for pandas or `pa` for
-PyArrow instead. With uv, use `uv pip install` or `uv add` with the same requirement.
-
-R (≥ 4.2):
+R (≥ 4.2) isn't on CRAN yet. It installs from GitHub and compiles the Rust core from source, so
+it needs the same toolchain, and the first build takes a few minutes:
 
 ```r
 # install.packages("remotes")
@@ -42,6 +53,12 @@ remotes::install_github("rich-iannone/trialforge", subdir = "r", build = FALSE)
 
 `build = FALSE` matters: the R package compiles the engine crates from elsewhere in the
 repository, and building a source tarball first would leave them behind.
+
+The command-line tool isn't part of either package; build it with Cargo:
+
+```bash
+cargo install --locked --git https://github.com/rich-iannone/trialforge trialforge-cli
+```
 
 ## Usage
 
@@ -161,7 +178,8 @@ as_tibble(trial$adam$ADVS) |>
 write_submission(trial, "out/")
 ```
 
-Or describe the study in a spec file and use the command-line tool:
+Or describe the study in a spec file and use the command-line tool (see
+[Installation](#installation)):
 
 ```bash
 trialforge generate examples/hypertension.yaml -o out/
