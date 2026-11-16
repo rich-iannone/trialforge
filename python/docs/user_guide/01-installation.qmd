@@ -3,21 +3,21 @@ title: Installation
 guide-section: "Getting started"
 ---
 
-trialforge targets Python 3.10+. Once it is released on PyPI:
+trialforge targets Python 3.10+. Install it from [PyPI](https://pypi.org/project/trialforge/):
 
 ```bash
 pip install "trialforge[pl]"
 ```
 
-Until then, install it from GitHub. This compiles the Rust engine from source, so it needs a Rust
-toolchain (1.88 or later; [rustup](https://rustup.rs) is the easiest way to get one), and the
-first build takes a few minutes:
+With uv, use `uv pip install` or `uv add` with the same requirement.
+
+The development version installs from GitHub. This compiles the Rust engine from source, so it
+needs a Rust toolchain (1.88 or later; [rustup](https://rustup.rs) is the easiest way to get one),
+and the first build takes a few minutes:
 
 ```bash
 pip install "trialforge[pl] @ git+https://github.com/rich-iannone/trialforge#subdirectory=python"
 ```
-
-With uv, use `uv pip install` or `uv add` with the same requirement.
 
 ## Optional extras
 
@@ -57,7 +57,7 @@ tf.__version__, tf.core_version()
 
 ## Wheels
 
-Released wheels cover Python 3.10 and later (one abi3 wheel per platform) on Linux (x86_64 and
+The wheels on PyPI cover Python 3.10 and later (one abi3 wheel per platform) on Linux (x86_64 and
 aarch64), macOS (Intel and Apple silicon) and Windows (x86_64). Elsewhere pip builds from the
 source distribution, which needs the same Rust toolchain.
 
