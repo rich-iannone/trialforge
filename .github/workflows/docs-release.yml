@@ -1,0 +1,21 @@
+name: Docs (release)
+
+# The site's changelog page is built from the GitHub Releases, so publishing, editing or deleting
+# one rebuilds the site. The release event runs on the tag, and only main deploys to GitHub Pages,
+# so this starts the docs workflow on main rather than building here.
+
+on:
+  release:
+    types: [published, edited, deleted]
+
+permissions:
+  actions: write
+
+jobs:
+  rebuild:
+    name: Rebuild the docs on main
+    runs-on: ubuntu-latest
+    steps:
+      - run: gh workflow run docs.yml --repo "$GITHUB_REPOSITORY" --ref main
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
