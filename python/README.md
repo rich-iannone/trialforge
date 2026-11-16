@@ -29,7 +29,6 @@ Wheels cover Python ≥ 3.10 on Linux (x86_64, aarch64), macOS (Intel, Apple sil
 ## Usage
 
 ```python
-import polars as pl
 import trialforge as tf
 
 trial = tf.study("parallel_continuous", n=300, seed=1, indication="hypertension", weeks=12)
