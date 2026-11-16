@@ -5,6 +5,10 @@ name: Release (Python)
 # (`python-dist.yml`). To try all of that without publishing, run `dry-run-python.yml`. R
 # releases are tagged `r-v0.1.0` after CRAN accepts them, with no workflow.
 #
+# Once PyPI has the release, publish a GitHub Release on the tag with its notes (`gh release
+# create py-v0.1.0 --title "trialforge 0.1.0 (Python)" --notes-file notes.md`). The Releases are
+# the changelog: the docs site's changelog page is built from them (`docs-release.yml`).
+#
 # Publishing uses a PyPI API token in the repository secret `PYPI_API_TOKEN`.
 
 on:
