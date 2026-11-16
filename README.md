@@ -16,13 +16,13 @@ Documentation: [Python](https://rich-iannone.github.io/trialforge/) (user guide 
 and [R](https://rich-iannone.github.io/trialforge/r/) (reference). Release notes are in the
 [GitHub Releases](https://github.com/rich-iannone/trialforge/releases).
 
-> **Status: pre-alpha.** Thirteen archetypes generate a complete, verified study: trial design
-> (TA, TE, TV, TI, TS), SDTM (DM, SE, SV, EX, CM, AE + SUPPAE, DS, MH, LB, VS; TU, TR, RS for
-> oncology; PC, PP for pharmacokinetics; FT for functional tests; CE for clinical events; OE, SC
-> for ophthalmology; RE for respiratory; IS, FACE for vaccines) and ADaM (ADSL, ADAE, ADLB,
-> ADVS; ADRS, ADTTE, ADTR; ADPC, ADPP; ADADAS; ADBCVA; ADEXAC, ADRE; ADIS, ADCE, ADFACE), written
-> as XPT v5, CSV, Dataset-JSON 1.1 or Parquet, with a Define-XML 2.1 `define.xml` for each
-> standard.
+> **Status: alpha.** The API may change between releases. Thirteen archetypes generate a
+> complete, verified study: trial design (TA, TE, TV, TI, TS), SDTM (DM, SE, SV, EX, CM, AE +
+> SUPPAE, DS, MH, LB, VS; TU, TR, RS for oncology; PC, PP for pharmacokinetics; FT for functional
+> tests; CE for clinical events; OE, SC for ophthalmology; RE for respiratory; IS, FACE for
+> vaccines) and ADaM (ADSL, ADAE, ADLB, ADVS; ADRS, ADTTE, ADTR; ADPC, ADPP; ADADAS; ADBCVA;
+> ADEXAC, ADRE; ADIS, ADCE, ADFACE), written as XPT v5, CSV, Dataset-JSON 1.1 or Parquet, with a
+> Define-XML 2.1 `define.xml` for each standard.
 
 ## Installation
 

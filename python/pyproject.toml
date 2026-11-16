@@ -14,7 +14,7 @@ dynamic = ["version"]
 requires-python = ">=3.10"
 keywords = ["cdisc", "sdtm", "adam", "clinical trials", "synthetic data", "simulation", "pharma"]
 classifiers = [
-    "Development Status :: 2 - Pre-Alpha",
+    "Development Status :: 3 - Alpha",
     "Intended Audience :: Science/Research",
     "Intended Audience :: Healthcare Industry",
     "Intended Audience :: Developers",

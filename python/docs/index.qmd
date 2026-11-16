@@ -22,7 +22,7 @@ Synthetic data is useful wherever real patient data can't go: testing a validati
 building and demonstrating TLF programs, teaching CDISC standards, or exercising tools on study
 designs you don't have data for.
 
-> **Status: pre-alpha.** The API may change between releases.
+> **Status: alpha.** The API may change between releases.
 
 ## Why trialforge?
 

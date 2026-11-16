@@ -1,6 +1,6 @@
 """trialforge: synthetic CDISC clinical-trial data from declarative study specs.
 
-Pre-alpha. `study("parallel_continuous", ...)` generates a verified trial design, SDTM and ADaM
+Alpha. `study("parallel_continuous", ...)` generates a verified trial design, SDTM and ADaM
 study; `archetypes()` lists the study types and `controls()` what each accepts.
 """
 

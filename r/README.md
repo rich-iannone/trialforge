@@ -5,7 +5,7 @@ define.xml for a complete mock study, from a study type (an *archetype*) and a f
 controls. Every study is verified before it is returned, and the same request gives
 byte-identical files in R and Python.
 
-trialforge is pre-alpha. It currently provides:
+trialforge is alpha software: the API may change between releases. It currently provides:
 
 - thirteen archetypes, from parallel-group studies with a continuous endpoint to oncology
   (RECIST 1.1 and Lugano 2014), first-in-human PK, crossover bioequivalence, dose escalation,

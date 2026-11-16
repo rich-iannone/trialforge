@@ -10,7 +10,7 @@ package are at [github.com/rich-iannone/trialforge](https://github.com/rich-iann
 The documentation, a user guide and the API reference, is at
 [rich-iannone.github.io/trialforge](https://rich-iannone.github.io/trialforge/).
 
-> **Status: pre-alpha.** The API may change between releases.
+> **Status: alpha.** The API may change between releases.
 
 ## Installation
 
