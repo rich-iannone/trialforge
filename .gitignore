@@ -243,7 +243,6 @@ r/docs/
 # Top-level planning and agent docs
 /*.md
 !README.md
-!CHANGELOG.md
 !NOTICE.md
 .DS_Store
 .claude/
