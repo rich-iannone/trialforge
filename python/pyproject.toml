@@ -75,7 +75,7 @@ Homepage = "https://github.com/rich-iannone/trialforge"
 Documentation = "https://rich-iannone.github.io/trialforge/"
 Repository = "https://github.com/rich-iannone/trialforge"
 Issues = "https://github.com/rich-iannone/trialforge/issues"
-Changelog = "https://github.com/rich-iannone/trialforge/blob/main/CHANGELOG.md"
+Changelog = "https://github.com/rich-iannone/trialforge/releases"
 
 [tool.maturin]
 # The Python package is trialforge/, next to Cargo.toml; the extension module is trialforge._core.
