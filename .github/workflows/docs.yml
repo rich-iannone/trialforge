@@ -26,7 +26,7 @@ on:
       - "python/**"
       - "r/**"
       - ".github/workflows/docs.yml"
-  # Run by hand to refresh the site.
+  # Run by hand to refresh the site, and by docs-release.yml when a release changes.
   workflow_dispatch:
 
 # A newer push supersedes a PR's build, but a deployment from main always runs to the end.
@@ -67,9 +67,13 @@ jobs:
           uv pip install "git+https://github.com/posit-dev/great-docs.git@main"
       - name: Set up Quarto
         uses: quarto-dev/quarto-actions/setup@v2
-      # `--jobs auto` renders pages in several Quarto processes at once, one per CPU.
+      # `--jobs auto` renders pages in several Quarto processes at once, one per CPU. The changelog
+      # page is built from the GitHub Releases, read with the token (unauthenticated requests can
+      # hit the API's rate limit and leave it incomplete).
       - name: Build docs
         run: great-docs build --jobs auto
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Save docs artifact
         uses: actions/upload-artifact@v4
         with:
