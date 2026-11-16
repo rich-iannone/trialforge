@@ -18,9 +18,10 @@ custom_pages:
   dir: r_site
   output: r
 
-# Releases are recorded in CHANGELOG.md at the repository root, not as GitHub Releases.
+# The changelog page is generated from the GitHub Releases (`py-v*` and `r-v*` tags); Great Docs
+# adds it once there is a release.
 changelog:
-  enabled: false
+  enabled: true
 
 # Lucide icons prepended to user-guide sidebar entries (keyed by page title).
 nav_icons:
